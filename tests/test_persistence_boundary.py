@@ -69,20 +69,20 @@ class PersistenceBoundaryTest(unittest.TestCase):
         task = self.read(self.head, "hq/tasks/GITHUB_SHARED_HQ.json")
         artifact = {
             "taskId": "GITHUB_SHARED_HQ", "revision": 1, "sha256": SHA,
-            "releaseTag": "shared-hq-r01", "sourceCommit": HEAD_SHA,
+            "releaseTag": "shared-hq-r01", "sourceCommit": BASE_SHA,
             "builderGitHubLogin": "Lester-Sparx", "immutable": True,
         }
         state.update({
             "revision": 1, "mainCommit": BASE_SHA,
             "lastTransition": {
                 "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "Lester-Sparx",
-                "taskRevision": 1, "candidateCommit": HEAD_SHA,
+                "taskRevision": 1, "candidateCommit": BASE_SHA,
                 "artifactSha256": SHA, "previousRevision": 0,
             },
         })
         task.update({
             "revision": 1, "parentRevision": 0, "expectedMainCommit": BASE_SHA,
-            "candidateCommit": HEAD_SHA, "status": "ARTIFACT_REGISTERED",
+            "candidateCommit": BASE_SHA, "status": "ARTIFACT_REGISTERED",
             "builderGitHubLogin": "Lester-Sparx", "artifactSha256": SHA,
             "artifactReleaseTag": "shared-hq-r01",
         })
@@ -146,20 +146,20 @@ class PersistenceBoundaryTest(unittest.TestCase):
         task = self.read(self.head, "hq/tasks/GITHUB_SHARED_HQ.json")
         artifact = {
             "taskId": "GITHUB_SHARED_HQ", "revision": 1, "sha256": SHA,
-            "releaseTag": "shared-hq-r01", "sourceCommit": HEAD_SHA,
+            "releaseTag": "shared-hq-r01", "sourceCommit": BASE_SHA,
             "builderGitHubLogin": "Sparx-Owner-ZB", "immutable": True,
         }
         state.update({
             "revision": 1, "mainCommit": BASE_SHA,
             "lastTransition": {
                 "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "Sparx-Owner-ZB",
-                "taskRevision": 1, "candidateCommit": HEAD_SHA,
+                "taskRevision": 1, "candidateCommit": BASE_SHA,
                 "artifactSha256": SHA, "previousRevision": 0,
             },
         })
         task.update({
             "revision": 1, "parentRevision": 0, "expectedMainCommit": BASE_SHA,
-            "candidateCommit": HEAD_SHA, "status": "ARTIFACT_REGISTERED",
+            "candidateCommit": BASE_SHA, "status": "ARTIFACT_REGISTERED",
             "builderGitHubLogin": "Sparx-Owner-ZB", "artifactSha256": SHA,
             "artifactReleaseTag": "shared-hq-r01",
         })
@@ -209,20 +209,20 @@ class PersistenceBoundaryTest(unittest.TestCase):
         task = self.read(self.head, "hq/tasks/GITHUB_SHARED_HQ.json")
         artifact = {
             "taskId": "GITHUB_SHARED_HQ", "revision": 1, "sha256": SHA,
-            "releaseTag": "shared-hq-r01", "sourceCommit": HEAD_SHA,
+            "releaseTag": "shared-hq-r01", "sourceCommit": BASE_SHA,
             "builderGitHubLogin": "Lester-Sparx", "immutable": True,
         }
         state.update({
             "revision": 1, "mainCommit": BASE_SHA,
             "lastTransition": {
                 "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "Lester-Sparx",
-                "taskRevision": 1, "candidateCommit": HEAD_SHA,
+                "taskRevision": 1, "candidateCommit": BASE_SHA,
                 "artifactSha256": SHA, "previousRevision": 0,
             },
         })
         task.update({
             "revision": 1, "parentRevision": 0, "expectedMainCommit": BASE_SHA,
-            "candidateCommit": HEAD_SHA, "status": "ARTIFACT_REGISTERED",
+            "candidateCommit": BASE_SHA, "status": "ARTIFACT_REGISTERED",
             "builderGitHubLogin": "Lester-Sparx", "artifactSha256": SHA,
             "artifactReleaseTag": "shared-hq-r01",
         })

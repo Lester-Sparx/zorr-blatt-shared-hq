@@ -43,7 +43,7 @@ class OwnerLockPersistenceE2ETest(unittest.TestCase):
             # LESTER artifact transition.
             state = self.read(head, "hq/state/HQ_STATE.json")
             task = self.read(head, "hq/tasks/GITHUB_SHARED_HQ.json")
-            artifact_commit = "2" * 40
+            artifact_commit = "1" * 40
             artifact = {
                 "taskId": task["taskId"], "revision": 1, "sha256": ARTIFACT_SHA,
                 "releaseTag": "shared-hq-r01", "sourceCommit": artifact_commit,

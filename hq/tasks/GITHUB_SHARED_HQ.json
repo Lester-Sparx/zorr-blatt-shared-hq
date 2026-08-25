@@ -4,7 +4,7 @@
   "parentRevision": null,
   "expectedMainCommit": "0000000000000000000000000000000000000000",
   "candidateCommit": null,
-  "status": "IMPLEMENTATION_PENDING",
+  "status": "LOCKED",
   "builderGitHubLogin": null,
   "artifactSha256": null,
   "artifactReleaseTag": null,

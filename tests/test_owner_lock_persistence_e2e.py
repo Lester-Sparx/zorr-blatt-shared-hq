@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _support import ROOT
+from _support import ROOT, reset_control_fixture
 from hq_adapter import create_owner_lock, record_sha256, submit_review
 from hq_transition_validate import render_dashboard, validate_transition
 from hq_validate import validate_repository
@@ -38,6 +38,7 @@ class OwnerLockPersistenceE2ETest(unittest.TestCase):
             base = work / "base"
             head = work / "head"
             self.next_copy(ROOT, base)
+            reset_control_fixture(base)
             self.next_copy(base, head)
 
             # LESTER artifact transition.

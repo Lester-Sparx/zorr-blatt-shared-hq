@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _support import COMMIT, ROOT, SHA
+from _support import COMMIT, ROOT, SHA, reset_control_fixture
 from hq_adapter import HQError, record_sha256, submit_review
 from hq_transition_validate import render_dashboard, validate_transition
 
@@ -20,7 +20,8 @@ class PersistenceBoundaryTest(unittest.TestCase):
         self.base = Path(self.temp.name) / "base"
         self.head = Path(self.temp.name) / "head"
         shutil.copytree(ROOT, self.base, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        shutil.copytree(ROOT, self.head, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        reset_control_fixture(self.base)
+        shutil.copytree(self.base, self.head, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
 
     def tearDown(self):
         self.temp.cleanup()

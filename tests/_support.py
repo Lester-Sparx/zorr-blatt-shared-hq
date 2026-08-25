@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import sys
 from pathlib import Path
 
@@ -42,6 +43,20 @@ def base_state():
         "lockRecord": None,
     }
     return copy.deepcopy(state), copy.deepcopy(task)
+
+
+def reset_control_fixture(root: Path):
+    """Replace copied live control data with a deterministic revision-zero fixture."""
+    state, task = base_state()
+    (root / "hq/state/HQ_STATE.json").write_text(
+        json.dumps(state, indent=2) + "\n", encoding="utf-8"
+    )
+    (root / "hq/tasks/GITHUB_SHARED_HQ.json").write_text(
+        json.dumps(task, indent=2) + "\n", encoding="utf-8"
+    )
+    for namespace in ("artifacts", "reviews", "locks"):
+        for record in (root / "hq" / namespace).rglob("*.json"):
+            record.unlink()
 
 
 def registered_task():

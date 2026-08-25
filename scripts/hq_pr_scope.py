@@ -33,7 +33,8 @@ def file_entries(root: Path) -> dict[str, tuple[str, bytes]]:
         if stat.S_ISLNK(mode):
             result[key] = ("symlink", os.readlink(path).encode("utf-8"))
         elif stat.S_ISREG(mode):
-            result[key] = ("regular", path.read_bytes())
+            git_kind = "regular-executable" if mode & 0o111 else "regular"
+            result[key] = (git_kind, path.read_bytes())
         elif not stat.S_ISDIR(mode):
             result[key] = ("non-regular", b"")
     return result

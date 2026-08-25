@@ -172,7 +172,7 @@ def validate_transition(base: Path, head: Path, *, actor: str, base_sha: str, he
             raise HQError("REVIEW KIND/PATH MISMATCH")
         expected_task, computed = submit_review(
             base_task, actor=actor, kind=record_kind, result=record["result"],
-            report_sha256=record["reportSha256"], roles=roles,
+            report=record["report"], roles=roles,
         )
         if computed != record:
             raise HQError("REVIEW RECORD DOES NOT MATCH AUTHENTICATED TRANSITION")

@@ -73,3 +73,11 @@ def registered_task():
         "artifactSha256": SHA, "artifactReleaseTag": "shared-hq-r01",
     })
     return state, task
+
+
+def review_report(kind: str, result: str):
+    return {
+        "format": "ZB_QC_REPORT_V1" if kind == "QC" else "ZB_ARCHITECTURE_REPORT_V1",
+        "overallResult": result,
+        "checks": [{"id": "fixture_check", "result": "PASS"}],
+    }

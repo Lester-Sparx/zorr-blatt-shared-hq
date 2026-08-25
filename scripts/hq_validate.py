@@ -92,6 +92,22 @@ def reject_production_values(value: Any, path: str = "$") -> None:
             reject_production_values(child, f"{path}[{index}]")
 
 
+def validate_review_evidence(review: dict[str, Any]) -> None:
+    report = review.get("report")
+    if not isinstance(report, dict):
+        raise HQError("REVIEW REPORT MISSING")
+    expected_format = {
+        "QC": "ZB_QC_REPORT_V1",
+        "ARCHITECTURE": "ZB_ARCHITECTURE_REPORT_V1",
+    }.get(review.get("kind"))
+    if report.get("format") != expected_format:
+        raise HQError("REVIEW KIND/REPORT FORMAT MISMATCH")
+    if review.get("reportSha256") != record_sha256(report):
+        raise HQError("REVIEW REPORT SHA256 MISMATCH")
+    if review.get("result") != report.get("overallResult"):
+        raise HQError("REVIEW RESULT/REPORT RESULT MISMATCH")
+
+
 def validate_repository(root: Path = ROOT) -> None:
     state = validate_file(root / "hq/state/HQ_STATE.json", root / "schemas/hq-state.schema.json")
     task = validate_file(root / "hq/tasks/GITHUB_SHARED_HQ.json", root / "schemas/task.schema.json")
@@ -141,6 +157,7 @@ def validate_repository(root: Path = ROOT) -> None:
         if directory.exists():
             for path in directory.rglob("*.json"):
                 record = validate_file(path, root / "schemas/review.schema.json")
+                validate_review_evidence(record)
                 expected_kind = "QC" if namespace == "qc" else "ARCHITECTURE"
                 expected = directory / record["taskId"] / f"r{record['revision']:02d}" / f"{record['reviewerGitHubLogin']}.json"
                 if record["kind"] != expected_kind or path != expected:

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _support import COMMIT, ROOT, SHA, reset_control_fixture
+from _support import COMMIT, ROOT, SHA, reset_control_fixture, review_report
 from hq_adapter import HQError, record_sha256, submit_review
 from hq_transition_validate import render_dashboard, validate_transition
 
@@ -121,8 +121,10 @@ class PersistenceBoundaryTest(unittest.TestCase):
         review = {
             "kind": "ARCHITECTURE", "taskId": task["taskId"], "revision": task["revision"],
             "candidateCommit": task["candidateCommit"], "artifactSha256": task["artifactSha256"],
-            "reviewerGitHubLogin": "Duncan-Sparx-ZB", "result": "ACCEPTED", "reportSha256": "D" * 64,
+            "reviewerGitHubLogin": "Duncan-Sparx-ZB", "result": "ACCEPTED",
+            "report": review_report("ARCHITECTURE", "ACCEPTED"),
         }
+        review["reportSha256"] = record_sha256(review["report"])
         task["architectureReview"] = record_sha256(review)
         task["expectedMainCommit"] = BASE_SHA
         state["lastTransition"] = {
@@ -189,8 +191,10 @@ class PersistenceBoundaryTest(unittest.TestCase):
                 review = {
                     "kind": "QC", "taskId": task["taskId"], "revision": task["revision"],
                     "candidateCommit": task["candidateCommit"], "artifactSha256": task["artifactSha256"],
-                    "reviewerGitHubLogin": "Duncan-Sparx-ZB", "result": "PASS", "reportSha256": "C" * 64,
+                    "reviewerGitHubLogin": "Duncan-Sparx-ZB", "result": "PASS",
+                    "report": review_report("QC", "PASS"),
                 }
+                review["reportSha256"] = record_sha256(review["report"])
                 review[stale_field] = stale_value
                 task.update({"status": "QC_PASS", "qcReview": record_sha256(review), "expectedMainCommit": BASE_SHA})
                 state["lastTransition"] = {
@@ -248,7 +252,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
         roles = {"OWNER": "Sparx-Owner-ZB", "LESTER": "Lester-Sparx", "DUNCAN": "Duncan-Sparx-ZB", "DJANGO": "Django-Sparx-ZB"}
         task, qc = submit_review(
             task, actor="Duncan-Sparx-ZB", kind="QC", result="PASS",
-            report_sha256="C" * 64, roles=roles,
+            report=review_report("QC", "PASS"), roles=roles,
         )
         task["expectedMainCommit"] = BASE_SHA
         state.update({
@@ -268,6 +272,48 @@ class PersistenceBoundaryTest(unittest.TestCase):
         self.dashboard(self.head, state, task)
         with self.assertRaisesRegex(HQError, "NON-JSON FILE"):
             validate_transition(self.base, self.head, actor="Duncan-Sparx-ZB", base_sha=BASE_SHA, head_sha=HEAD_SHA)
+
+    def test_embedded_qc_report_tampering_is_rejected(self):
+        self.make_registered(self.base)
+        roles = {
+            "OWNER": "Sparx-Owner-ZB", "LESTER": "Lester-Sparx",
+            "DUNCAN": "Duncan-Sparx-ZB", "DJANGO": "Django-Sparx-ZB",
+        }
+        for mutation, message in (("digest", "REPORT SHA256"), ("result", "RESULT")):
+            with self.subTest(mutation=mutation):
+                shutil.rmtree(self.head)
+                shutil.copytree(self.base, self.head)
+                state = self.read(self.head, "hq/state/HQ_STATE.json")
+                task = self.read(self.head, "hq/tasks/GITHUB_SHARED_HQ.json")
+                task, review = submit_review(
+                    task, actor="Duncan-Sparx-ZB", kind="QC", result="PASS",
+                    report=review_report("QC", "PASS"), roles=roles,
+                )
+                if mutation == "digest":
+                    review["reportSha256"] = "C" * 64
+                else:
+                    review["result"] = "FAIL"
+                task.update({
+                    "status": "QC_PASS", "qcReview": record_sha256(review),
+                    "expectedMainCommit": BASE_SHA,
+                })
+                state.update({
+                    "mainCommit": BASE_SHA,
+                    "lastTransition": {
+                        "kind": "QC_RECORDED", "actorGitHubLogin": "Duncan-Sparx-ZB",
+                        "taskRevision": 1, "candidateCommit": COMMIT,
+                        "artifactSha256": SHA, "previousRevision": 1,
+                    },
+                })
+                self.write(self.head, "hq/reviews/qc/GITHUB_SHARED_HQ/r01/Duncan-Sparx-ZB.json", review)
+                self.write(self.head, "hq/state/HQ_STATE.json", state)
+                self.write(self.head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
+                self.dashboard(self.head, state, task)
+                with self.assertRaisesRegex(HQError, message):
+                    validate_transition(
+                        self.base, self.head, actor="Duncan-Sparx-ZB",
+                        base_sha=BASE_SHA, head_sha=HEAD_SHA,
+                    )
 
 
 if __name__ == "__main__": unittest.main()

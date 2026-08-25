@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _support import ROOT, reset_control_fixture
+from _support import ROOT, reset_control_fixture, review_report
 from hq_adapter import create_owner_lock, record_sha256, submit_review
 from hq_transition_validate import render_dashboard, validate_transition
 from hq_validate import validate_repository
@@ -75,7 +75,7 @@ class OwnerLockPersistenceE2ETest(unittest.TestCase):
             self.next_copy(base, head)
             state = self.read(head, "hq/state/HQ_STATE.json")
             task = self.read(head, "hq/tasks/GITHUB_SHARED_HQ.json")
-            task, qc = submit_review(task, actor="Duncan-Sparx-ZB", kind="QC", result="PASS", report_sha256="C" * 64, roles=ROLES)
+            task, qc = submit_review(task, actor="Duncan-Sparx-ZB", kind="QC", result="PASS", report=review_report("QC", "PASS"), roles=ROLES)
             task["expectedMainCommit"] = "3" * 40
             state.update({
                 "mainCommit": "3" * 40,
@@ -96,7 +96,7 @@ class OwnerLockPersistenceE2ETest(unittest.TestCase):
             self.next_copy(base, head)
             state = self.read(head, "hq/state/HQ_STATE.json")
             task = self.read(head, "hq/tasks/GITHUB_SHARED_HQ.json")
-            task, architecture = submit_review(task, actor="Django-Sparx-ZB", kind="ARCHITECTURE", result="ACCEPTED", report_sha256="D" * 64, roles=ROLES)
+            task, architecture = submit_review(task, actor="Django-Sparx-ZB", kind="ARCHITECTURE", result="ACCEPTED", report=review_report("ARCHITECTURE", "ACCEPTED"), roles=ROLES)
             task["expectedMainCommit"] = "5" * 40
             state.update({
                 "mainCommit": "5" * 40,

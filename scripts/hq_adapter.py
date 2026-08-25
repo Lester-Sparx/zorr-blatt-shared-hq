@@ -157,7 +157,7 @@ def register_artifact(
 
 def submit_review(
     task: Mapping[str, Any], *, actor: str, kind: str, result: str,
-    report_sha256: str, roles: Mapping[str, str] | None = None,
+    report: Mapping[str, Any], roles: Mapping[str, str] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     registry = role_registry() if roles is None else dict(roles)
     if task.get("status") not in {"ARTIFACT_REGISTERED", "QC_PASS", "QC_PARTIAL", "QC_FAIL"}:
@@ -166,15 +166,19 @@ def submit_review(
         raise HQError("CURRENT ARTIFACT/COMMIT BINDING REQUIRED BEFORE REVIEW")
     required_role = {"QC": "DUNCAN", "ARCHITECTURE": "DJANGO"}.get(kind)
     allowed = {"QC": {"PASS", "PARTIAL", "FAIL"}, "ARCHITECTURE": {"ACCEPTED", "CHANGES_REQUIRED"}}
-    if required_role is None or result not in allowed[kind] or not SHA256_RE.fullmatch(report_sha256):
+    if required_role is None or result not in allowed[kind] or not isinstance(report, Mapping):
         raise HQError("INVALID REVIEW")
+    if report.get("overallResult") != result:
+        raise HQError("REVIEW RESULT/REPORT RESULT MISMATCH")
     require_role(actor, required_role, registry)
     if actor == task["builderGitHubLogin"]:
         raise HQError("SELF REVIEW FORBIDDEN")
+    embedded_report = copy.deepcopy(dict(report))
     review = {
         "kind": kind, "taskId": task["taskId"], "revision": task["revision"],
         "candidateCommit": task["candidateCommit"], "artifactSha256": task["artifactSha256"],
-        "reviewerGitHubLogin": actor, "result": result, "reportSha256": report_sha256,
+        "reviewerGitHubLogin": actor, "result": result, "report": embedded_report,
+        "reportSha256": record_sha256(embedded_report),
     }
     new_task = copy.deepcopy(task)
     key = "qcReview" if kind == "QC" else "architectureReview"

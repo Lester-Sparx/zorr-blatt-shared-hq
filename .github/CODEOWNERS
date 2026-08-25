@@ -1,6 +1,6 @@
-/.github/zb/roles.yml @zb-owner
-/.github/zb/hq-policy.yml @zb-owner
-/.github/workflows/ @zb-owner
-/hq/policy/ @zb-owner
-/schemas/ @zb-owner
-/scripts/ @zb-owner
+/.github/zb/roles.yml @Sparx-Owner-ZB
+/.github/zb/hq-policy.yml @Sparx-Owner-ZB
+/.github/workflows/ @Sparx-Owner-ZB
+/hq/policy/ @Sparx-Owner-ZB
+/schemas/ @Sparx-Owner-ZB
+/scripts/ @Sparx-Owner-ZB

@@ -42,6 +42,44 @@ class PullRequestScopeTest(unittest.TestCase):
             self.write(head, ".git/HEAD", "head")
             self.assertFalse(classify(base, head, "transition"))
 
+    def test_authoritative_regular_file_replaced_by_symlink_is_classified(self):
+        temp, base, head = self.roots()
+        with temp:
+            relative = "hq/tasks/GITHUB_SHARED_HQ.json"
+            self.write(base, relative, "{}")
+            target = base / relative
+            link = head / relative
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(target)
+            self.assertTrue(classify(base, head, "transition"))
+            self.assertTrue(classify(base, head, "artifact"))
+
+    def test_authoritative_record_replaced_by_symlink_is_classified(self):
+        temp, base, head = self.roots()
+        with temp:
+            relative = "hq/reviews/review.json"
+            self.write(base, relative, "{}")
+            target = base / relative
+            link = head / relative
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(target)
+            self.assertTrue(classify(base, head, "transition"))
+            self.assertTrue(classify(base, head, "artifact"))
+
+    def test_mixed_code_and_symlink_mutation_uses_strict_path(self):
+        temp, base, head = self.roots()
+        with temp:
+            self.write(base, "scripts/tool.py", "old")
+            self.write(head, "scripts/tool.py", "new")
+            relative = "hq/tasks/GITHUB_SHARED_HQ.json"
+            self.write(base, relative, "{}")
+            target = base / relative
+            link = head / relative
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(target)
+            self.assertTrue(classify(base, head, "transition"))
+            self.assertTrue(classify(base, head, "artifact"))
+
 
 if __name__ == "__main__":
     unittest.main()

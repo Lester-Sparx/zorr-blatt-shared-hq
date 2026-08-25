@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import stat
 from pathlib import Path
 
 
@@ -15,21 +17,30 @@ RECORD_PREFIXES = ("hq/artifacts/", "hq/reviews/", "hq/locks/")
 DASHBOARD = "hq/dashboard/HQ_STATUS.md"
 
 
-def file_bytes(root: Path) -> dict[str, bytes]:
-    result: dict[str, bytes] = {}
+def file_entries(root: Path) -> dict[str, tuple[str, bytes]]:
+    """Snapshot path type and bytes without following untrusted symlinks."""
+    result: dict[str, tuple[str, bytes]] = {}
     for path in root.rglob("*"):
+        relative = path.relative_to(root)
         if (
-            path.is_file()
-            and ".git" not in path.parts
-            and "__pycache__" not in path.parts
-            and path.suffix != ".pyc"
+            ".git" in relative.parts
+            or "__pycache__" in relative.parts
+            or path.suffix == ".pyc"
         ):
-            result[path.relative_to(root).as_posix()] = path.read_bytes()
+            continue
+        mode = path.lstat().st_mode
+        key = relative.as_posix()
+        if stat.S_ISLNK(mode):
+            result[key] = ("symlink", os.readlink(path).encode("utf-8"))
+        elif stat.S_ISREG(mode):
+            result[key] = ("regular", path.read_bytes())
+        elif not stat.S_ISDIR(mode):
+            result[key] = ("non-regular", b"")
     return result
 
 
 def changed_files(base: Path, head: Path) -> set[str]:
-    before, after = file_bytes(base), file_bytes(head)
+    before, after = file_entries(base), file_entries(head)
     return {
         path
         for path in set(before) | set(after)

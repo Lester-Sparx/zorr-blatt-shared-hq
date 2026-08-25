@@ -154,14 +154,14 @@ def validate_transition(base: Path, head: Path, *, actor: str, base_sha: str, he
     if record_kind == "ARTIFACT":
         if roles["LESTER"] != actor:
             raise HQError("AUTHENTICATED LESTER REQUIRED FOR ARTIFACT TRANSITION")
-        if record["builderGitHubLogin"] != actor or record["sourceCommit"] != head_sha:
-            raise HQError("ARTIFACT CREATOR/PR HEAD BINDING FAIL")
+        if record["builderGitHubLogin"] != actor or record["sourceCommit"] != base_sha:
+            raise HQError("ARTIFACT CREATOR/PROTECTED BASE BINDING FAIL")
         if record["revision"] != previous_revision + 1 or record["taskId"] != base_task["taskId"]:
             raise HQError("ARTIFACT REVISION BINDING FAIL")
         expected_state["revision"] = record["revision"]
         expected_task.update({
             "revision": record["revision"], "parentRevision": previous_revision,
-            "expectedMainCommit": base_sha, "candidateCommit": head_sha,
+            "expectedMainCommit": base_sha, "candidateCommit": base_sha,
             "status": "ARTIFACT_REGISTERED", "builderGitHubLogin": actor,
             "artifactSha256": record["sha256"], "artifactReleaseTag": record["releaseTag"],
             "qcReview": None, "architectureReview": None, "lockRecord": None,

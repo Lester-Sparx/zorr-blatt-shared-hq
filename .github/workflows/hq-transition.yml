@@ -12,11 +12,18 @@ jobs:
         with: {ref: "${{ github.event.pull_request.base.sha }}", path: base}
       - uses: actions/checkout@v4
         with: {ref: "${{ github.event.pull_request.head.sha }}", path: head}
+      - name: Classify PR using protected-main code
+        id: scope
+        run: echo "transition=$(PYTHONPATH=base/scripts python3 base/scripts/hq_pr_scope.py --base base --head head --kind transition)" >> "$GITHUB_OUTPUT"
       - name: Protected-main validator checks untrusted PR data
+        if: steps.scope.outputs.transition == 'true'
         env:
           GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: PYTHONPATH=base/scripts python3 base/scripts/hq_transition_validate.py --base base --head head --base-sha "$GITHUB_BASE_SHA" --head-sha "$GITHUB_HEAD_SHA"
+      - name: Control-plane code PR has no state-transition authority
+        if: steps.scope.outputs.transition == 'false'
+        run: echo "CONTROL-PLANE CODE PR · STATE TRANSITION NOT APPLICABLE"
   hq-revision-cas:
     runs-on: ubuntu-latest
     steps: *trusted-transition

@@ -47,12 +47,17 @@ def base_state():
 
 def reset_control_fixture(root: Path):
     """Replace copied live control data with a deterministic revision-zero fixture."""
+    from hq_transition_validate import render_dashboard
+
     state, task = base_state()
     (root / "hq/state/HQ_STATE.json").write_text(
         json.dumps(state, indent=2) + "\n", encoding="utf-8"
     )
     (root / "hq/tasks/GITHUB_SHARED_HQ.json").write_text(
         json.dumps(task, indent=2) + "\n", encoding="utf-8"
+    )
+    (root / "hq/dashboard/HQ_STATUS.md").write_bytes(
+        render_dashboard(state, task)
     )
     for namespace in ("artifacts", "reviews", "locks"):
         for record in (root / "hq" / namespace).rglob("*.json"):

@@ -1,0 +1,9 @@
+{
+  "taskId": "GITHUB_SHARED_HQ",
+  "revision": 1,
+  "sha256": "226E40EE55B1E98706C7A5C4C6B3C781097F04BBA3F42ED1E53B889BE3189233",
+  "releaseTag": "shared-hq-v0-r03",
+  "sourceCommit": "f2d823149fcd6f97f0cac8739a944eeefcb88ae0",
+  "builderGitHubLogin": "Lester-Sparx",
+  "immutable": true
+}

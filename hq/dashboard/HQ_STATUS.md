@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Gate | `GITHUB_SHARED_HQ` |
-| HQ revision | `r00` |
-| Status | `IMPLEMENTATION_PENDING` |
-| Builder | `PENDING` |
-| Artifact | `PENDING` |
+| HQ revision | `r01` |
+| Status | `ARTIFACT_REGISTERED` |
+| Builder | `Lester-Sparx` |
+| Artifact | `226E40EE55B1E98706C7A5C4C6B3C781097F04BBA3F42ED1E53B889BE3189233` |
 | Duncan QC | `PENDING` |
 | Django architecture | `PENDING` |
 | Owner lock | `PENDING` |

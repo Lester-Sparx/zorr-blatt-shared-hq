@@ -8,17 +8,39 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from hq_adapter import load_json  # noqa: E402
-
-
 ROLES = {"OWNER": "owner", "LESTER": "lester", "DUNCAN": "duncan", "DJANGO": "django"}
 COMMIT = "a" * 40
 SHA = "B" * 64
 
 
 def base_state():
-    state = load_json(ROOT / "hq/state/HQ_STATE.json")
-    task = load_json(ROOT / "hq/tasks/GITHUB_SHARED_HQ.json")
+    # Unit tests must never inherit the mutable live repository state.  A real
+    # artifact/review transition intentionally advances that state, while the
+    # tests below exercise deterministic revision-zero fixtures.
+    state = {
+        "schemaVersion": 1,
+        "project": "ZORR BLATT",
+        "revision": 0,
+        "mainCommit": "0" * 40,
+        "currentTask": "GITHUB_SHARED_HQ",
+        "currentGate": "GITHUB_SHARED_HQ",
+        "blockedGates": ["G2", "VOICE_TO_SHOT"],
+        "lastTransition": None,
+    }
+    task = {
+        "taskId": "GITHUB_SHARED_HQ",
+        "revision": 0,
+        "parentRevision": None,
+        "expectedMainCommit": "0" * 40,
+        "candidateCommit": None,
+        "status": "IMPLEMENTATION_PENDING",
+        "builderGitHubLogin": None,
+        "artifactSha256": None,
+        "artifactReleaseTag": None,
+        "qcReview": None,
+        "architectureReview": None,
+        "lockRecord": None,
+    }
     return copy.deepcopy(state), copy.deepcopy(task)
 
 

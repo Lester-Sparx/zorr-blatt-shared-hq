@@ -22,7 +22,7 @@ jobs:
         run: |
           RELEASE_TAG="$(PYTHONPATH=base/scripts python3 base/scripts/hq_adapter.py release-tag --task head/hq/tasks/GITHUB_SHARED_HQ.json)"
           mkdir -p "$RUNNER_TEMP/hq-artifact"
-          gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/hq-artifact"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/hq-artifact"
       - name: Require exactly one release asset to match registered SHA256
         if: steps.scope.outputs.artifact == 'true'
         run: PYTHONPATH=base/scripts python3 base/scripts/hq_adapter.py verify-release-directory --artifact-root "$RUNNER_TEMP/hq-artifact" --task head/hq/tasks/GITHUB_SHARED_HQ.json

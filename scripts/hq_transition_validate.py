@@ -44,7 +44,7 @@ def json_records(root: Path) -> dict[str, dict[str, Any]]:
 def file_bytes(root: Path) -> dict[str, bytes]:
     result: dict[str, bytes] = {}
     for path in root.rglob("*"):
-        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
+        if path.is_file() and ".git" not in path.parts and "__pycache__" not in path.parts and path.suffix != ".pyc":
             result[path.relative_to(root).as_posix()] = path.read_bytes()
     return result
 

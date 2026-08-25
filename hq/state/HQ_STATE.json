@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "project": "ZORR BLATT",
+  "revision": 0,
+  "mainCommit": "0000000000000000000000000000000000000000",
+  "currentTask": "GITHUB_SHARED_HQ",
+  "currentGate": "GITHUB_SHARED_HQ",
+  "blockedGates": ["G2", "VOICE_TO_SHOT"],
+  "lastTransition": null
+}

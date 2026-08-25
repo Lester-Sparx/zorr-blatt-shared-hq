@@ -1,0 +1,14 @@
+{
+  "taskId": "GITHUB_SHARED_HQ",
+  "revision": 0,
+  "parentRevision": null,
+  "expectedMainCommit": "0000000000000000000000000000000000000000",
+  "candidateCommit": null,
+  "status": "IMPLEMENTATION_PENDING",
+  "builderGitHubLogin": null,
+  "artifactSha256": null,
+  "artifactReleaseTag": null,
+  "qcReview": null,
+  "architectureReview": null,
+  "lockRecord": null
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "project", "revision", "mainCommit", "currentTask", "currentGate", "blockedGates", "lastTransition"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "project": {"const": "ZORR BLATT"},
+    "revision": {"type": "integer", "minimum": 0},
+    "mainCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "currentTask": {"const": "GITHUB_SHARED_HQ"},
+    "currentGate": {"const": "GITHUB_SHARED_HQ"},
+    "blockedGates": {"type": "array", "items": {"enum": ["G2", "VOICE_TO_SHOT"]}},
+    "lastTransition": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "actorGitHubLogin", "taskRevision", "candidateCommit", "artifactSha256", "previousRevision"],
+          "properties": {
+            "kind": {"enum": ["ARTIFACT_REGISTERED", "QC_RECORDED", "ARCHITECTURE_RECORDED", "OWNER_LOCKED"]},
+            "actorGitHubLogin": {"type": "string", "minLength": 1},
+            "taskRevision": {"type": "integer", "minimum": 1},
+            "candidateCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+            "artifactSha256": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
+            "previousRevision": {"type": "integer", "minimum": 0}
+          }
+        }
+      ]
+    }
+  }
+}

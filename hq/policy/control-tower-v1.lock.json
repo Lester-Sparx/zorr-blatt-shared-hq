@@ -1,0 +1,7 @@
+{
+  "artifact": "ZB_CONTROL_TOWER_v1_METADATA_BOUNDARY_LOCAL_FIX_QC.zip",
+  "releaseTag": "control-tower-v1-locked",
+  "sha256": "AAADF06A0B64AF27F8E205596D09369705F36974CEED27DA05890DEA465A59EE",
+  "immutable": true,
+  "usage": "EXTERNAL_ENFORCEMENT_REFERENCE_ONLY"
+}

@@ -1,0 +1,23 @@
+name: hq-artifact-verify
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  hq-artifact-sha:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: "${{ github.event.pull_request.base.sha }}", path: base}
+      - uses: actions/checkout@v4
+        with: {ref: "${{ github.event.pull_request.head.sha }}", path: head}
+      - name: Resolve validated release tag using protected-main code
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_TAG="$(PYTHONPATH=base/scripts python3 base/scripts/hq_adapter.py release-tag --task head/hq/tasks/GITHUB_SHARED_HQ.json)"
+          mkdir -p "$RUNNER_TEMP/hq-artifact"
+          gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/hq-artifact"
+      - name: Require exactly one release asset to match registered SHA256
+        run: PYTHONPATH=base/scripts python3 base/scripts/hq_adapter.py verify-release-directory --artifact-root "$RUNNER_TEMP/hq-artifact" --task head/hq/tasks/GITHUB_SHARED_HQ.json

@@ -1,0 +1,31 @@
+name: hq-transition
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  hq-role-separation:
+    runs-on: ubuntu-latest
+    steps: &trusted-transition
+      - uses: actions/checkout@v4
+        with: {ref: "${{ github.event.pull_request.base.sha }}", path: base}
+      - uses: actions/checkout@v4
+        with: {ref: "${{ github.event.pull_request.head.sha }}", path: head}
+      - name: Protected-main validator checks untrusted PR data
+        env:
+          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: PYTHONPATH=base/scripts python3 base/scripts/hq_transition_validate.py --base base --head head --base-sha "$GITHUB_BASE_SHA" --head-sha "$GITHUB_HEAD_SHA"
+  hq-revision-cas:
+    runs-on: ubuntu-latest
+    steps: *trusted-transition
+  hq-review-binding:
+    runs-on: ubuntu-latest
+    steps: *trusted-transition
+  hq-lock-eligibility:
+    runs-on: ubuntu-latest
+    steps: *trusted-transition
+
+# pull_request_target executes this workflow definition and validator from
+# protected base. Untrusted PR code is read as data and is never executed.

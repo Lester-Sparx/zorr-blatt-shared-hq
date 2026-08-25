@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["taskId", "revision", "artifactSha256", "candidateCommit", "qcReportSha256", "architectureReportSha256", "ownerGitHubLogin", "ownerDecisionTimestamp", "baseMainCommit"],
+  "properties": {
+    "taskId": {"type": "string"}, "revision": {"type": "integer", "minimum": 1},
+    "artifactSha256": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
+    "candidateCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "qcReportSha256": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
+    "architectureReportSha256": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
+    "ownerGitHubLogin": {"type": "string", "minLength": 1},
+    "ownerDecisionTimestamp": {"type": "string", "minLength": 1},
+    "baseMainCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+  }
+}

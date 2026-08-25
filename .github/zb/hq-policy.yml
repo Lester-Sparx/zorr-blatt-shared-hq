@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "protectedBranch": "main",
+  "controlTowerSha256": "AAADF06A0B64AF27F8E205596D09369705F36974CEED27DA05890DEA465A59EE",
+  "requiredChecks": [
+    "hq-schema",
+    "hq-role-separation",
+    "hq-scope-guard",
+    "hq-control-tower-integrity",
+    "hq-artifact-sha",
+    "hq-revision-cas",
+    "hq-review-binding",
+    "hq-lock-eligibility"
+  ],
+  "blockedGates": ["G2", "VOICE_TO_SHOT"],
+  "productionWritesForbidden": true
+}

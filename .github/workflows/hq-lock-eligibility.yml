@@ -1,0 +1,23 @@
+name: hq-lock-eligibility
+on:
+  workflow_dispatch:
+    inputs:
+      owner_timestamp: {description: "Owner decision timestamp (ISO-8601)", required: true, type: string}
+permissions:
+  contents: read
+jobs:
+  owner-lock-proposal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticated OWNER creates data-only proposal
+        env:
+          OWNER_TIMESTAMP: ${{ inputs.owner_timestamp }}
+        run: python3 scripts/hq_adapter.py prepare-owner-lock --timestamp "$OWNER_TIMESTAMP" --output "$RUNNER_TEMP/owner-lock-proposal"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: owner-lock-proposal
+          path: ${{ runner.temp }}/owner-lock-proposal
+
+# The proposal must still be committed to a branch, checked by the protected-base
+# transition validator and merged through required PR checks. It never writes main.

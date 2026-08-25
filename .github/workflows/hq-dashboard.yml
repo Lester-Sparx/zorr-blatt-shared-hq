@@ -1,0 +1,18 @@
+name: hq-dashboard
+on:
+  push:
+    branches: [main]
+    paths: ["hq/state/**", "hq/tasks/**", "hq/reviews/**", "hq/locks/**"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render-read-only-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/hq_render_dashboard.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hq-status
+          path: hq/dashboard/HQ_STATUS.md

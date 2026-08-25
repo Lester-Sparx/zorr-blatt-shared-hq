@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["taskId", "revision", "sha256", "releaseTag", "sourceCommit", "builderGitHubLogin", "immutable"],
+  "properties": {
+    "taskId": {"type": "string"}, "revision": {"type": "integer", "minimum": 1},
+    "sha256": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
+    "releaseTag": {"type": "string", "minLength": 1},
+    "sourceCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "builderGitHubLogin": {"type": "string", "minLength": 1}, "immutable": {"const": true}
+  }
+}

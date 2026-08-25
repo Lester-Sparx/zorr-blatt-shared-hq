@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["taskId", "revision", "parentRevision", "expectedMainCommit", "candidateCommit", "status", "builderGitHubLogin", "artifactSha256", "artifactReleaseTag", "qcReview", "architectureReview", "lockRecord"],
+  "properties": {
+    "taskId": {"const": "GITHUB_SHARED_HQ"},
+    "revision": {"type": "integer", "minimum": 0},
+    "parentRevision": {"type": ["integer", "null"]},
+    "expectedMainCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "candidateCommit": {"type": ["string", "null"], "pattern": "^[a-f0-9]{40}$"},
+    "status": {"enum": ["IMPLEMENTATION_PENDING", "ARTIFACT_REGISTERED", "QC_PASS", "QC_PARTIAL", "QC_FAIL", "LOCK_ELIGIBLE", "LOCKED"]},
+    "builderGitHubLogin": {"type": ["string", "null"]},
+    "artifactSha256": {"type": ["string", "null"], "pattern": "^[A-F0-9]{64}$"},
+    "artifactReleaseTag": {"type": ["string", "null"]},
+    "qcReview": {"type": ["string", "null"]},
+    "architectureReview": {"type": ["string", "null"]},
+    "lockRecord": {"type": ["string", "null"]}
+  }
+}

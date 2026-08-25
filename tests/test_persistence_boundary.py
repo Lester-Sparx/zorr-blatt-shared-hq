@@ -42,7 +42,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
         state.update({
             "revision": 1, "mainCommit": BASE_SHA,
             "lastTransition": {
-                "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "zb-lester",
+                "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "Lester-Sparx",
                 "taskRevision": 1, "candidateCommit": COMMIT,
                 "artifactSha256": SHA, "previousRevision": 0,
             },
@@ -50,13 +50,13 @@ class PersistenceBoundaryTest(unittest.TestCase):
         task.update({
             "revision": 1, "parentRevision": 0, "expectedMainCommit": BASE_SHA,
             "candidateCommit": COMMIT, "status": "ARTIFACT_REGISTERED",
-            "builderGitHubLogin": "zb-lester", "artifactSha256": SHA,
+            "builderGitHubLogin": "Lester-Sparx", "artifactSha256": SHA,
             "artifactReleaseTag": "shared-hq-r01",
         })
         artifact = {
             "taskId": "GITHUB_SHARED_HQ", "revision": 1, "sha256": SHA,
             "releaseTag": "shared-hq-r01", "sourceCommit": COMMIT,
-            "builderGitHubLogin": "zb-lester", "immutable": True,
+            "builderGitHubLogin": "Lester-Sparx", "immutable": True,
         }
         self.write(root, "hq/state/HQ_STATE.json", state)
         self.write(root, "hq/tasks/GITHUB_SHARED_HQ.json", task)
@@ -70,12 +70,12 @@ class PersistenceBoundaryTest(unittest.TestCase):
         artifact = {
             "taskId": "GITHUB_SHARED_HQ", "revision": 1, "sha256": SHA,
             "releaseTag": "shared-hq-r01", "sourceCommit": HEAD_SHA,
-            "builderGitHubLogin": "zb-lester", "immutable": True,
+            "builderGitHubLogin": "Lester-Sparx", "immutable": True,
         }
         state.update({
             "revision": 1, "mainCommit": BASE_SHA,
             "lastTransition": {
-                "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "zb-lester",
+                "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "Lester-Sparx",
                 "taskRevision": 1, "candidateCommit": HEAD_SHA,
                 "artifactSha256": SHA, "previousRevision": 0,
             },
@@ -83,7 +83,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
         task.update({
             "revision": 1, "parentRevision": 0, "expectedMainCommit": BASE_SHA,
             "candidateCommit": HEAD_SHA, "status": "ARTIFACT_REGISTERED",
-            "builderGitHubLogin": "zb-lester", "artifactSha256": SHA,
+            "builderGitHubLogin": "Lester-Sparx", "artifactSha256": SHA,
             "artifactReleaseTag": "shared-hq-r01",
         })
         self.write(self.head, f"hq/artifacts/{SHA}.json", artifact)
@@ -91,7 +91,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
         self.write(self.head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
         self.dashboard(self.head, state, task)
         self.assertEqual(validate_transition(
-            self.base, self.head, actor="zb-lester", base_sha=BASE_SHA, head_sha=HEAD_SHA
+            self.base, self.head, actor="Lester-Sparx", base_sha=BASE_SHA, head_sha=HEAD_SHA
         ), "ARTIFACT_REGISTERED")
 
     def test_direct_qc_architecture_and_lock_claims_are_rejected(self):
@@ -109,7 +109,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
                 self.write(self.head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
                 self.dashboard(self.head, state, task)
                 with self.assertRaises(HQError):
-                    validate_transition(self.base, self.head, actor="zb-lester", base_sha=BASE_SHA, head_sha=HEAD_SHA)
+                    validate_transition(self.base, self.head, actor="Lester-Sparx", base_sha=BASE_SHA, head_sha=HEAD_SHA)
 
     def test_wrong_role_and_stale_review_evidence_are_rejected(self):
         self.make_registered(self.base)
@@ -120,26 +120,26 @@ class PersistenceBoundaryTest(unittest.TestCase):
         review = {
             "kind": "ARCHITECTURE", "taskId": task["taskId"], "revision": task["revision"],
             "candidateCommit": task["candidateCommit"], "artifactSha256": task["artifactSha256"],
-            "reviewerGitHubLogin": "zb-duncan", "result": "ACCEPTED", "reportSha256": "D" * 64,
+            "reviewerGitHubLogin": "Duncan-Sparx-ZB", "result": "ACCEPTED", "reportSha256": "D" * 64,
         }
         task["architectureReview"] = record_sha256(review)
         task["expectedMainCommit"] = BASE_SHA
         state["lastTransition"] = {
-            "kind": "ARCHITECTURE_RECORDED", "actorGitHubLogin": "zb-duncan",
+            "kind": "ARCHITECTURE_RECORDED", "actorGitHubLogin": "Duncan-Sparx-ZB",
             "taskRevision": 1, "candidateCommit": COMMIT, "artifactSha256": SHA,
             "previousRevision": 1,
         }
-        self.write(self.head, "hq/reviews/architecture/GITHUB_SHARED_HQ/r01/zb-duncan.json", review)
+        self.write(self.head, "hq/reviews/architecture/GITHUB_SHARED_HQ/r01/Duncan-Sparx-ZB.json", review)
         self.write(self.head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
         self.write(self.head, "hq/state/HQ_STATE.json", state)
         self.dashboard(self.head, state, task)
         with self.assertRaises(HQError):
-            validate_transition(self.base, self.head, actor="zb-duncan", base_sha=BASE_SHA, head_sha=HEAD_SHA)
+            validate_transition(self.base, self.head, actor="Duncan-Sparx-ZB", base_sha=BASE_SHA, head_sha=HEAD_SHA)
 
-        review["reviewerGitHubLogin"] = "zb-django"
+        review["reviewerGitHubLogin"] = "Django-Sparx-ZB"
         review["candidateCommit"] = "d" * 40
         with self.assertRaises(HQError):
-            validate_transition(self.base, self.head, actor="zb-django", base_sha=BASE_SHA, head_sha=HEAD_SHA)
+            validate_transition(self.base, self.head, actor="Django-Sparx-ZB", base_sha=BASE_SHA, head_sha=HEAD_SHA)
 
     def test_owner_cannot_act_as_lester_and_dashboard_has_no_authority(self):
         state = self.read(self.head, "hq/state/HQ_STATE.json")
@@ -147,12 +147,12 @@ class PersistenceBoundaryTest(unittest.TestCase):
         artifact = {
             "taskId": "GITHUB_SHARED_HQ", "revision": 1, "sha256": SHA,
             "releaseTag": "shared-hq-r01", "sourceCommit": HEAD_SHA,
-            "builderGitHubLogin": "zb-owner", "immutable": True,
+            "builderGitHubLogin": "Sparx-Owner-ZB", "immutable": True,
         }
         state.update({
             "revision": 1, "mainCommit": BASE_SHA,
             "lastTransition": {
-                "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "zb-owner",
+                "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "Sparx-Owner-ZB",
                 "taskRevision": 1, "candidateCommit": HEAD_SHA,
                 "artifactSha256": SHA, "previousRevision": 0,
             },
@@ -160,7 +160,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
         task.update({
             "revision": 1, "parentRevision": 0, "expectedMainCommit": BASE_SHA,
             "candidateCommit": HEAD_SHA, "status": "ARTIFACT_REGISTERED",
-            "builderGitHubLogin": "zb-owner", "artifactSha256": SHA,
+            "builderGitHubLogin": "Sparx-Owner-ZB", "artifactSha256": SHA,
             "artifactReleaseTag": "shared-hq-r01",
         })
         self.write(self.head, f"hq/artifacts/{SHA}.json", artifact)
@@ -168,12 +168,12 @@ class PersistenceBoundaryTest(unittest.TestCase):
         self.write(self.head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
         self.dashboard(self.head, state, task)
         with self.assertRaisesRegex(HQError, "LESTER"):
-            validate_transition(self.base, self.head, actor="zb-owner", base_sha=BASE_SHA, head_sha=HEAD_SHA)
+            validate_transition(self.base, self.head, actor="Sparx-Owner-ZB", base_sha=BASE_SHA, head_sha=HEAD_SHA)
 
         shutil.rmtree(self.head)
         shutil.copytree(self.base, self.head)
         self.assertEqual(validate_transition(
-            self.base, self.head, actor="zb-lester", base_sha=BASE_SHA, head_sha=HEAD_SHA
+            self.base, self.head, actor="Lester-Sparx", base_sha=BASE_SHA, head_sha=HEAD_SHA
         ), "DASHBOARD_ONLY")
 
     def test_old_review_copied_to_new_commit_or_artifact_is_rejected(self):
@@ -188,21 +188,21 @@ class PersistenceBoundaryTest(unittest.TestCase):
                 review = {
                     "kind": "QC", "taskId": task["taskId"], "revision": task["revision"],
                     "candidateCommit": task["candidateCommit"], "artifactSha256": task["artifactSha256"],
-                    "reviewerGitHubLogin": "zb-duncan", "result": "PASS", "reportSha256": "C" * 64,
+                    "reviewerGitHubLogin": "Duncan-Sparx-ZB", "result": "PASS", "reportSha256": "C" * 64,
                 }
                 review[stale_field] = stale_value
                 task.update({"status": "QC_PASS", "qcReview": record_sha256(review), "expectedMainCommit": BASE_SHA})
                 state["lastTransition"] = {
-                    "kind": "QC_RECORDED", "actorGitHubLogin": "zb-duncan",
+                    "kind": "QC_RECORDED", "actorGitHubLogin": "Duncan-Sparx-ZB",
                     "taskRevision": task["revision"], "candidateCommit": task["candidateCommit"],
                     "artifactSha256": task["artifactSha256"], "previousRevision": task["revision"],
                 }
-                self.write(self.head, "hq/reviews/qc/GITHUB_SHARED_HQ/r01/zb-duncan.json", review)
+                self.write(self.head, "hq/reviews/qc/GITHUB_SHARED_HQ/r01/Duncan-Sparx-ZB.json", review)
                 self.write(self.head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
                 self.write(self.head, "hq/state/HQ_STATE.json", state)
                 self.dashboard(self.head, state, task)
                 with self.assertRaises(HQError):
-                    validate_transition(self.base, self.head, actor="zb-duncan", base_sha=BASE_SHA, head_sha=HEAD_SHA)
+                    validate_transition(self.base, self.head, actor="Duncan-Sparx-ZB", base_sha=BASE_SHA, head_sha=HEAD_SHA)
 
     def test_valid_artifact_transition_plus_hidden_non_json_payload_is_rejected(self):
         state = self.read(self.head, "hq/state/HQ_STATE.json")
@@ -210,12 +210,12 @@ class PersistenceBoundaryTest(unittest.TestCase):
         artifact = {
             "taskId": "GITHUB_SHARED_HQ", "revision": 1, "sha256": SHA,
             "releaseTag": "shared-hq-r01", "sourceCommit": HEAD_SHA,
-            "builderGitHubLogin": "zb-lester", "immutable": True,
+            "builderGitHubLogin": "Lester-Sparx", "immutable": True,
         }
         state.update({
             "revision": 1, "mainCommit": BASE_SHA,
             "lastTransition": {
-                "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "zb-lester",
+                "kind": "ARTIFACT_REGISTERED", "actorGitHubLogin": "Lester-Sparx",
                 "taskRevision": 1, "candidateCommit": HEAD_SHA,
                 "artifactSha256": SHA, "previousRevision": 0,
             },
@@ -223,7 +223,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
         task.update({
             "revision": 1, "parentRevision": 0, "expectedMainCommit": BASE_SHA,
             "candidateCommit": HEAD_SHA, "status": "ARTIFACT_REGISTERED",
-            "builderGitHubLogin": "zb-lester", "artifactSha256": SHA,
+            "builderGitHubLogin": "Lester-Sparx", "artifactSha256": SHA,
             "artifactReleaseTag": "shared-hq-r01",
         })
         self.write(self.head, f"hq/artifacts/{SHA}.json", artifact)
@@ -234,7 +234,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
         )
         self.dashboard(self.head, state, task)
         with self.assertRaisesRegex(HQError, "NON-JSON FILE"):
-            validate_transition(self.base, self.head, actor="zb-lester", base_sha=BASE_SHA, head_sha=HEAD_SHA)
+            validate_transition(self.base, self.head, actor="Lester-Sparx", base_sha=BASE_SHA, head_sha=HEAD_SHA)
 
     def test_next_valid_qc_transition_modifying_existing_unknown_file_is_rejected(self):
         state, task = self.make_registered(self.base)
@@ -244,21 +244,21 @@ class PersistenceBoundaryTest(unittest.TestCase):
         shutil.copytree(self.base, self.head)
         state = self.read(self.head, "hq/state/HQ_STATE.json")
         task = self.read(self.head, "hq/tasks/GITHUB_SHARED_HQ.json")
-        roles = {"OWNER": "zb-owner", "LESTER": "zb-lester", "DUNCAN": "zb-duncan", "DJANGO": "zb-django"}
+        roles = {"OWNER": "Sparx-Owner-ZB", "LESTER": "Lester-Sparx", "DUNCAN": "Duncan-Sparx-ZB", "DJANGO": "Django-Sparx-ZB"}
         task, qc = submit_review(
-            task, actor="zb-duncan", kind="QC", result="PASS",
+            task, actor="Duncan-Sparx-ZB", kind="QC", result="PASS",
             report_sha256="C" * 64, roles=roles,
         )
         task["expectedMainCommit"] = BASE_SHA
         state.update({
             "mainCommit": BASE_SHA,
             "lastTransition": {
-                "kind": "QC_RECORDED", "actorGitHubLogin": "zb-duncan",
+                "kind": "QC_RECORDED", "actorGitHubLogin": "Duncan-Sparx-ZB",
                 "taskRevision": 1, "candidateCommit": COMMIT,
                 "artifactSha256": SHA, "previousRevision": 1,
             },
         })
-        self.write(self.head, "hq/reviews/qc/GITHUB_SHARED_HQ/r01/zb-duncan.json", qc)
+        self.write(self.head, "hq/reviews/qc/GITHUB_SHARED_HQ/r01/Duncan-Sparx-ZB.json", qc)
         self.write(self.head, "hq/state/HQ_STATE.json", state)
         self.write(self.head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
         (self.head / "hq/artifacts/hidden-production.txt").write_text(
@@ -266,7 +266,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
         )
         self.dashboard(self.head, state, task)
         with self.assertRaisesRegex(HQError, "NON-JSON FILE"):
-            validate_transition(self.base, self.head, actor="zb-duncan", base_sha=BASE_SHA, head_sha=HEAD_SHA)
+            validate_transition(self.base, self.head, actor="Duncan-Sparx-ZB", base_sha=BASE_SHA, head_sha=HEAD_SHA)
 
 
 if __name__ == "__main__": unittest.main()

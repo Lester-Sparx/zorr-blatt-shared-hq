@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -m unittest tests/test_scope_guard.py -v
+      - run: python3 -m unittest discover -s tests -p 'test_scope_guard.py' -v
   hq-control-tower-integrity:
     runs-on: ubuntu-latest
     steps:

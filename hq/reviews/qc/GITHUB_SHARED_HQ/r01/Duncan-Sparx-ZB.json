@@ -1,0 +1,56 @@
+{
+  "kind": "QC",
+  "taskId": "GITHUB_SHARED_HQ",
+  "revision": 1,
+  "candidateCommit": "f2d823149fcd6f97f0cac8739a944eeefcb88ae0",
+  "artifactSha256": "226E40EE55B1E98706C7A5C4C6B3C781097F04BBA3F42ED1E53B889BE3189233",
+  "reviewerGitHubLogin": "Duncan-Sparx-ZB",
+  "result": "PASS",
+  "report": {
+    "format": "ZB_QC_REPORT_V1",
+    "overallResult": "PASS",
+    "checks": [
+      {
+        "id": "protected_base_exact",
+        "result": "PASS",
+        "observed": "a545bd2ec45ff2412be4f123a59c2ed82bd039e6"
+      },
+      {
+        "id": "candidate_binding",
+        "result": "PASS",
+        "observed": "f2d823149fcd6f97f0cac8739a944eeefcb88ae0"
+      },
+      {
+        "id": "release_asset",
+        "result": "PASS",
+        "observed": "shared-hq-v0-r03/ZB_GITHUB_SHARED_HQ_v0_LIVE_R03.zip; 43848 bytes"
+      },
+      {
+        "id": "artifact_sha256",
+        "result": "PASS",
+        "observed": "226E40EE55B1E98706C7A5C4C6B3C781097F04BBA3F42ED1E53B889BE3189233"
+      },
+      {
+        "id": "zip_integrity",
+        "result": "PASS",
+        "observed": "unzip -t: no errors"
+      },
+      {
+        "id": "repository_validation",
+        "result": "PASS",
+        "observed": "production release artifact validation PASS"
+      },
+      {
+        "id": "full_suite",
+        "result": "PASS",
+        "observed": "production release artifact: 27/27 PASS; protected base: 34/34 PASS"
+      },
+      {
+        "id": "negative_paths",
+        "result": "PASS",
+        "observed": "role separation, self-QC, stale evidence, scope guard, hidden payload and no-auto-lock paths rejected"
+      }
+    ]
+  },
+  "reportSha256": "E20CC6686A950957E1071160D39CE5EE9D7327E82631B8EB673CDC861F228A48"
+}

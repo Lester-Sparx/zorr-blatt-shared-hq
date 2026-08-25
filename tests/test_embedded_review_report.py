@@ -59,6 +59,20 @@ class EmbeddedReviewReportTest(unittest.TestCase):
         with self.assertRaisesRegex(HQError, "RESULT"):
             validate_review_evidence(review)
 
+    def test_validator_rejects_report_format_mismatched_with_review_kind(self):
+        _, task = registered_task()
+        architecture_report = {
+            **QC_REPORT,
+            "format": "ZB_ARCHITECTURE_REPORT_V1",
+        }
+        _, review = submit_review(
+            task, actor="duncan", kind="QC", result="PASS",
+            report=architecture_report, roles=ROLES,
+        )
+
+        with self.assertRaisesRegex(HQError, "FORMAT"):
+            validate_review_evidence(review)
+
     def test_schema_requires_and_accepts_structured_embedded_report(self):
         _, task = registered_task()
         _, review = submit_review(

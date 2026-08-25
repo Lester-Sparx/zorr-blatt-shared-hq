@@ -96,6 +96,12 @@ def validate_review_evidence(review: dict[str, Any]) -> None:
     report = review.get("report")
     if not isinstance(report, dict):
         raise HQError("REVIEW REPORT MISSING")
+    expected_format = {
+        "QC": "ZB_QC_REPORT_V1",
+        "ARCHITECTURE": "ZB_ARCHITECTURE_REPORT_V1",
+    }.get(review.get("kind"))
+    if report.get("format") != expected_format:
+        raise HQError("REVIEW KIND/REPORT FORMAT MISMATCH")
     if review.get("reportSha256") != record_sha256(report):
         raise HQError("REVIEW REPORT SHA256 MISMATCH")
     if review.get("result") != report.get("overallResult"):

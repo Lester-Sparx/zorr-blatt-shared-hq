@@ -80,6 +80,30 @@ class PullRequestScopeTest(unittest.TestCase):
             self.assertTrue(classify(base, head, "transition"))
             self.assertTrue(classify(base, head, "artifact"))
 
+    def test_authoritative_mode_only_change_is_classified(self):
+        temp, base, head = self.roots()
+        with temp:
+            relative = "hq/tasks/GITHUB_SHARED_HQ.json"
+            self.write(base, relative, "{}")
+            self.write(head, relative, "{}")
+            (base / relative).chmod(0o644)
+            (head / relative).chmod(0o755)
+            self.assertTrue(classify(base, head, "transition"))
+            self.assertTrue(classify(base, head, "artifact"))
+
+    def test_mixed_code_and_authoritative_mode_change_uses_strict_path(self):
+        temp, base, head = self.roots()
+        with temp:
+            self.write(base, "scripts/tool.py", "old")
+            self.write(head, "scripts/tool.py", "new")
+            relative = "hq/tasks/GITHUB_SHARED_HQ.json"
+            self.write(base, relative, "{}")
+            self.write(head, relative, "{}")
+            (base / relative).chmod(0o644)
+            (head / relative).chmod(0o755)
+            self.assertTrue(classify(base, head, "transition"))
+            self.assertTrue(classify(base, head, "artifact"))
+
 
 if __name__ == "__main__":
     unittest.main()

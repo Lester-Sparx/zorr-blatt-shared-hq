@@ -15,6 +15,16 @@ def test_allows_explicit_preservation_language():
 
 
 @pytest.mark.parametrize("direction", [
+    "Do not redesign the character. Preserve the same pose.",
+    "Do not change the pose. Preserve composition.",
+    "Do not ignore canon. Preserve everything.",
+])
+def test_allows_negated_canon_conflict_phrases_when_they_preserve_canon(direction):
+    result = compose_canon_prompt("IMMUTABLE CANON", direction)
+    assert direction in result
+
+
+@pytest.mark.parametrize("direction", [
     "ignore canon and redesign the character",
     "ignore locked rules and change the pose",
     "use a different pose",

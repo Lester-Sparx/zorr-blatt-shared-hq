@@ -213,7 +213,24 @@ DASHBOARD = PROJECTION, NOT SOURCE OF TRUTH
 
 The delivery model changes scheduling, feedback cadence, proof strategy and routing discipline. It does not collapse P1–P6 governance gates or authorize V0, Studio-S, SALVADOR tasks, P1 implementation, P2, OWNER LOCK, G2, Voice-to-Shot or production activation by itself.
 
-No dashboard path is asserted here until an actual dashboard artifact exists in Shared HQ.
+---
+
+## 5B. SPARX Dashboard projection
+
+Canonical human dashboard path:
+
+```text
+docs/ZB_SPARX_DASHBOARD.md
+```
+
+Semantic role:
+
+```text
+SPARX DASHBOARD = HUMAN PROJECTION OF CURRENT / HANDOFF / SIGNAL / EVIDENCE
+DASHBOARD ≠ SOURCE OF TRUTH
+```
+
+The dashboard exposes `NOW / DONE / BLOCKED / NEXT / OWNER REQUIRED / ETA TO NEXT VISUAL` for fast human reading. If it disagrees with canonical checkpoint/evidence sources, the canonical source wins and the dashboard must be regenerated or corrected.
 
 ---
 

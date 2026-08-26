@@ -25,13 +25,37 @@ _CONFLICT_PHRASES = (
 )
 
 
+_NEGATION_PREFIXES = (
+    "do not",
+    "don't",
+    "never",
+    "not",
+    "не",
+)
+
+
+def _is_explicitly_negated(text: str, phrase_start: int) -> bool:
+    prefix = text[:phrase_start].rstrip()
+    return any(prefix.endswith(marker) for marker in _NEGATION_PREFIXES)
+
+
+def _contains_affirmative_conflict(text: str) -> bool:
+    for phrase in _CONFLICT_PHRASES:
+        start = text.find(phrase)
+        while start >= 0:
+            if not _is_explicitly_negated(text, start):
+                return True
+            start = text.find(phrase, start + 1)
+    return False
+
+
 def compose_canon_prompt(canon_prompt: str, direction: str) -> str:
     canon = str(canon_prompt).strip()
     task_direction = str(direction).strip()
     if not canon or not task_direction:
         raise CanonPolicyError("SALVADOR_CANON_CONFLICT")
     lowered = task_direction.casefold()
-    if any(phrase in lowered for phrase in _CONFLICT_PHRASES):
+    if _contains_affirmative_conflict(lowered):
         raise CanonPolicyError("SALVADOR_CANON_CONFLICT")
     return (
         canon

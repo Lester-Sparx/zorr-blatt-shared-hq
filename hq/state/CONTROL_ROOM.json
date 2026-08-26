@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-26T13:08:00Z",
+  "currentGate": "LESTER CONTROL ROOM R01 BUILD",
+  "alert": {
+    "level": "NONE",
+    "title": "",
+    "message": "",
+    "action": ""
+  },
+  "agents": [
+    {
+      "id": "SPARX",
+      "status": "ACTIVE",
+      "currentWork": "Project direction and owner decisions on demand",
+      "nextTrigger": "SPARX_ACTION_REQUIRED"
+    },
+    {
+      "id": "JINGO",
+      "status": "ACTIVE",
+      "currentWork": "Control Room R01 coordination",
+      "nextTrigger": "LESTER_CONTROL_ROOM_READY"
+    },
+    {
+      "id": "LESTER",
+      "status": "ACTIVE",
+      "currentWork": "Build ZB Control Room R01",
+      "nextTrigger": "LESTER_CONTROL_ROOM_READY"
+    },
+    {
+      "id": "DUNCAN",
+      "status": "WAITING",
+      "currentWork": "Independent Control Room QC queued",
+      "nextTrigger": "LESTER_CONTROL_ROOM_READY"
+    },
+    {
+      "id": "SALVADOR",
+      "status": "WAITING",
+      "currentWork": "No Control Room assignment",
+      "nextTrigger": "JINGO assignment"
+    },
+    {
+      "id": "LYNCH",
+      "status": "PROPOSED",
+      "currentWork": "No Control Room assignment",
+      "nextTrigger": "JINGO assignment"
+    }
+  ]
+}

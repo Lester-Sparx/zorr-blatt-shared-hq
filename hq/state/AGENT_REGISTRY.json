@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "project": "ZORR BLATT",
+  "authority": "SPARX",
+  "router": "JINGO",
+  "wakeProtocol": "docs/team/ZB_AGENT_WAKE_PROTOCOL_R01.md",
+  "agents": {
+    "JINGO": {
+      "role": "TEAM LEAD / MENTOR / CROSS-DEPARTMENT COORDINATOR",
+      "currentPointer": "hq/state/JINGO_CURRENT.json",
+      "wakeCommand": "JINGO, WAKE."
+    },
+    "LESTER": {
+      "role": "IMPLEMENTER / ENGINEER",
+      "currentPointer": "hq/state/LESTER_CURRENT.json",
+      "wakeCommand": "LESTER, WAKE."
+    },
+    "DUNCAN": {
+      "role": "INDEPENDENT QC / ARCHITECTURE / PROOF",
+      "currentPointer": "hq/state/DUNCAN_CURRENT.json",
+      "wakeCommand": "DUNCAN, WAKE."
+    },
+    "SALVADOR": {
+      "role": "ART DIRECTOR / VISUAL PRODUCTION SUPERVISOR",
+      "currentPointer": "hq/state/SALVADOR_CURRENT.json",
+      "wakeCommand": "SALVADOR, WAKE."
+    },
+    "LYNCH": {
+      "role": "DIRECTOR / SCENE STAGING / CINEMATIC BLOCKING",
+      "currentPointer": "hq/state/LYNCH_CURRENT.json",
+      "wakeCommand": "LYNCH, WAKE.",
+      "roleStatus": "PROPOSED / TRIAL REQUIRED"
+    }
+  }
+}

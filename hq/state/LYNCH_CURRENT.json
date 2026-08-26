@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "agentId": "LYNCH",
+  "role": "DIRECTOR / SCENE STAGING / CINEMATIC BLOCKING",
+  "roleStatus": "PROPOSED / TRIAL REQUIRED",
+  "wakeCommand": "LYNCH, WAKE.",
+  "status": "HOLD",
+  "reason": "Role proposal is durable, but practical trial has not yet been authorized on a specific approved ZB scene.",
+  "activeScope": null,
+  "nextTrigger": "SPARX/JINGO selects one already-approved ZB scene for LYNCH DIRECTING PASS",
+  "nextAction": "On wake before authorization, report HOLD and do not invent canon, scenes, assets, story events or production changes.",
+  "directingLaw": "DRAMA -> BLOCKING -> CAMERA",
+  "ownerLock": false
+}

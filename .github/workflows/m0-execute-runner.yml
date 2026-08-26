@@ -1,0 +1,79 @@
+name: m0-execute-runner
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/m0-execute-runner.yml"
+      - "experiments/m0/**"
+
+permissions:
+  contents: read
+
+jobs:
+  m0-motion-truth-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout M0 spike branch
+        uses: actions/checkout@v4
+
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Show toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          npm --version
+
+      - name: Execute deterministic Motion Truth / Action Truth proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          node experiments/m0/motion_truth_probe.mjs m0-report.json | tee m0-console.txt
+          test -s m0-report.json
+          grep -q '"result": "PASS"' m0-report.json
+          grep -q '"pose_equal": true' m0-report.json
+          grep -q '"motion_truth_distinct": true' m0-report.json
+          grep -q '"action_truth_distinct": true' m0-report.json
+          grep -q '"unchanged": true' m0-report.json
+          grep -q '"deterministic_repeat": true' m0-report.json
+
+      - name: Verify evidence digest and key invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "M0_REPORT_BYTES=$(stat -c%s m0-report.json)"
+          echo "M0_REPORT_SHA256=$(sha256sum m0-report.json | awk '{print $1}')"
+          node - <<'NODE'
+          const fs = require('fs');
+          const r = JSON.parse(fs.readFileSync('m0-report.json','utf8'));
+          if (r.result !== 'PASS') throw new Error('M0 result not PASS');
+          if (!r.body_dna.unchanged) throw new Error('Body DNA mutated');
+          if (!r.pose_counterexample.pose_equal) throw new Error('Pose control mismatch');
+          if (!r.pose_counterexample.motion_truth_distinct) throw new Error('Motion Truth failed to distinguish same pose');
+          if (!r.pose_counterexample.action_truth_distinct) throw new Error('Action Truth failed to distinguish same pose');
+          if (!r.deterministic_repeat) throw new Error('Determinism repeat missing');
+          if (r.phase_order.join('>') !== 'PREPARE>LOAD>LAUNCH>AIR_TRANSFER>CONTACT>RECOVERY') throw new Error('Phase order mismatch');
+          if (r.landing_event_order.join('>') !== 'FIRST_CONTACT>LOAD_ACCEPTANCE>COM_DECELERATION>JOINT_COMPRESSION>TORSO_RESPONSE>SECONDARY_CONTACT>FOOT_SETTLE>STABILIZATION') throw new Error('Landing mechanics mismatch');
+          console.log('M0_INVARIANTS=PASS');
+          NODE
+
+      - name: Print M0 evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat m0-report.json
+
+      - name: Upload M0 proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: m0-motion-truth-report
+          path: |
+            m0-report.json
+            m0-console.txt
+          if-no-files-found: error

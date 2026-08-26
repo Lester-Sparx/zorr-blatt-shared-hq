@@ -96,6 +96,77 @@ After Phase B, a new chat/actor session should be able to restore project contex
 
 ---
 
+## 3A. Accelerated delivery after project-memory closure
+
+Canonical delivery model:
+
+```text
+docs/superpowers/specs/2026-08-26-zb-accelerated-delivery-model-r01.md
+```
+
+Scheduling law:
+
+```text
+PARALLEL SCHEDULING DOES NOT COLLAPSE GOVERNANCE GATES.
+```
+
+The coarse accelerated sequence is:
+
+```text
+CHECKPOINT PHASE A
+→ CHECKPOINT PHASE B
+→ RESUME TINY P1 RUNTIME BOOTSTRAP
+→ SEPARATE P1 IMPLEMENTATION GATE
+```
+
+After project-memory closure, separately authorized parallel lanes may reduce idle waiting:
+
+```text
+CORE ENGINEERING
+VISUAL TRUTH PREPARATION
+V0 DISPOSABLE VISUAL SANDBOX
+STUDIO-S REUSE / PROBES
+```
+
+These lanes do not silently authorize one another.
+
+```text
+V0 = DISPOSABLE_PROOF / NON_CANONICAL
+NO DIRECT SOURCE-CODE PROMOTION V0 → P5
+STUDIO-S* DOES NOT AUTHORIZE P*
+P* DOES NOT SILENTLY AUTHORIZE STUDIO-S*
+```
+
+P2 should expose the earliest safe spatial feedback through the first visual milestone:
+
+```text
+CHARACTER MEASUREMENTS / APPROVED INPUT
+→ ZB BODY SOLVE
+→ WHITE PROXY
+→ VISIBLE FRAME
+```
+
+The early vertical slice is proof-only:
+
+```text
+CHARACTER MEASUREMENTS
+→ BODY PROXY
+→ SIMPLE MOTION
+→ SIMPLE CAMERA
+→ BABYLON
+→ FRAME
+
+VERTICAL SLICE PASS
+≠ P2 COMPLETE
+≠ P3 COMPLETE
+≠ P4 COMPLETE
+≠ P5 APPROVED
+```
+
+Every spike/sandbox/probe must define PASS criteria, KILL criteria and a scope/work box before implementation. Reaching a kill criterion stops the proof rather than triggering indefinite polishing.
+
+---
+
 ## 4. P1 — Runtime Bootstrap
 
 Accepted bootstrap direction:
@@ -190,6 +261,19 @@ reuse suitable donor/backend/authoring/geometry tooling
 build only ZB-specific authority, solver, validation and integration gaps
 ```
 
+First visible P2 milestone:
+
+```text
+CHARACTER MEASUREMENTS / APPROVED INPUT
+→ ZB BODY SOLVE
+→ WHITE PROXY
+→ VISIBLE FRAME
+```
+
+```text
+WHITE PROXY VISIBLE ≠ P2 COMPLETE ≠ P2 QC_PASS
+```
+
 P2 requires its own design/build/evidence/QC/architecture-review sequence.
 
 ---
@@ -269,6 +353,8 @@ Reuse-first candidates at this boundary include:
 glTF Transform
 Khronos glTF Validator
 ```
+
+The early V0 Babylon sandbox is not production P5 code and cannot be directly promoted into P5.
 
 Actual adoption requires exact version/revision/license/provenance binding at the P5 gate.
 
@@ -505,6 +591,9 @@ P1 CONTRACT FOUNDATION
 → P4 CINEMATOGRAPHY
 → P5 BABYLON
 → P6 GRANI
+
+CONTROLLED PARALLEL LANES MAY REDUCE IDLE WAITING,
+BUT NEVER COLLAPSE GOVERNANCE GATES.
 
 STUDIO-S OPERATIONS MAY ADVANCE SEPARATELY,
 BUT NEVER GRANTS P* AUTHORITY.

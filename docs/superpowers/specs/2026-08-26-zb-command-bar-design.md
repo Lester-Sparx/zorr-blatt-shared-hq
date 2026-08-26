@@ -43,9 +43,7 @@ Rejected because it is not persistent enough, has weak contextual behavior, and 
 
 Build one local extension named `ZB COMMAND BAR`.
 
-The bar appears at the bottom of ChatGPT web conversations and provides compact buttons.
-
-Core buttons:
+The bar appears at the bottom of ChatGPT web conversations and provides these always-visible core buttons:
 
 - `ПРОСЫПАЙСЯ`
 - `ПРОДОЛЖАЙ`
@@ -55,7 +53,7 @@ Core buttons:
 - `ДА`
 - `НЕТ`
 
-Contextual buttons when useful:
+A compact secondary menu provides:
 
 - `БЕРИ ЗАДАНИЕ`
 - `СТАТУС`
@@ -64,11 +62,11 @@ Contextual buttons when useful:
 - `HOLD`
 - `ГЕНЕРИРУЙ`
 
-R01 may show different button groups for normal, technical/QC, art, and agent-wake contexts.
+R01 does not dynamically replace the core button set. Context is used only to form agent-aware command text and to preselect the most relevant secondary menu section.
 
 ## 4. AGENT CONTEXT
 
-The extension should attempt lightweight agent detection from visible current-page information such as conversation title and recent visible conversation text.
+The extension attempts lightweight agent detection from visible current-page information such as conversation title and recent visible conversation text.
 
 Known logical names:
 
@@ -78,9 +76,9 @@ Known logical names:
 - SALVADOR / САЛЬВАДОР
 - LYNCH / ЛИНЧ
 
-If the active agent can be determined confidently, pressing `ПРОСЫПАЙСЯ` sends `<agent>, просыпайся.`
+If exactly one agent is detected confidently, pressing `ПРОСЫПАЙСЯ` sends `<agent>, просыпайся.`
 
-If no agent is confidently detected, the generic wake command must not guess an identity. R01 should either send `Просыпайся.` or present the user with compact agent choices.
+If no agent or multiple agents are detected, `ПРОСЫПАЙСЯ` does not send anything immediately. It opens a compact picker containing the five known agents. Selecting one sends that exact agent wake command. R01 never guesses an ambiguous agent and never sends a generic wake command.
 
 Agent detection is convenience metadata only and never changes durable ZB agent identity.
 
@@ -90,21 +88,44 @@ Normal R01 flow:
 
 `BUTTON CLICK -> COMMAND TEXT -> CHATGPT COMPOSER -> SEND`
 
-The extension should use the visible ChatGPT composer and its normal send interaction. It must not use private OpenAI APIs, steal tokens, read cookies, or bypass normal ChatGPT account behavior.
+The extension uses the visible ChatGPT composer and its normal send interaction. It must not use private OpenAI APIs, read authentication cookies/tokens, or bypass normal ChatGPT account behavior.
 
-If the composer/send control cannot be found, the extension must fail visibly instead of silently doing nothing.
+If the composer/send control cannot be found, the extension fails visibly instead of silently doing nothing.
 
-## 6. SAFETY / ACCIDENTAL ACTIONS
+Commands are never automatically retried after an uncertain send result.
+
+## 6. COMMAND TEXT R01
+
+The exact default texts are:
+
+- `ПРОДОЛЖАЙ` -> `Продолжай.`
+- `ПРИНЯТО` -> `Принято.`
+- `ПРОВЕРЬ` -> `Проверь текущий результат.`
+- `СТОП` -> `Стоп.`
+- `ДА` -> `Да.`
+- `НЕТ` -> `Нет.`
+- `СТАТУС` -> `Дай текущий статус по фактическому результату.`
+- `БЕРИ ЗАДАНИЕ` -> `Бери текущее назначенное задание и начинай.`
+- `REPAIR` -> `Исправляй по текущему точному замечанию. Не расширяй scope.`
+- `PASS` -> `PASS.`
+- `HOLD` -> `HOLD.`
+- `ГЕНЕРИРУЙ` -> `ГЕНЕРИРУЙ`
+
+Wake text is `<detected-or-selected-agent>, просыпайся.`
+
+Custom user-defined command text is out of scope for R01.
+
+## 7. SAFETY / ACCIDENTAL ACTIONS
 
 Most commands are true one-click actions.
 
-`ГЕНЕРИРУЙ` is special because ZB art governance uses it as a live execution token. To prevent accidental image execution, R01 must require a deliberate confirmation gesture before sending it — either a second click within a short armed window or a hold action.
+`ГЕНЕРИРУЙ` is special because ZB art governance uses it as a live execution token. To prevent accidental image execution, the first click only arms the button for 3 seconds; a second click inside that window sends `ГЕНЕРИРУЙ`. If the second click does not happen, the button automatically returns to safe state.
 
-The extension does not create durable generation authorization. It only sends the live token when SPARX deliberately presses the control.
+The extension does not create durable generation authorization. It only sends the live token when SPARX deliberately confirms it.
 
 No button may merge PRs, activate runtime, issue OWNER LOCK, or directly mutate GitHub/project authority.
 
-## 7. UI
+## 8. UI
 
 Keep the bar visually minimal and fast:
 
@@ -117,19 +138,18 @@ Keep the bar visually minimal and fast:
 
 The bar must not cover the ChatGPT composer or primary navigation.
 
-## 8. STORAGE
+## 9. STORAGE
 
 Local browser storage only.
 
-Allowed local preferences:
+R01 stores only:
 
 - bar collapsed/expanded state;
-- button-group preference;
-- optional custom command text in future revisions.
+- last selected secondary menu section.
 
-R01 does not store conversation contents, authentication data, GitHub credentials, or OpenAI tokens.
+R01 does not store conversation contents, authentication data, GitHub credentials, OpenAI tokens, or custom command text.
 
-## 9. FILE STRUCTURE
+## 10. FILE STRUCTURE
 
 Planned implementation area:
 
@@ -146,33 +166,34 @@ Expected minimal files:
 
 Keep DOM integration separated from command-definition/context logic so ChatGPT UI selector changes can be repaired without rewriting command behavior.
 
-## 10. ERROR HANDLING
+## 11. ERROR HANDLING
 
 Visible compact error states are required for:
 
 - composer not found;
 - send control not found;
 - DOM changed / injection failed;
-- ambiguous agent detection.
+- ambiguous agent detection (opens picker instead of erroring).
 
 The extension must not retry-send a command automatically after an uncertain failure because duplicate commands can cause duplicate agent actions.
 
-## 11. TESTING / ACCEPTANCE
+## 12. TESTING / ACCEPTANCE
 
 R01 acceptance requires:
 
 1. Extension loads unpacked in Chrome or Edge.
 2. Command bar appears on a normal ChatGPT conversation page.
 3. Bar does not block normal ChatGPT controls.
-4. `ПРОДОЛЖАЙ`, `ПРИНЯТО`, `СТОП`, `ДА`, `НЕТ` send exactly once.
-5. Agent-specific `ПРОСЫПАЙСЯ` sends the detected agent name when detection is confident.
-6. Ambiguous agent state never invents a role.
-7. `ГЕНЕРИРУЙ` cannot be sent by a single accidental click.
+4. `ПРОДОЛЖАЙ`, `ПРИНЯТО`, `ПРОВЕРЬ`, `СТОП`, `ДА`, `НЕТ` send their exact default text exactly once.
+5. Agent-specific `ПРОСЫПАЙСЯ` sends the detected agent name when exactly one agent is confidently detected.
+6. Ambiguous agent state opens the five-agent picker and sends nothing until SPARX selects an agent.
+7. `ГЕНЕРИРУЙ` cannot be sent by a single click and requires the defined two-click 3-second arm flow.
 8. No private API/token/cookie access is used.
 9. DOM integration failure is visibly reported.
-10. Reloading/new chats retains the local bar preference.
+10. Reloading/new chats retains collapsed state and secondary menu preference.
+11. Commands are never auto-retried after uncertain send results.
 
-## 12. NON-GOALS R01
+## 13. NON-GOALS R01
 
 Not included:
 
@@ -183,10 +204,11 @@ Not included:
 - ChatGPT API usage;
 - cloud sync;
 - backend/database;
+- custom command editor;
 - automatic approval/merge/OWNER LOCK;
 - replacing Control Room.
 
-## 13. CORE LAW
+## 14. CORE LAW
 
 `SPARX PRESSES INTENT. THE BAR SENDS THE ROUTINE MESSAGE.`
 

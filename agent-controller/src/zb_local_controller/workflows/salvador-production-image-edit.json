@@ -1,0 +1,30 @@
+{
+  "1": {
+    "inputs": {
+      "image": "__ZB_REFERENCE__"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "__ZB_PROMPT__"
+    }
+  },
+  "2": {
+    "inputs": {
+      "image": ["1", 0]
+    },
+    "class_type": "ImageInvert",
+    "_meta": {
+      "title": "Disposable Smoke Image Invert"
+    }
+  },
+  "3": {
+    "inputs": {
+      "filename_prefix": "ZB_TASK7_DISPOSABLE_SMOKE",
+      "images": ["2", 0]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Disposable Smoke Image"
+    }
+  }
+}

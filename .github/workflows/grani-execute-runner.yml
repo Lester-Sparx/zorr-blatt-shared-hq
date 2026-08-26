@@ -1,0 +1,59 @@
+name: grani-execute-runner
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/grani-execute-runner.yml"
+      - "experiments/grani/**"
+
+permissions:
+  contents: read
+
+jobs:
+  grani-presentation-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout GRANI spike branch
+        uses: actions/checkout@v4
+
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Show toolchain
+        run: |
+          node --version
+          npm --version
+
+      - name: Run GRANI presentation contract test
+        run: node --test experiments/grani/grani_contract.test.mjs
+
+      - name: Execute GRANI proof and write evidence
+        if: success()
+        run: |
+          node experiments/grani/grani_probe.mjs grani-report.json | tee grani-console.txt
+          test -s grani-report.json
+          grep -q '"result": "PASS"' grani-report.json
+
+      - name: Verify evidence digest
+        if: success()
+        run: |
+          echo "GRANI_REPORT_BYTES=$(stat -c%s grani-report.json)"
+          echo "GRANI_REPORT_SHA256=$(sha256sum grani-report.json | awk '{print $1}')"
+
+      - name: Print GRANI evidence
+        if: success()
+        run: cat grani-report.json
+
+      - name: Upload GRANI proof artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grani-presentation-truth-report
+          path: |
+            grani-report.json
+            grani-console.txt
+          if-no-files-found: error

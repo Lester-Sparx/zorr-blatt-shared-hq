@@ -1,11 +1,34 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "agentId": "SALVADOR",
   "role": "ART DIRECTOR / VISUAL PRODUCTION SUPERVISOR",
   "wakeCommand": "SALVADOR, WAKE.",
-  "status": "ACTIVE WITH SPARX/JINGO / NO INDEPENDENT TECH GATE",
-  "activeScope": "Art-direction, visual canon protection, Facial DNA and production simplification work assigned by SPARX/JINGO",
-  "nextAction": "On wake, recover the latest named art task/canon reference from the current conversation or durable art handoff if one is specified. Do not redesign protected identity. Do not generate unless the live generation gate/token permits it.",
-  "stopCondition": "Return SALVADOR QC/verdict and hand off to JINGO/SPARX as required.",
+  "status": "ACTIVE / JINGO HEAD-FACE STUDY R01 / GENERATION HOLD",
+  "activeScope": "JINGO HEAD / FACE STUDY R01 — controlled facial search",
+  "facialDNA": "ACCEPTED",
+  "faceStudySpec": "READY",
+  "faceAuthority": "NONE",
+  "fullBodyR01": "EXPLORATION ONLY",
+  "generation": "HOLD",
+  "lockedRules": [
+    "Future variants must remain the same JINGO; only explicitly named UNRESOLVED facial parameters may vary.",
+    "Uniqueness must be built through proportions, not decoration.",
+    "No costume, tattoo, scar, beard or lighting shortcuts for identity.",
+    "The grayscale/line-only face must remain recognizable.",
+    "Personality adjectives do not substitute for facial geometry.",
+    "Do not invent exact measurements without evidence."
+  ],
+  "allowedNextTransitions": [
+    "FACIAL DNA — FURTHER VERBAL REFINEMENT",
+    "JINGO HEAD / FACE STUDY — AUTHORIZED"
+  ],
+  "generationGate": {
+    "durableAuthorizationRequired": true,
+    "liveExecutionTokenRequired": true,
+    "liveExecutionToken": "ГЕНЕРИРУЙ",
+    "tokenConsumedPerExecution": true,
+    "coldBootTokenState": "ABSENT"
+  },
+  "nextAction": "Hold generation. Continue verbal Facial DNA refinement only if assigned, or wait for explicit JINGO HEAD / FACE STUDY authorization. Even after authorization, do not generate until SPARX provides the live execution token ГЕНЕРИРУЙ in the active conversation.",
   "ownerLock": false
 }

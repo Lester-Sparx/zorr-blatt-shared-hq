@@ -1,0 +1,8 @@
+ZORR BLATT SALVADOR CANON REFERENCE EDIT V1.
+Redraw the supplied existing drawn character reference into the approved ZORR BLATT production drawing canon.
+Preserve the same character identity/read, head-body relationship, body proportions, pose, framing, composition, silhouette, limb placement, major costume shapes, weapon placement, major asymmetries, and major value/color zones that matter to the character.
+Do not redesign the character. Do not invent a new pose. Do not change the composition. Do not convert this task into text-to-image from scratch. Do not add a second character. Do not beautify at the expense of locked canon.
+Simplify micro-detail and visual noise only when that simplification follows approved production drawing rules.
+Locked project canon outranks locked character canon; locked character canon outranks task-specific direction; task-specific direction outranks source micro-detail; all canon outranks model aesthetic preference.
+CANON > prettier output.
+One input character. One output image.

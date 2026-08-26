@@ -16,6 +16,19 @@ from .local_paths import ReferenceValidationError, resolve_reference, result_pat
 from .task_contract import TaskContractError, parse_task
 
 
+_PROVENANCE_KEYS = {
+    "taskKind",
+    "workflowVersion",
+    "canonPromptVersion",
+    "modelId",
+    "workingWidth",
+    "workingHeight",
+    "sourceSha256",
+    "seed",
+    "denoise",
+}
+
+
 @dataclass(frozen=True)
 class RunSummary:
     discovered: int = 0
@@ -106,7 +119,7 @@ class Controller:
             return None
         return data
 
-    def _persist_execution_journal(self, task: Any, execution_id: str) -> None:
+    def _persist_execution_journal(self, task: Any, execution_id: str, backend_metadata: Any = None) -> None:
         path = self._execution_journal_path(task.task_id)
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(".json.tmp")
@@ -114,6 +127,7 @@ class Controller:
             "taskId": task.task_id,
             "executionId": execution_id,
             "startedAt": self._clock(),
+            "backendMetadata": dict(backend_metadata or {}),
         }
         tmp.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
         os.replace(tmp, path)
@@ -126,7 +140,7 @@ class Controller:
         except OSError:
             pass
 
-    def _persist_result(self, task: Any, execution_id: str, content: bytes) -> str:
+    def _persist_result(self, task: Any, execution_id: str, content: bytes, backend_metadata: Any = None) -> str:
         if not content:
             raise BackendError("BACKEND_OUTPUT_INVALID")
         image_path, meta_path = result_paths(self.result_root, task.task_id)
@@ -146,6 +160,17 @@ class Controller:
             "bytes": len(content),
             "createdAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         }
+        if task.task_kind == "CANON_REFERENCE_EDIT":
+            source = dict(backend_metadata or {})
+            if not source or not _PROVENANCE_KEYS.issubset(source) or source.get("taskKind") != "CANON_REFERENCE_EDIT":
+                try:
+                    image_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                raise BackendError("SALVADOR_RESULT_INVALID")
+            metadata.update({key: source[key] for key in _PROVENANCE_KEYS})
+            metadata["promptId"] = execution_id
+            metadata["resultSha256"] = digest
         meta_tmp.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         os.replace(meta_tmp, meta_path)
         return digest
@@ -179,8 +204,12 @@ class Controller:
             return posted
         if poll.state != "COMPLETE":
             raise BackendError("BACKEND_POLL_INVALID")
+        journal = self._load_execution_journal(task.task_id)
+        backend_metadata = journal.get("backendMetadata", {}) if isinstance(journal, dict) else {}
+        if task.task_kind == "CANON_REFERENCE_EDIT" and not backend_metadata:
+            raise BackendError("SALVADOR_RESULT_INVALID")
         content = backend.collect(execution_id)
-        digest = self._persist_result(task, execution_id, content)
+        digest = self._persist_result(task, execution_id, content, backend_metadata)
         posted = self._post(issue.number, task.task_id, "RESULT_READY", execution_id, digest)
         if posted:
             self._active_task_id = None
@@ -217,7 +246,7 @@ class Controller:
                         if isinstance(started_at, (int, float)):
                             self._execution_started_at[candidate.task_id] = float(started_at)
                         else:
-                            self._persist_execution_journal(candidate, execution_id)
+                            self._persist_execution_journal(candidate, execution_id, journal.get("backendMetadata"))
                     break
 
         for issue in issues:
@@ -303,7 +332,9 @@ class Controller:
                 backend.ensure_ready()
                 execution_id = backend.submit(task, reference)
                 self._executions[task.task_id] = execution_id
-                self._persist_execution_journal(task, execution_id)
+                metadata_fn = getattr(backend, "execution_metadata", None)
+                backend_metadata = metadata_fn(execution_id) if callable(metadata_fn) else {}
+                self._persist_execution_journal(task, execution_id, backend_metadata)
                 submitted += 1
                 if not self._post(issue.number, task.task_id, "RUNNING", execution_id):
                     processed += 1

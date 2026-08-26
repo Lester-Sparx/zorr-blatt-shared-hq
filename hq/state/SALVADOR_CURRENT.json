@@ -1,39 +1,29 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "agentId": "SALVADOR",
   "role": "ART DIRECTOR / VISUAL PRODUCTION SUPERVISOR",
   "wakeCommand": "SALVADOR, WAKE.",
-  "status": "ACTIVE / JINGO-SUPERVISED / JINGO HEAD-FACE STUDY R02 REVIEWED / R03 CORRECTION LOGIC NEXT / GENERATION HOLD",
-  "activeScope": "JINGO HEAD / FACE STUDY — R02 reviewed; prepare R03 local correction logic only",
+  "status": "ACTIVE / JINGO-SUPERVISED / JINGO HEAD-FACE STUDY R03 COMBAT SPEC FIXED / AWAITING AUTHORIZATION / GENERATION HOLD",
+  "activeScope": "JINGO HEAD / FACE STUDY R03 — combat spec fixed; await separate authorization",
   "facialDNA": "ACCEPTED",
   "faceAuthority": "NONE",
   "generation": "HOLD",
-  "latestVerdict": "R02 NOT APPROVED / REAL PROGRESS",
-  "latestJingoReviewComment": 5426439174,
-  "bestStartingPoint": "RIGHT R02 VARIANT ONLY — NOT FACE LOCK",
-  "r02Keep": [
-    "Same-person continuity across all three variants.",
-    "Improved facial compactness and reduced lower-third elongation.",
-    "Structural nose breadth improved without outline shortcut.",
-    "Cheeks less hollow and more structurally read.",
-    "Calm mature read, deep-set/not-large eyes, broad mouth and lip mass preserved.",
-    "No stubble/costume/jewelry/scars/tattoos used as identity crutches."
-  ],
-  "r03LocalFixOnly": [
-    "Reduce heroic/blocky jaw overcorrection without returning to handsome taper.",
-    "Shorten chin vertical read while keeping it substantial and non-pointed.",
-    "Remove massive neck/trapezius/body-type cue; use minimal neutral neck only.",
-    "Add subtle structural natural asymmetry without decorative crookedness.",
-    "Improve whole-head compactness without solving it by enlarging the jaw.",
-    "Preserve current nose family, mouth family, eye category, mature age and cranial width.",
-    "Keep cheeks structurally full but not swollen."
-  ],
+  "base": "RIGHT R02 — REPAIR STARTING POINT ONLY",
+  "combatSpec": {
+    "sameJingo": "REQUIRED",
+    "jaw": "SLIGHTLY NARROWER",
+    "chin": "SHORTER",
+    "neck": "NEUTRAL",
+    "asymmetry": "1–2 MICRO SHIFTS ONLY",
+    "noseFamily": "LOCKED",
+    "eyeFamily": "LOCKED",
+    "mouthFamily": "LOCKED",
+    "antiTemplateTest": "REQUIRED"
+  },
   "lockedRules": [
-    "SAME JINGO — BETTER RESOLVED FACIAL GEOMETRY.",
     "ANTI-TEMPLATE != HEROIC EXAGGERATION.",
     "UNIQUE FACE = SPECIFIC PROPORTIONAL RELATIONSHIPS, NOT GENERIC STRENGTH.",
-    "GENERIC HANDSOME FACE DRIFT = FAIL.",
-    "FACIAL MANNEQUIN DRIFT = FAIL.",
+    "SAME JINGO — REQUIRED.",
     "NO NEW FACIAL FAMILY DURING LOCAL REPAIR."
   ],
   "supervisionLaw": {
@@ -43,6 +33,7 @@
     "jingoMustNotGenerateOnSalvadorsBehalf": true
   },
   "generationGate": {
+    "separateR03AuthorizationRequired": true,
     "durableAuthorizationRequired": true,
     "explicitCurrentUserGenerationRequestRequired": true,
     "liveExecutionTokenRequired": true,
@@ -50,6 +41,6 @@
     "tokenConsumedPerExecution": true,
     "coldBootTokenState": "ABSENT"
   },
-  "nextAction": "SALVADOR prepares R03 correction logic only from JINGO review comment 5426439174. STOP before generation. No image generation unless durable authorization + explicit current SPARX request + live token ГЕНЕРИРУЙ are all present.",
+  "nextAction": "STOP. Await separate authorization: JINGO HEAD / FACE STUDY R03 — AUTHORIZED. Even after authorization, do not generate unless SPARX explicitly requests generation in the current message and provides live token ГЕНЕРИРУЙ.",
   "ownerLock": false
 }

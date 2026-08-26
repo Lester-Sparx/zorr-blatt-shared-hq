@@ -113,21 +113,23 @@ The task is rejected or held when:
 - more than one candidate image exists;
 - the file is empty/corrupt/unsupported;
 - the task is not explicitly marked as a ZB agent task;
-- the input clearly contains multiple primary characters and v1 cannot safely identify a single subject.
+- task preparation/QC determines that the input is outside the single-character v1 scope.
 
 ## 6. Character-count law
 
 v1 is single-character only.
 
-If the reference contains multiple primary characters, execution must not guess which one to canonize.
+The task preparer/JINGO must assign `CANON_REFERENCE_EDIT` only to a reference intended to contain one primary character. v1 does not require the local controller to invent a new semantic computer-vision classifier for counting people in pixels.
 
-Stable production error:
+If task preparation, workflow preflight, or visual QC detects multiple primary characters, execution/acceptance must stop rather than guess which subject to canonize.
+
+Stable production scope error:
 
 ```text
 SALVADOR_MULTI_CHARACTER_UNSUPPORTED
 ```
 
-This check may be conservative in v1. False refusal is preferable to silently altering the wrong subject.
+False refusal is preferable to silently altering the wrong subject.
 
 ## 7. Geometry preservation law
 
@@ -204,7 +206,7 @@ Recommended v1 data flow:
 Load reference
 -> normalize size/aspect without changing composition
 -> encode/reference-condition the source
--> structural preservation conditioning
+-> structural preservation conditioning when the approved local model path supports it
 -> canon/style conditioning
 -> low-to-moderate transformation image-to-image pass
 -> decode
@@ -212,7 +214,7 @@ Load reference
 -> controller validates and persists canonical result
 ```
 
-The workflow should favor structure preservation over large generative freedom.
+The workflow must favor structure preservation over large generative freedom.
 
 The exact checkpoint/control model is an implementation-time local compatibility choice, not a hard-coded orchestration constant.
 
@@ -232,6 +234,24 @@ Recommended constraints:
 - model/checkpoint name and path remain external configuration;
 - no production model binary is committed to Shared HQ;
 - model identity/version/checksum is recorded in local deployment metadata where practical.
+
+### 11.1 Recommended first compatibility baseline
+
+The first implementation spike should prefer a lightweight SD1.5-class local illustration/anime image-to-image path because it is materially more realistic on the 4 GB target than starting with a large modern checkpoint.
+
+Baseline workflow behavior:
+
+```text
+reference image
+-> VAE/image-to-image encoding
+-> batch 1 sampler
+-> conservative denoise, initially tuned inside approximately 0.25-0.45
+-> same-aspect output at the bounded working size
+```
+
+If a single structural conditioning model such as line-art/canny ControlNet fits the 4 GB smoke reliably, it should be tested as the preferred geometry-preservation enhancement. If it does not fit reliably, v1 falls back to the conservative low-denoise image-to-image baseline rather than expanding scope or using a paid backend.
+
+Exact checkpoint/control names are selected only after a local compatibility/preservation spike and are external deployment configuration.
 
 A model is not approved merely because it runs. It must pass a disposable local preservation test before it may process production canon references.
 
@@ -332,18 +352,25 @@ The first production acceptance run additionally requires human/JINGO visual QC 
 
 ## 17. Stable production failure/event vocabulary
 
-Recommended user-visible production states/errors:
+Recommended machine/backend durable events include:
 
 ```text
 SALVADOR_REFERENCE_REQUIRED
-SALVADOR_UNSUPPORTED_INPUT
-SALVADOR_MULTI_CHARACTER_UNSUPPORTED
-SALVADOR_CANON_CONFLICT
 SALVADOR_BACKEND_UNAVAILABLE
 SALVADOR_MODEL_UNAVAILABLE
 SALVADOR_RESULT_INVALID
 SALVADOR_RESULT_READY
 ```
+
+Recommended coordination/QC scope verdicts include:
+
+```text
+SALVADOR_UNSUPPORTED_INPUT
+SALVADOR_MULTI_CHARACTER_UNSUPPORTED
+SALVADOR_CANON_CONFLICT
+```
+
+The second group does not imply that v1 contains a new semantic pixel classifier. Those verdicts may come from task preparation, workflow preflight where mechanically knowable, or visual/canon QC.
 
 Low-level backend errors may still exist internally, but user-facing durable state should remain stable and understandable.
 

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "agentId": "JINGO",
+  "role": "TEAM LEAD / MENTOR / CROSS-DEPARTMENT COORDINATOR",
+  "wakeCommand": "JINGO, WAKE.",
+  "status": "ACTIVE",
+  "activeScopes": [
+    "Route P1 Runtime Bootstrap through DUNCAN re-QC -> JINGO acceptance -> SPARX merge decision",
+    "Route ZB Control Room R01 through LESTER build -> DUNCAN QC -> JINGO acceptance"
+  ],
+  "controlRoomIssue": 39,
+  "controlRoomBuildIssue": 41,
+  "controlRoomQcIssue": 42,
+  "controlRoomPullRequest": 40,
+  "runtimeRepository": "Lester-Sparx/zorr-blatt-runtime",
+  "runtimePullRequest": 1,
+  "nextAction": "Monitor durable handoffs, route next executor, escalate only real OWNER actions or blockers.",
+  "ownerAlertLaw": "If SPARX must act or work is blocked, report immediately with SPARX ACTION REQUIRED / ZB BLOCKER banner.",
+  "mergeAuthorized": false,
+  "ownerLock": false
+}

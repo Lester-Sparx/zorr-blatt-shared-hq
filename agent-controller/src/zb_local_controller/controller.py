@@ -82,7 +82,8 @@ class Controller:
                 return state, execution
         return None, None
 
-    def _existing_result_metadata(self, task_id: str) -> dict[str, Any] | None:
+    def _existing_result_metadata(self, task: Any) -> dict[str, Any] | None:
+        task_id = task.task_id
         image_path, meta_path = result_paths(self.result_root, task_id)
         if not image_path.is_file() or not meta_path.is_file():
             return None
@@ -91,17 +92,48 @@ class Controller:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
         except Exception:
             return None
+        digest = hashlib.sha256(content).hexdigest()
         if not (
             bool(content)
             and meta.get("taskId") == task_id
             and meta.get("state") == "RESULT_READY"
-            and meta.get("sha256") == hashlib.sha256(content).hexdigest()
+            and meta.get("sha256") == digest
         ):
+            return None
+        if task.task_kind != "CANON_REFERENCE_EDIT":
+            return meta
+
+        if not _PROVENANCE_KEYS.issubset(meta) or meta.get("taskKind") != "CANON_REFERENCE_EDIT":
+            return None
+        for key in ("workflowVersion", "canonPromptVersion", "modelId"):
+            if not isinstance(meta.get(key), str) or not meta[key].strip():
+                return None
+        for key in ("workingWidth", "workingHeight"):
+            value = meta.get(key)
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                return None
+        source_sha = meta.get("sourceSha256")
+        if not isinstance(source_sha, str) or len(source_sha) != 64:
+            return None
+        try:
+            int(source_sha, 16)
+        except ValueError:
+            return None
+        seed = meta.get("seed")
+        if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+            return None
+        denoise = meta.get("denoise")
+        if isinstance(denoise, bool) or not isinstance(denoise, (int, float)) or not 0.25 <= float(denoise) <= 0.45:
+            return None
+        execution_id = meta.get("executionId")
+        if not isinstance(execution_id, str) or not execution_id:
+            return None
+        if meta.get("promptId") != execution_id or meta.get("resultSha256") != digest:
             return None
         return meta
 
-    def _valid_existing_result(self, task_id: str) -> bool:
-        return self._existing_result_metadata(task_id) is not None
+    def _valid_existing_result(self, task: Any) -> bool:
+        return self._existing_result_metadata(task) is not None
 
     def _execution_journal_path(self, task_id: str) -> Path:
         _, meta_path = result_paths(self.result_root, task_id)
@@ -262,7 +294,7 @@ class Controller:
                 skipped += 1
                 continue
 
-            existing_result = self._existing_result_metadata(task.task_id)
+            existing_result = self._existing_result_metadata(task)
             if existing_result is not None:
                 execution_id = existing_result.get("executionId")
                 if isinstance(execution_id, str) and execution_id:

@@ -1,0 +1,78 @@
+name: o0-execute-runner
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  o0-exact-byte-fit-proof:
+    if: github.head_ref == 'experiment/o0-execute-runner'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout ZB execution branch
+        uses: actions/checkout@v4
+
+      - name: Checkout exact pinned OxiHuman commit
+        uses: actions/checkout@v4
+        with:
+          repository: cool-japan/oxihuman
+          ref: 603b446854c3d5a9ca478214e7b85008d54786b9
+          path: oxihuman
+
+      - name: Verify exact upstream commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd oxihuman
+          actual="$(git rev-parse HEAD)"
+          expected="603b446854c3d5a9ca478214e7b85008d54786b9"
+          echo "O0_UPSTREAM_HEAD=$actual"
+          test "$actual" = "$expected"
+
+      - name: Verify exact OHPK bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          pack="oxihuman/assets/packs/oxihuman-core-v1.ohpk"
+          expected_size="2093260"
+          expected_sha="09c4bb1f849fe5d2bc21db6dd8a8bf7c753ee58db185bc46ab4c6b8e0dc0f6f7"
+          actual_size="$(stat -c%s "$pack")"
+          actual_sha="$(sha256sum "$pack" | awk '{print $1}')"
+          echo "O0_PACK_SIZE=$actual_size"
+          echo "O0_PACK_SHA256=$actual_sha"
+          test "$actual_size" = "$expected_size"
+          test "$actual_sha" = "$expected_sha"
+
+      - name: Show Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo --version
+
+      - name: Run pinned OxiHuman measurement-fit round trip
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd oxihuman
+          cargo run -p oxihuman-wasm --example measure_roundtrip --release | tee "$GITHUB_WORKSPACE/o0-measurement-error.md"
+
+      - name: Extract O0 residual evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '--- brief-172 evidence ---'
+          grep 'brief-172' o0-measurement-error.md || true
+          echo '--- worst-case section ---'
+          grep -A8 '^## Worst case' o0-measurement-error.md || true
+
+      - name: Upload O0 execution report
+        uses: actions/upload-artifact@v4
+        with:
+          name: o0-execution-report
+          path: o0-measurement-error.md
+          if-no-files-found: error

@@ -1,52 +1,25 @@
 {
   "schemaId": "ZB_CHECKPOINT_V1",
   "schemaVersion": 1,
-  "checkpointId": "2026-08-26-R02",
-  "createdAt": "2026-08-26T07:48:06Z",
+  "checkpointId": "2026-08-26-R03",
+  "createdAt": "2026-08-26T08:09:10Z",
   "createdBy": "Duncan-Sparx-ZB",
-  "previousCheckpointId": "2026-08-26-R01",
+  "previousCheckpointId": "2026-08-26-R02",
   "project": "ZORR BLATT",
   "sharedHq": {
     "repository": "Lester-Sparx/zorr-blatt-shared-hq",
-    "stateBasisCommit": "8c1cb6cc53befbaf7f17b607896bc89499a3c309"
+    "stateBasisCommit": "7f053409f9e8ac6632083cd39de8ce704f4b2ded"
   },
   "currentPhase": {
     "id": "P1_RUNTIME_BOOTSTRAP",
     "status": "PAUSED"
   },
   "globalStatus": {
-    "integrationArchitecture": {
-      "status": "ACCEPTED",
-      "document": "docs/ZB_PRODUCTION_INTEGRATION_ARCHITECTURE_R01.md",
-      "mergeCommit": "2e9eb6540c1d07357cb78f44591f6192dbf7b433"
-    },
-    "checkpointSystem": {
-      "status": "COMPLETE",
-      "phaseA": {
-        "status": "COMPLETE",
-        "mergeCommit": "6cbae60cb5a678c89104368aeabf284fdf3bb716"
-      },
-      "phaseB": {
-        "status": "COMPLETE",
-        "initialCheckpointId": "2026-08-26-R01",
-        "initialPublicationCommit": "9f46f46fe2058bc78bbc0f285447f859e2a6bff5"
-      }
-    },
-    "signalProtocol": {
-      "status": "ACCEPTED",
-      "document": "docs/superpowers/specs/2026-08-26-zb-signal-protocol-r01.md",
-      "mergeCommit": "85a101853b46b82b91b57739cac62b9933e0e355"
-    },
-    "openSourceStudioAcceleration": {
-      "status": "ACCEPTED",
-      "document": "docs/superpowers/specs/2026-08-26-zb-open-source-studio-acceleration-r01.md",
-      "mergeCommit": "8157c7f58be638c7333e416224b149c41009abcb"
-    },
-    "acceleratedDeliveryModel": {
-      "status": "ACCEPTED",
-      "document": "docs/superpowers/specs/2026-08-26-zb-accelerated-delivery-model-r01.md",
-      "mergeCommit": "3b03c54a6e2bad7a60cd5e95aaab1145c214a610"
-    },
+    "integrationArchitecture": {"status": "ACCEPTED", "mergeCommit": "2e9eb6540c1d07357cb78f44591f6192dbf7b433"},
+    "checkpointSystem": {"status": "COMPLETE"},
+    "signalProtocol": {"status": "ACCEPTED", "mergeCommit": "85a101853b46b82b91b57739cac62b9933e0e355"},
+    "openSourceStudioAcceleration": {"status": "ACCEPTED", "mergeCommit": "8157c7f58be638c7333e416224b149c41009abcb"},
+    "acceleratedDeliveryModel": {"status": "ACCEPTED", "mergeCommit": "3b03c54a6e2bad7a60cd5e95aaab1145c214a610"},
     "p1Bootstrap": {
       "status": "PAUSED",
       "targetRepository": "Lester-Sparx/zorr-blatt-runtime",
@@ -54,7 +27,8 @@
       "repositoryPresent": true,
       "repositoryVerified": true,
       "repositoryId": "1347034859",
-      "verifiedVisibility": "private"
+      "builderIdentityRequired": "Lester-Sparx",
+      "connectedIdentity": "Duncan-Sparx-ZB"
     },
     "p1Implementation": {"status": "NOT_AUTHORIZED"},
     "p2BodyCompiler": {"status": "NOT_AUTHORIZED"},
@@ -70,124 +44,75 @@
     "productionActivation": {"status": "INACTIVE"},
     "ownerLock": {"status": "INACTIVE"}
   },
-  "activeWork": {},
+  "activeWork": {
+    "handoff": {
+      "status": "COMPLETE",
+      "path": "handoffs/20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01.json",
+      "mergeCommit": "7f053409f9e8ac6632083cd39de8ce704f4b2ded"
+    }
+  },
   "latestAcceptedDecisions": [
+    {"decisionId": "PROJECT-MEMORY-LAW", "status": "ACCEPTED", "value": "NO CHAT IS PROJECT MEMORY. SHARED HQ CHECKPOINT IS PROJECT MEMORY."},
+    {"decisionId": "P1-RUNTIME-REPOSITORY", "status": "ACCEPTED", "value": {"repository": "Lester-Sparx/zorr-blatt-runtime", "visibility": "PRIVATE", "language": "Rust-first"}},
+    {"decisionId": "REUSE-FIRST", "status": "ACCEPTED", "value": "REUSE OPEN SOURCE WHEN IT IS FIT-FOR-PURPOSE. CUSTOM GENERIC BUILD REQUIRES A DOCUMENTED GAP."},
+    {"decisionId": "AUTHENTICATED-ACTOR-LAW", "status": "ACCEPTED", "value": "ROLE CONTEXT ≠ AUTHENTICATED ACTOR IDENTITY"}
+  ],
+  "openBlockers": [
     {
-      "decisionId": "PROJECT-MEMORY-LAW",
-      "status": "ACCEPTED",
-      "value": "NO CHAT IS PROJECT MEMORY. SHARED HQ CHECKPOINT IS PROJECT MEMORY.",
-      "source": {
-        "type": "DOCUMENT",
-        "binding": "docs/superpowers/specs/2026-08-26-zb-checkpoint-system-r01.md"
-      }
-    },
-    {
-      "decisionId": "P1-RUNTIME-REPOSITORY",
-      "status": "ACCEPTED",
-      "value": {
-        "repository": "Lester-Sparx/zorr-blatt-runtime",
-        "visibility": "PRIVATE",
-        "language": "Rust-first"
-      },
-      "source": {
-        "type": "DOCUMENT",
-        "binding": "docs/superpowers/specs/2026-08-26-p1-runtime-bootstrap-design.md"
-      }
-    },
-    {
-      "decisionId": "REUSE-FIRST",
-      "status": "ACCEPTED",
-      "value": "REUSE OPEN SOURCE WHEN IT IS FIT-FOR-PURPOSE. CUSTOM GENERIC BUILD REQUIRES A DOCUMENTED GAP.",
-      "source": {
-        "type": "DOCUMENT",
-        "binding": "docs/superpowers/specs/2026-08-26-zb-open-source-studio-acceleration-r01.md"
-      }
-    },
-    {
-      "decisionId": "ACCELERATED-DELIVERY-MODEL",
-      "status": "ACCEPTED",
-      "value": "CONTROLLED PARALLEL LANES",
-      "source": {
-        "type": "DOCUMENT",
-        "binding": "docs/superpowers/specs/2026-08-26-zb-accelerated-delivery-model-r01.md"
-      }
-    },
-    {
-      "decisionId": "V0-VISUAL-SANDBOX-BOUNDARY",
-      "status": "ACCEPTED",
-      "value": "DISPOSABLE_PROOF / NON_CANONICAL / NO DIRECT SOURCE-CODE PROMOTION TO P5",
-      "source": {
-        "type": "DOCUMENT",
-        "binding": "docs/superpowers/specs/2026-08-26-zb-accelerated-delivery-model-r01.md"
-      }
+      "blockerId": "BLK-P1-LESTER-AUTH-NOT-ACTIVE",
+      "status": "OPEN",
+      "summary": "P1 Runtime Bootstrap builder mutations require authenticated GitHub actor Lester-Sparx, but the connected actor is Duncan-Sparx-ZB.",
+      "blocks": ["P1_RUNTIME_BOOTSTRAP_RESUME"],
+      "owner": "SPARX",
+      "resolutionRequired": "Reconnect/switch the ChatGPT GitHub connection used for runtime builder mutations to Lester-Sparx.",
+      "evidence": [
+        {"type": "AUTHENTICATED_GITHUB_IDENTITY", "result": "Duncan-Sparx-ZB", "checkedAt": "2026-08-26T08:09:10Z"},
+        {"type": "HANDOFF", "path": "handoffs/20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01.json", "result": "MERGED", "mergeCommit": "7f053409f9e8ac6632083cd39de8ce704f4b2ded"}
+      ]
     }
   ],
-  "openBlockers": [],
-  "latestHandoffs": [],
+  "latestHandoffs": [
+    {"handoffId": "20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01", "from": "DUNCAN", "to": "LESTER", "status": "MERGED", "path": "handoffs/20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01.json"}
+  ],
   "nextTransitions": [
-    {
-      "order": 1,
-      "transition": "P1_RUNTIME_BOOTSTRAP_RESUME",
-      "actor": "Lester-Sparx",
-      "status": "NOT_STARTED",
-      "blockedBy": []
-    }
+    {"order": 1, "transition": "SWITCH_GITHUB_ACTOR_TO_LESTER", "actor": "SPARX", "status": "NOT_STARTED", "blockedBy": []},
+    {"order": 2, "transition": "VERIFY_LESTER_GITHUB_IDENTITY", "actor": "Duncan-Sparx-ZB", "status": "BLOCKED", "blockedBy": ["BLK-P1-LESTER-AUTH-NOT-ACTIVE"]},
+    {"order": 3, "transition": "P1_RUNTIME_BOOTSTRAP_RESUME", "actor": "Lester-Sparx", "status": "BLOCKED", "blockedBy": ["BLK-P1-LESTER-AUTH-NOT-ACTIVE"]}
   ],
   "ownerActionRequired": {
-    "required": false,
-    "action": null,
-    "reason": null
+    "required": true,
+    "action": "Switch/reconnect the ChatGPT GitHub connection used for runtime builder mutations to Lester-Sparx.",
+    "reason": "The available connector can perform GitHub reads/writes but does not expose OAuth account switching. Duncan-Sparx-ZB must not author Lester bootstrap commits."
   },
-  "locks": {
-    "ownerLock": {
-      "status": "INACTIVE",
-      "binding": null
-    }
-  },
+  "locks": {"ownerLock": {"status": "INACTIVE", "binding": null}},
   "unresolved": [
-    {
-      "field": "coordinatePolicy",
-      "status": "UNRESOLVED",
-      "reason": "Coordinate policy remains OPEN; no coordinate-system lock is authorized."
-    }
+    {"field": "coordinatePolicy", "status": "UNRESOLVED", "reason": "Coordinate policy remains OPEN; no coordinate-system lock is authorized."}
   ],
-  "activeAlert": null,
-  "checkpointReason": {
-    "kind": "UNBLOCKED",
-    "source": "P1_RUNTIME_REPOSITORY_VERIFIED_SIGNAL_3_CLEAR",
-    "signal": {
-      "level": "SIGNAL_1",
-      "code": "MILESTONE_COMPLETE"
-    },
+  "activeAlert": {
+    "signalId": "SIG-20260826T080910Z-002",
+    "level": "SIGNAL_3",
+    "class": "OWNER_ACTION",
+    "status": "ACTIVE",
+    "code": "OWNER_ACTION_REQUIRED",
+    "summary": "Authenticated Lester-Sparx GitHub identity is required before P1 Runtime Bootstrap can resume.",
+    "raisedBy": "Duncan-Sparx-ZB",
+    "raisedAt": "2026-08-26T08:09:10Z",
+    "blocks": ["P1_RUNTIME_BOOTSTRAP_RESUME"],
+    "ownerActionRequired": true,
+    "requiredAction": "Switch/reconnect the ChatGPT GitHub connection used for runtime builder mutations to Lester-Sparx.",
     "evidence": [
-      {
-        "type": "EXTERNAL_BINDING",
-        "system": "GitHub",
-        "resource": "Lester-Sparx/zorr-blatt-runtime",
-        "repositoryId": "1347034859",
-        "visibility": "private",
-        "permissions": {
-          "pull": true,
-          "push": true,
-          "triage": true,
-          "maintain": false,
-          "admin": false
-        },
-        "result": "VERIFIED",
-        "checkedAt": "2026-08-26T07:48:06Z"
-      },
-      {
-        "type": "GITHUB_COMMIT",
-        "repository": "Lester-Sparx/zorr-blatt-shared-hq",
-        "sha": "8c1cb6cc53befbaf7f17b607896bc89499a3c309",
-        "role": "STATE_BASIS"
-      },
-      {
-        "type": "GITHUB_COMMIT",
-        "repository": "Lester-Sparx/zorr-blatt-shared-hq",
-        "sha": "9f46f46fe2058bc78bbc0f285447f859e2a6bff5",
-        "role": "PREVIOUS_CHECKPOINT_PUBLICATION"
-      }
+      {"type": "AUTHENTICATED_GITHUB_IDENTITY", "result": "Duncan-Sparx-ZB"},
+      {"type": "GITHUB_REPOSITORY", "repository": "Lester-Sparx/zorr-blatt-runtime", "repositoryId": "1347034859", "visibility": "private", "result": "VERIFIED"}
+    ],
+    "clearPolicy": "SPARX_ACTION_PLUS_GATE_HOLDER_VERIFICATION"
+  },
+  "checkpointReason": {
+    "kind": "BLOCKED",
+    "source": "P1_RUNTIME_BOOTSTRAP_LESTER_AUTH_REQUIRED",
+    "signal": {"level": "SIGNAL_3", "code": "OWNER_ACTION_REQUIRED"},
+    "evidence": [
+      {"type": "GITHUB_COMMIT", "repository": "Lester-Sparx/zorr-blatt-shared-hq", "sha": "7f053409f9e8ac6632083cd39de8ce704f4b2ded", "role": "STATE_BASIS"},
+      {"type": "HANDOFF", "path": "handoffs/20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01.json", "result": "MERGED"}
     ]
   }
 }

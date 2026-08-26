@@ -1,20 +1,17 @@
 # ZORR BLATT — CURRENT CHECKPOINT
 
 **Schema:** `ZB_CHECKPOINT_V1`  
-**Checkpoint ID:** `2026-08-26-R02`  
-**Created:** `2026-08-26T07:48:06Z`  
+**Checkpoint ID:** `2026-08-26-R03`  
+**Created:** `2026-08-26T08:09:10Z`  
 **Created by:** `Duncan-Sparx-ZB`  
-**Previous checkpoint:** `2026-08-26-R01`  
-**Project:** `ZORR BLATT`
+**Previous checkpoint:** `2026-08-26-R02`
 
 ## State basis
 
 ```text
 Shared HQ: Lester-Sparx/zorr-blatt-shared-hq
-stateBasisCommit: 8c1cb6cc53befbaf7f17b607896bc89499a3c309
+stateBasisCommit: 7f053409f9e8ac6632083cd39de8ce704f4b2ded
 ```
-
-The checkpoint publication commit is derived from Git history and is intentionally not self-recorded here.
 
 ## Current phase
 
@@ -22,162 +19,105 @@ The checkpoint publication commit is derived from Git history and is intentional
 P1_RUNTIME_BOOTSTRAP = PAUSED
 ```
 
-The previous missing-repository blocker is now resolved and verified. Bootstrap is unblocked but has not yet been resumed or completed.
+The runtime repository exists and is verified PRIVATE. The bootstrap execution plan and immutable DUNCAN→LESTER handoff are merged. Runtime builder mutations cannot resume until the authenticated GitHub actor is `Lester-Sparx`.
 
-## Global status
+## Active blocker
 
 ```text
-Integration Architecture            ACCEPTED
-Checkpoint System                   COMPLETE
-  Phase A                           COMPLETE @ 6cbae60cb5a678c89104368aeabf284fdf3bb716
-  Phase B initial publication       COMPLETE @ 9f46f46fe2058bc78bbc0f285447f859e2a6bff5
-Signal Protocol                     ACCEPTED
-Open-Source Studio Acceleration     ACCEPTED
-Accelerated Delivery Model          ACCEPTED
-P1 Runtime Bootstrap                PAUSED / UNBLOCKED
-P1 Implementation                   NOT_AUTHORIZED
-P2 Body Compiler                     NOT_AUTHORIZED
-P3 Motion / Action                   NOT_AUTHORIZED
-P4 Cinematography                    NOT_AUTHORIZED
-P5 Babylon Runtime                   NOT_AUTHORIZED
-P6 Grani Presentation                NOT_AUTHORIZED
-V0 Visual Sandbox                    NOT_AUTHORIZED
-Studio-S                             NOT_AUTHORIZED
-Visual Truth Preparation             NOT_AUTHORIZED
-G2                                   NOT_AUTHORIZED
-Voice-to-Shot                        NOT_AUTHORIZED
-Production Activation                INACTIVE
-OWNER LOCK                           INACTIVE
+BLK-P1-LESTER-AUTH-NOT-ACTIVE = OPEN
+blocks: P1_RUNTIME_BOOTSTRAP_RESUME
+connected actor: Duncan-Sparx-ZB
+required builder actor: Lester-Sparx
 ```
 
-## Runtime repository verification
+This is an authenticated-identity boundary, not a role-label issue:
+
+```text
+ROLE CONTEXT ≠ AUTHENTICATED ACTOR IDENTITY
+```
+
+## Active alert
+
+```text
+SIGNAL_3 / OWNER_ACTION / ACTIVE
+signalId: SIG-20260826T080910Z-002
+code: OWNER_ACTION_REQUIRED
+```
+
+Required action:
+
+```text
+Switch/reconnect the ChatGPT GitHub connection used for runtime builder mutations to Lester-Sparx.
+```
+
+Clear policy:
+
+```text
+SPARX ACTION → GATE-HOLDER VERIFY → CLEAR
+```
+
+## Latest handoff
+
+```text
+handoffId: 20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01
+from: DUNCAN
+to: LESTER
+status: MERGED
+path: handoffs/20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01.json
+merge: 7f053409f9e8ac6632083cd39de8ce704f4b2ded
+```
+
+## Runtime binding
 
 ```text
 repository: Lester-Sparx/zorr-blatt-runtime
 repositoryId: 1347034859
 visibility: private
-repositoryPresent: true
 repositoryVerified: true
-Duncan pull: true
-Duncan push: true
+bootstrap design: docs/superpowers/specs/2026-08-26-p1-runtime-bootstrap-design.md
+bootstrap execution plan: docs/superpowers/plans/2026-08-26-p1-runtime-bootstrap-execution-r01.md
+plan merge: 4f955bc73a586638ddd6f74554bf8938b00e1947
 ```
 
-This verifies the repository-access prerequisite only. It does not authorize `P1 IMPLEMENTATION START`.
-
-## Active work
+## Next legal transitions
 
 ```text
-none
-```
-
-## Latest accepted decisions
-
-```text
-PROJECT-MEMORY-LAW
-NO CHAT IS PROJECT MEMORY. SHARED HQ CHECKPOINT IS PROJECT MEMORY.
-
-P1-RUNTIME-REPOSITORY
-repository = Lester-Sparx/zorr-blatt-runtime
-visibility = PRIVATE
-language = Rust-first
-
-REUSE-FIRST
-REUSE OPEN SOURCE WHEN IT IS FIT-FOR-PURPOSE.
-CUSTOM GENERIC BUILD REQUIRES A DOCUMENTED GAP.
-
-ACCELERATED-DELIVERY-MODEL
-CONTROLLED PARALLEL LANES
-
-V0-VISUAL-SANDBOX-BOUNDARY
-DISPOSABLE_PROOF / NON_CANONICAL / NO DIRECT SOURCE-CODE PROMOTION TO P5
-```
-
-## Open blockers
-
-```text
-none
-```
-
-The previous blocker `BLK-P1-RUNTIME-REPO-MISSING` is resolved by verified GitHub repository evidence.
-
-## Active alert
-
-```text
-none
-```
-
-`SIGNAL_3 / OWNER_ACTION` from `2026-08-26-R01` is cleared after SPARX action plus Duncan verification.
-
-## Latest handoffs
-
-```text
-none
-```
-
-## Next legal transition
-
-```text
-1. P1_RUNTIME_BOOTSTRAP_RESUME
-   actor: Lester-Sparx
+1. SWITCH_GITHUB_ACTOR_TO_LESTER
+   actor: SPARX
    status: NOT_STARTED
-   blockedBy: none
+
+2. VERIFY_LESTER_GITHUB_IDENTITY
+   actor: DUNCAN
+   status: BLOCKED
+
+3. P1_RUNTIME_BOOTSTRAP_RESUME
+   actor: Lester-Sparx
+   status: BLOCKED
 ```
 
-This transition does not authorize P1 Implementation.
-
-## Owner / manual action required
+## Protected gates unchanged
 
 ```text
-required = false
-action = null
+P1 Implementation        NOT_AUTHORIZED
+P2 Body Compiler         NOT_AUTHORIZED
+P3 Motion / Action       NOT_AUTHORIZED
+P4 Cinematography        NOT_AUTHORIZED
+P5 Babylon Runtime       NOT_AUTHORIZED
+P6 Grani Presentation    NOT_AUTHORIZED
+V0 Visual Sandbox        NOT_AUTHORIZED
+Studio-S                 NOT_AUTHORIZED
+G2                       NOT_AUTHORIZED
+Voice-to-Shot            NOT_AUTHORIZED
+Production Activation    INACTIVE
+OWNER LOCK               INACTIVE
+coordinatePolicy         UNRESOLVED
 ```
 
-## Locks
+## Project memory law
 
 ```text
-OWNER LOCK = INACTIVE
-binding = null
-```
-
-## Unresolved
-
-```text
-coordinatePolicy = UNRESOLVED
-reason = Coordinate policy remains OPEN; no coordinate-system lock is authorized.
-```
-
-## Checkpoint reason
-
-```text
-kind: UNBLOCKED
-source: P1_RUNTIME_REPOSITORY_VERIFIED_SIGNAL_3_CLEAR
-signal: SIGNAL_1 / MILESTONE_COMPLETE
-```
-
-Evidence:
-
-```text
-GitHub repository:
-Lester-Sparx/zorr-blatt-runtime
-repositoryId = 1347034859
-visibility = private
-result = VERIFIED
-checkedAt = 2026-08-26T07:48:06Z
-
-Shared HQ state basis:
-8c1cb6cc53befbaf7f17b607896bc89499a3c309
-
-Previous checkpoint publication:
-9f46f46fe2058bc78bbc0f285447f859e2a6bff5
-```
-
-## Semantic law
-
-```text
-CURRENT.json = canonical machine-readable current truth
-CURRENT.md   = human-readable projection
-
 NO CHAT IS PROJECT MEMORY.
+SHARED HQ CHECKPOINT IS PROJECT MEMORY.
 RESUME RESTORES CONTEXT.
 RESUME DOES NOT CREATE AUTHORITY.
 ```

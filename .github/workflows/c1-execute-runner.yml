@@ -1,0 +1,59 @@
+name: c1-execute-runner
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/c1-execute-runner.yml"
+      - "experiments/c1/**"
+
+permissions:
+  contents: read
+
+jobs:
+  c1-cinematography-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout C1 spike branch
+        uses: actions/checkout@v4
+
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Show toolchain
+        run: |
+          node --version
+          npm --version
+
+      - name: Run C1 cinematography contract test
+        run: node --test experiments/c1/c1_contract.test.mjs
+
+      - name: Execute C1 proof and write evidence
+        if: success()
+        run: |
+          node experiments/c1/c1_probe.mjs c1-report.json | tee c1-console.txt
+          test -s c1-report.json
+          grep -q '"result": "PASS"' c1-report.json
+
+      - name: Verify evidence digest
+        if: success()
+        run: |
+          echo "C1_REPORT_BYTES=$(stat -c%s c1-report.json)"
+          echo "C1_REPORT_SHA256=$(sha256sum c1-report.json | awk '{print $1}')"
+
+      - name: Print C1 evidence
+        if: success()
+        run: cat c1-report.json
+
+      - name: Upload C1 proof artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c1-cinematography-report
+          path: |
+            c1-report.json
+            c1-console.txt
+          if-no-files-found: error

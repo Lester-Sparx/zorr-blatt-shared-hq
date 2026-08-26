@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "agentId": "DUNCAN",
+  "role": "INDEPENDENT QC / ARCHITECTURE / PROOF",
+  "wakeCommand": "DUNCAN, WAKE.",
+  "status": "ACTIVE GATE PENDING EXECUTION",
+  "primaryScope": "Independent re-QC of P1 Runtime Bootstrap",
+  "primaryRepository": "Lester-Sparx/zorr-blatt-runtime",
+  "primaryPullRequest": 1,
+  "exactHead": "b5570f1ebfe3fe559461ea9a760252a965902f07",
+  "workflowRunId": 32967775612,
+  "triggerCommentId": 5425391079,
+  "requiredMarker": "DUNCAN_RE_QC_COMPLETE",
+  "secondaryScope": "Independent QC for ZB Control Room R01",
+  "secondaryRepository": "Lester-Sparx/zorr-blatt-shared-hq",
+  "secondaryIssue": 42,
+  "secondaryPullRequest": 40,
+  "secondaryStartCondition": "LESTER_CONTROL_ROOM_READY present in PR #40",
+  "nextAction": "Run primary runtime re-QC first if not already completed; do not self-repair. Then handle queued Control Room QC only after its start condition.",
+  "stopCondition": "Post durable PASS or CHANGES_REQUIRED verdict and hand off to JINGO/LESTER as specified.",
+  "ownerLock": false,
+  "mergeAuthorized": false
+}

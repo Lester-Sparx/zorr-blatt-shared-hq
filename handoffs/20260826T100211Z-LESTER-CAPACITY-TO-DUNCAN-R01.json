@@ -1,0 +1,170 @@
+{
+  "schemaId": "ZB_HANDOFF_V1",
+  "schemaVersion": 1,
+  "handoffId": "20260826T100211Z-LESTER-CAPACITY-TO-DUNCAN-R01",
+  "createdAt": "2026-08-26T10:02:11Z",
+  "actor": {
+    "role": "LESTER",
+    "githubIdentity": "Lester-Sparx"
+  },
+  "basedOnCheckpointId": "2026-08-26-R04",
+  "task": {
+    "id": "CAPACITY_HANDOFF_TO_DUNCAN",
+    "status": "CANDIDATE_READY_FOR_COLD_TEST"
+  },
+  "ownership": {
+    "currentImplementationOwner": "Duncan-Sparx-ZB",
+    "nextTaskOwner": "Duncan-Sparx-ZB",
+    "lesterMode": "HANDOFF_SUPPORT_ONLY",
+    "effectiveAt": "2026-08-26T10:02:11Z"
+  },
+  "bindings": {
+    "sharedHqRepository": "Lester-Sparx/zorr-blatt-shared-hq",
+    "sharedHqMain": "186595b1b9894e51dad683d20c2564c5365372e5",
+    "sharedHqCandidateBranch": "handoff/lester-capacity-to-duncan-r01",
+    "checkpointId": "2026-08-26-R05",
+    "runtimeRepository": "Lester-Sparx/zorr-blatt-runtime",
+    "runtimeBase": "7185ab444d8af1dbe2ec4cbab4710020d93afa7f",
+    "runtimeBranch": "bootstrap/p1-runtime-bootstrap-r01",
+    "runtimeHead": "b20924ee963aadae304c05c269822481d03bab87",
+    "runtimePullRequest": 1,
+    "runtimeWorkflowRun": 32954709328
+  },
+  "gitState": {
+    "sharedHq": {
+      "branchBeforeHandoff": "main",
+      "headBeforeHandoff": "186595b1b9894e51dad683d20c2564c5365372e5",
+      "dirtyBeforeHandoff": false,
+      "uncommittedChangesBeforeHandoff": [],
+      "openPullRequestsBeforeHandoff": [],
+      "headCheckRuns": [],
+      "localValidationRequired": true
+    },
+    "runtime": {
+      "mainHead": "7185ab444d8af1dbe2ec4cbab4710020d93afa7f",
+      "candidateBranch": "bootstrap/p1-runtime-bootstrap-r01",
+      "candidateHead": "b20924ee963aadae304c05c269822481d03bab87",
+      "openPullRequests": [
+        {
+          "number": 1,
+          "state": "OPEN",
+          "mergeable": true,
+          "baseSha": "7185ab444d8af1dbe2ec4cbab4710020d93afa7f",
+          "headSha": "b20924ee963aadae304c05c269822481d03bab87"
+        }
+      ],
+      "checks": [
+        {
+          "runId": 32954709328,
+          "name": "p1-bootstrap",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "passingSteps": 9,
+          "failingSteps": 0
+        }
+      ]
+    }
+  },
+  "repositoryAccess": [
+    {
+      "repository": "Lester-Sparx/zorr-blatt-shared-hq",
+      "identity": "Duncan-Sparx-ZB",
+      "permission": "write",
+      "checkedAt": "2026-08-26T10:02:11Z"
+    },
+    {
+      "repository": "Lester-Sparx/zorr-blatt-runtime",
+      "identity": "Duncan-Sparx-ZB",
+      "permission": "write",
+      "checkedAt": "2026-08-26T10:02:11Z"
+    }
+  ],
+  "whatCompleted": [
+    "Authenticated GitHub actor was verified as Lester-Sparx before handoff writes.",
+    "The SALVADOR memory physicalization attempt was stopped before durable SALVADOR writes because required accepted architecture and Character A/B inputs are absent from Shared HQ.",
+    "Exact Shared HQ and runtime repository state, open PRs, checks and Duncan permissions were captured.",
+    "CURRENT implementation ownership and next-task ownership were assigned to Duncan-Sparx-ZB.",
+    "Checkpoint R04 was archived without rewriting history."
+  ],
+  "whatDidNotComplete": [
+    "No versioned SALVADOR CORE, Character A/B pack, CURRENT manifest, CURRENT_CHECKPOINT or SALVADOR_BOOTSTRAP_MANIFEST was created.",
+    "No package-only SALVADOR cold boot was attempted because the required durable source package does not exist.",
+    "P1 Runtime Bootstrap QC remains not started.",
+    "Runtime PR #1 remains open and unmerged."
+  ],
+  "blockedWork": {
+    "task": "SALVADOR_MEMORY_PHYSICALIZATION_R01",
+    "status": "STOPPED_MISSING_DATA",
+    "blockerId": "BLK-SALVADOR-MEMORY-ARCHITECTURE-MISSING",
+    "durableWritesProduced": false,
+    "missingData": [
+      "Canonical durable path, version and content binding for the accepted SALVADOR Memory Architecture.",
+      "Exact schemas and paths for versioned CORE, Character A/B packs, CURRENT manifests, CURRENT_CHECKPOINT and SALVADOR_BOOTSTRAP_MANIFEST.",
+      "Authoritative CORE version.",
+      "Character A/B canonical identities and Character Truth/lock sources.",
+      "Active character and exact repair scope.",
+      "SALVADOR-specific locks and unresolved items.",
+      "Generation project-state.",
+      "Next valid SALVADOR transition.",
+      "Exact package-only cold-boot procedure and acceptance fixtures."
+    ],
+    "nextConcreteStep": "Duncan locates or requests publication of the accepted SALVADOR architecture and exact package inputs in Shared HQ, verifies their bindings, and only then restarts physicalization from durable sources."
+  },
+  "verificationCommands": [
+    {
+      "repository": "Lester-Sparx/zorr-blatt-shared-hq",
+      "commands": [
+        "git clone https://github.com/Lester-Sparx/zorr-blatt-shared-hq.git",
+        "cd zorr-blatt-shared-hq",
+        "git fetch origin main handoff/lester-capacity-to-duncan-r01",
+        "git checkout --detach origin/handoff/lester-capacity-to-duncan-r01",
+        "python3 scripts/hq_validate.py",
+        "python3 -m unittest discover -s tests -v"
+      ],
+      "expectedResult": "Repository clone/fetch succeeds, checkpoint R05 is readable, validator exits 0 and the complete test suite passes."
+    },
+    {
+      "repository": "Lester-Sparx/zorr-blatt-runtime",
+      "commands": [
+        "git clone https://github.com/Lester-Sparx/zorr-blatt-runtime.git",
+        "cd zorr-blatt-runtime",
+        "git fetch origin bootstrap/p1-runtime-bootstrap-r01",
+        "git checkout --detach b20924ee963aadae304c05c269822481d03bab87",
+        "python3 scripts/check_bootstrap.py",
+        "cargo fmt --check",
+        "cargo check --workspace --locked",
+        "cargo test --workspace --locked",
+        "cargo clippy --workspace --all-targets --locked -- -D warnings"
+      ],
+      "expectedResult": "Authenticated Duncan clone/fetch succeeds; exact head is checked out; bootstrap validator, format, check, tests and clippy all pass."
+    }
+  ],
+  "coldHandoffTest": {
+    "status": "PENDING",
+    "input": "Shared HQ repository plus checkpoint R05 only",
+    "command": "DUNCAN — RESUME FROM ZB CHECKPOINT",
+    "passCriteria": [
+      "Duncan reports the exact Shared HQ state basis and runtime candidate head.",
+      "Duncan identifies P1_RUNTIME_BOOTSTRAP_QC as the next legal transition.",
+      "Duncan identifies SALVADOR_MEMORY_PHYSICALIZATION_R01 as stopped on exact missing durable inputs.",
+      "Duncan verifies write permission to both repositories under the Duncan-Sparx-ZB identity.",
+      "Duncan does not require Lester or prior chat history."
+    ]
+  },
+  "security": {
+    "secretsTransferred": false,
+    "credentialsCopiedFromLester": false,
+    "accessMethod": "Existing repository collaborator permission for Duncan-Sparx-ZB",
+    "prohibitedMaterialsPersisted": false
+  },
+  "nextActor": {
+    "role": "DUNCAN",
+    "githubIdentity": "Duncan-Sparx-ZB"
+  },
+  "nextRequiredTransition": "P1_RUNTIME_BOOTSTRAP_QC",
+  "ownerActionRequired": {
+    "required": false,
+    "action": null,
+    "reason": null
+  }
+}

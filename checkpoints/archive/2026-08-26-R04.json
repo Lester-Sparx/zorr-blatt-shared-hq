@@ -1,25 +1,18 @@
 {
   "schemaId": "ZB_CHECKPOINT_V1",
   "schemaVersion": 1,
-  "checkpointId": "2026-08-26-R05",
-  "createdAt": "2026-08-26T10:02:11Z",
+  "checkpointId": "2026-08-26-R04",
+  "createdAt": "2026-08-26T09:48:38Z",
   "createdBy": "Lester-Sparx",
-  "previousCheckpointId": "2026-08-26-R04",
+  "previousCheckpointId": "2026-08-26-R03",
   "project": "ZORR BLATT",
   "sharedHq": {
     "repository": "Lester-Sparx/zorr-blatt-shared-hq",
-    "stateBasisCommit": "186595b1b9894e51dad683d20c2564c5365372e5"
+    "stateBasisCommit": "f4dcb5dd888aa06df546f85b1b86088129a5706e"
   },
   "currentPhase": {
     "id": "P1_RUNTIME_BOOTSTRAP",
     "status": "AWAITING_REVIEW"
-  },
-  "ownership": {
-    "currentImplementationOwner": "Duncan-Sparx-ZB",
-    "nextTaskOwner": "Duncan-Sparx-ZB",
-    "lesterMode": "HANDOFF_SUPPORT_ONLY",
-    "effectiveAt": "2026-08-26T10:02:11Z",
-    "capacityLaw": "CAPACITY EXHAUSTION MUST NEVER BECOME PROJECT STATE LOSS."
   },
   "globalStatus": {
     "integrationArchitecture": {
@@ -56,14 +49,6 @@
       "candidatePullRequest": 1,
       "workflowRunId": 32954709328,
       "workflowConclusion": "success"
-    },
-    "salvadorMemoryPhysicalization": {
-      "revision": "R01",
-      "status": "BLOCKED_MISSING_DATA",
-      "currentImplementationOwner": "Duncan-Sparx-ZB",
-      "nextTaskOwner": "Duncan-Sparx-ZB",
-      "durableWritesProduced": false,
-      "nextValidTransition": null
     },
     "p1Implementation": {
       "status": "NOT_AUTHORIZED"
@@ -118,20 +103,11 @@
         "pullRequest": 1,
         "headSha": "b20924ee963aadae304c05c269822481d03bab87",
         "workflowRunId": 32954709328
-      },
-      "blockedImplementation": {
-        "task": "SALVADOR_MEMORY_PHYSICALIZATION_R01",
-        "status": "STOPPED_MISSING_DATA",
-        "durableWritesProduced": false,
-        "blockedBy": [
-          "BLK-SALVADOR-MEMORY-ARCHITECTURE-MISSING"
-        ],
-        "nextConcreteStep": "Locate or publish the accepted SALVADOR Memory Architecture and exact Character A/B source data in Shared HQ; then restart from those durable sources only."
       }
     },
     "handoff": {
       "status": "COMPLETE",
-      "path": "handoffs/20260826T100211Z-LESTER-CAPACITY-TO-DUNCAN-R01.json",
+      "path": "handoffs/20260826T094838Z-LESTER-P1-RUNTIME-BOOTSTRAP-R01.json",
       "sourceActor": "Lester-Sparx",
       "nextActor": "Duncan-Sparx-ZB"
     }
@@ -160,38 +136,9 @@
       "decisionId": "AUTHENTICATED-ACTOR-LAW",
       "status": "ACCEPTED",
       "value": "ROLE CONTEXT ≠ AUTHENTICATED ACTOR IDENTITY"
-    },
-    {
-      "decisionId": "CAPACITY-STATE-PRESERVATION-LAW",
-      "status": "ACCEPTED",
-      "value": "CAPACITY EXHAUSTION MUST NEVER BECOME PROJECT STATE LOSS."
     }
   ],
-  "openBlockers": [
-    {
-      "blockerId": "BLK-SALVADOR-MEMORY-ARCHITECTURE-MISSING",
-      "status": "OPEN",
-      "summary": "Shared HQ contains no accepted SALVADOR Memory Architecture or authoritative Character A/B package inputs required for physicalization R01.",
-      "blocks": [
-        "SALVADOR_MEMORY_PHYSICALIZATION_R01"
-      ],
-      "owner": "Django-Sparx-ZB",
-      "resolutionRequired": "Publish or identify the accepted durable SALVADOR architecture and all exact package inputs in Shared HQ; do not reconstruct them from chat.",
-      "missingData": [
-        "Canonical durable path, version and content binding for the accepted SALVADOR Memory Architecture.",
-        "Exact path and schema contract for versioned CORE, Character A/B packs, CURRENT manifests, CURRENT_CHECKPOINT and SALVADOR_BOOTSTRAP_MANIFEST.",
-        "Authoritative CORE version.",
-        "Canonical identities and Character Truth/lock sources for Character A and Character B.",
-        "Active character.",
-        "Exact repair scope.",
-        "SALVADOR-specific locks.",
-        "SALVADOR-specific unresolved items.",
-        "Generation project-state.",
-        "Next valid SALVADOR transition.",
-        "Exact package-only cold-boot procedure and acceptance fixtures."
-      ]
-    }
-  ],
+  "openBlockers": [],
   "latestHandoffs": [
     {
       "handoffId": "20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01",
@@ -206,13 +153,6 @@
       "to": "DUNCAN",
       "status": "COMPLETE",
       "path": "handoffs/20260826T094838Z-LESTER-P1-RUNTIME-BOOTSTRAP-R01.json"
-    },
-    {
-      "handoffId": "20260826T100211Z-LESTER-CAPACITY-TO-DUNCAN-R01",
-      "from": "LESTER",
-      "to": "DUNCAN",
-      "status": "COMPLETE",
-      "path": "handoffs/20260826T100211Z-LESTER-CAPACITY-TO-DUNCAN-R01.json"
     }
   ],
   "nextTransitions": [
@@ -240,37 +180,30 @@
       "field": "coordinatePolicy",
       "status": "UNRESOLVED",
       "reason": "Coordinate policy remains OPEN; no coordinate-system lock is authorized."
-    },
-    {
-      "field": "salvadorMemoryPackageInputs",
-      "status": "UNRESOLVED",
-      "reason": "Authoritative SALVADOR architecture and Character A/B package inputs are absent from Shared HQ; no reconstruction from chat is permitted."
     }
   ],
   "activeAlert": null,
   "checkpointReason": {
-    "kind": "HANDOFF",
-    "source": "LESTER_CAPACITY_HANDOFF_TO_DUNCAN_R01",
+    "kind": "CANDIDATE",
+    "source": "P1_RUNTIME_BOOTSTRAP_CANDIDATE_READY_FOR_QC_SIGNAL_3_CLEAR",
+    "signal": {
+      "level": "SIGNAL_1",
+      "code": "P1_RUNTIME_BOOTSTRAP_CANDIDATE_READY"
+    },
+    "clearedAlert": {
+      "signalId": "SIG-20260826T080910Z-002",
+      "level": "SIGNAL_3",
+      "code": "OWNER_ACTION_REQUIRED",
+      "result": "CLEARED",
+      "authenticatedActor": "Lester-Sparx",
+      "checkedAt": "2026-08-26T09:48:38Z"
+    },
     "evidence": [
       {
         "type": "AUTHENTICATED_GITHUB_IDENTITY",
         "result": "Lester-Sparx",
         "userId": 320954677,
-        "checkedAt": "2026-08-26T10:02:11Z"
-      },
-      {
-        "type": "GITHUB_PERMISSION",
-        "repository": "Lester-Sparx/zorr-blatt-shared-hq",
-        "identity": "Duncan-Sparx-ZB",
-        "permission": "write",
-        "checkedAt": "2026-08-26T10:02:11Z"
-      },
-      {
-        "type": "GITHUB_PERMISSION",
-        "repository": "Lester-Sparx/zorr-blatt-runtime",
-        "identity": "Duncan-Sparx-ZB",
-        "permission": "write",
-        "checkedAt": "2026-08-26T10:02:11Z"
+        "checkedAt": "2026-08-26T09:48:38Z"
       },
       {
         "type": "GITHUB_PR",
@@ -302,7 +235,7 @@
       },
       {
         "type": "HANDOFF",
-        "path": "handoffs/20260826T100211Z-LESTER-CAPACITY-TO-DUNCAN-R01.json",
+        "path": "handoffs/20260826T094838Z-LESTER-P1-RUNTIME-BOOTSTRAP-R01.json",
         "result": "PUBLISHED_WITH_CHECKPOINT"
       }
     ]

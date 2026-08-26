@@ -1,137 +1,192 @@
-# ZORR BLATT — Agent Controller v0 Design
+# ZORR BLATT — LOCAL Agent Controller v0 Design
 
-Status: **DESIGN / OWNER-APPROVAL PENDING FOR EXECUTION**
+Status: **ZERO-BUDGET LOCAL REDESIGN / WRITTEN SPEC FOR OWNER REVIEW**
 
 Authority repository: `Lester-Sparx/zorr-blatt-shared-hq`
 
 Design branch: `agent-controller/v0-design`
 
+Supersedes the paid OpenAI-API version of this spec. The previous paid design remains in Git history only and MUST NOT be implemented.
+
 ## 1. Purpose
 
-ZB currently has durable assignments in GitHub, but an assignment comment does not start a real model run. Agent Controller v0 closes that gap for one vertical slice first: **JINGO → SALVADOR → RESULT_READY**.
+ZB needs real agent execution without making SPARX relay messages between ChatGPT tabs and without paid model/API usage.
 
 Core law:
 
 ```text
 ASSIGNED != RUNNING.
-RUNNING is emitted only when the runner is actually issuing the OpenAI image request.
-RESULT_READY is emitted only after a real output artifact exists.
-FAILED is explicit; failures must never be reported as ACTIVE or RUNNING.
+RUNNING requires evidence that a real local backend accepted execution.
+RESULT_READY requires a real persisted result.
+FAILED is explicit.
+NO PAID CLOUD MODEL/API IS REQUIRED BY v0.
 ```
 
-The controller does not automate ChatGPT browser tabs. It executes SALVADOR through the OpenAI API from a GitHub Actions runner.
+The controller does not automate ChatGPT browser tabs. It runs continuously on SPARX's Windows PC and uses GitHub only as durable coordination/state.
 
-## 2. v0 scope
+## 2. Recommended architecture
 
-v0 supports exactly one agent role and one task kind:
+v0 uses a **local daemon**, not a public self-hosted GitHub Actions runner.
+
+```text
+JINGO / GitHub task
+        |
+        v
+ZB LOCAL AGENT CONTROLLER (Windows PC)
+        |
+        +--> SALVADOR adapter --> local ComfyUI --> image result
+        |
+        +--> future LESTER adapter --> local code/LLM backend
+        |
+        +--> future DUNCAN adapter --> local QC backend
+        |
+        v
+GitHub durable state: RUNNING / RESULT_READY / FAILED
+```
+
+Why local daemon is selected:
+
+- zero per-call cost;
+- can inspect local inbox files immediately;
+- can call `127.0.0.1` services such as ComfyUI directly;
+- can continue while no ChatGPT agent tab is open;
+- avoids exposing a self-hosted runner to a public repository;
+- supports later multiple local backends behind one dispatch interface.
+
+## 3. v0 scope
+
+The controller core is multi-agent-capable, but the first real backend is intentionally one vertical slice:
 
 ```text
 AGENT = SALVADOR
 TASK_KIND = PRODUCTION_IMAGE_EDIT
+BACKEND = COMFYUI_LOCAL
 ```
 
-The first production target is the approved middle-face simplification flow represented by Shared HQ issue #45.
-
-v0 does not automate LESTER, DUNCAN, JINGO reasoning, merges, owner locks, runtime activation, or multi-agent fan-out. Those are later extensions after this vertical slice works.
-
-## 3. Repositories and privacy boundary
-
-`Lester-Sparx/zorr-blatt-shared-hq` is public and remains the public coordination/design plane. Production reference images and generated art must not be committed to it.
-
-v0 therefore requires one dedicated private execution repository:
+v0 proves the automation machinery itself:
 
 ```text
-Lester-Sparx/zorr-blatt-agent-runner
-VISIBILITY = PRIVATE
+GitHub ASSIGNED
+-> local controller discovers task
+-> validates task + local reference
+-> ensures ComfyUI is reachable
+-> submits real ComfyUI prompt
+-> receives prompt_id
+-> records SALVADOR_RUNNING
+-> waits for real output
+-> persists result locally
+-> records SALVADOR_RESULT_READY
 ```
 
-This private repository contains:
+LESTER and DUNCAN adapters are phase-2 extensions after this state/evidence loop is proven. v0 must expose an adapter interface so they can be added without rewriting orchestration.
 
-- GitHub Actions workflow;
-- the small Python runner;
-- tests;
-- private task issues and image attachments;
-- a private generated-results branch.
+## 4. Cost boundary
 
-No agent-controller code or art asset is written to `zorr-blatt-runtime`.
+v0 must not require:
 
-Public Shared HQ contains the design/spec and may contain a human-readable pointer to the private task, but v0 does not automatically publish execution state back to the public repository. Public projection is deliberately deferred until the private vertical slice is proven.
+- OpenAI API billing;
+- any paid inference API;
+- paid orchestration service;
+- paid GitHub runner;
+- paid image generation service.
 
-## 4. One-time owner prerequisites
+Allowed resources are existing local hardware, electricity, normal internet access to GitHub, and free/open-source local software/models.
 
-Execution requires these one-time prerequisites:
+No `OPENAI_API_KEY` exists in this architecture.
 
-1. An OpenAI API project/account with access to the selected image model and sufficient billing/usage capacity.
-2. A usable OpenAI API key for that project.
-3. Private repository `Lester-Sparx/zorr-blatt-agent-runner`.
-4. Actions secret `OPENAI_API_KEY` in that private repository.
+## 5. Existing local environment
 
-Repository creation and secret creation are owner-sensitive and are not available through the current connected GitHub tool, so those steps require direct owner action once.
+Current known machine target:
 
-No API key is stored in source, issues, logs, artifacts, comments, result metadata, or Shared HQ.
+```text
+OS = Windows
+GPU = NVIDIA GeForce RTX 3050 Laptop GPU
+VRAM = 4 GB
+RAM = 16 GB
+COMFYUI_URL = http://127.0.0.1:8188
+COMFYUI_INSTALL = D:\BLATT2\ComfyUI_windows_portable
+```
 
-After these prerequisites are complete, normal SALVADOR task execution must not require opening a SALVADOR ChatGPT tab.
+The controller MUST NOT hard-code GPU-specific model names. ComfyUI workflow/model configuration is external configuration so models can be changed later without changing orchestration semantics.
 
-## 5. Task contract
+v0 implementation and tests are built with a mocked ComfyUI adapter first. A production model is installed/configured only after controller logic is green.
 
-Each executable SALVADOR task is a private GitHub issue in `zorr-blatt-agent-runner`.
+## 6. GitHub as durable queue/state
 
-Required machine-readable block:
+Shared HQ remains the durable coordination plane.
+
+Executable task issues use a fixed block:
 
 ```text
 ZB_AGENT_TASK_V0
-TASK_ID = ZB-SALVADOR-<UTC timestamp>-<sequence>
+TASK_ID = ZB-SALVADOR-<UTC>-<sequence>
 AGENT = SALVADOR
 TASK_KIND = PRODUCTION_IMAGE_EDIT
 STATE = ASSIGNED
-PUBLIC_TRACKING_ISSUE = <owner/repo#number | NONE>
-REFERENCE = ATTACHMENT_REQUIRED
+REFERENCE = LOCAL_INBOX
 ```
 
-The issue body also contains the complete task-specific art direction.
+Task-specific direction follows the machine-readable block.
 
-Exactly one reference image must be resolvable from an attachment in the issue body or its comments. Private GitHub issue attachments are the v0 transport for production input images.
+The local controller polls only explicitly marked ZB agent tasks. It never executes arbitrary issue text as shell or code.
 
-If no usable reference exists, the controller must not invoke image generation. It transitions to:
+## 7. Local inbox/result boundary
+
+Production images do not need to be uploaded to public Shared HQ.
+
+Canonical local roots:
+
+```text
+D:\BLATT2\ZB_AGENT_INBOX\
+D:\BLATT2\ZB_AGENT_RESULTS\
+```
+
+For task `TASK_ID`, reference discovery is constrained to:
+
+```text
+D:\BLATT2\ZB_AGENT_INBOX\<TASK_ID>\
+```
+
+The controller constructs this path itself. Issue text cannot supply arbitrary filesystem paths.
+
+Exactly one supported reference file is accepted in v0:
+
+```text
+.png
+.jpg / .jpeg
+.webp
+```
+
+Results are persisted to:
+
+```text
+D:\BLATT2\ZB_AGENT_RESULTS\<TASK_ID>\result.png
+D:\BLATT2\ZB_AGENT_RESULTS\<TASK_ID>\result.json
+```
+
+`result.json` records task ID, agent, backend, state, timestamps, ComfyUI prompt ID, output byte size, and SHA-256 checksum.
+
+## 8. Reference behavior
+
+If an executable task is discovered but no valid local reference exists:
 
 ```text
 STATE = WAITING_REFERENCE
+EVENT = SALVADOR_REFERENCE_REQUIRED
 ```
 
-and posts `SALVADOR_REFERENCE_REQUIRED` on the private issue.
+The controller keeps watching. When exactly one valid reference later appears in that task's fixed inbox directory, the task becomes eligible automatically. SPARX does not need to reopen a ChatGPT agent tab.
 
-## 6. Trigger
+If more than one candidate reference exists, execution stops with stable error `REFERENCE_COUNT_INVALID` rather than guessing.
 
-The private runner workflow listens to:
+## 9. State machine
 
-```text
-issues: opened, edited, labeled
-issue_comment: created
-workflow_dispatch: manual diagnostic/recovery only
-```
-
-An event may start execution only when all of the following are true:
-
-```text
-AGENT == SALVADOR
-TASK_KIND == PRODUCTION_IMAGE_EDIT
-STATE == ASSIGNED or WAITING_REFERENCE
-exactly one usable reference image is resolvable
-OPENAI_API_KEY is available to the workflow
-no terminal result already exists for TASK_ID
-```
-
-A comment containing a newly attached image can therefore move a task from `WAITING_REFERENCE` to real execution without opening a ChatGPT agent session.
-
-Duplicate events must be idempotent. GitHub Actions `concurrency` uses `TASK_ID` so two runs for the same task cannot execute concurrently.
-
-## 7. State machine
-
-Canonical v0 states:
+Canonical states:
 
 ```text
 ASSIGNED
 WAITING_REFERENCE
+STARTING_BACKEND
 RUNNING
 RESULT_READY
 FAILED
@@ -141,247 +196,233 @@ Allowed transitions:
 
 ```text
 ASSIGNED -> WAITING_REFERENCE
-ASSIGNED -> RUNNING
-WAITING_REFERENCE -> RUNNING
+ASSIGNED -> STARTING_BACKEND
+WAITING_REFERENCE -> STARTING_BACKEND
+STARTING_BACKEND -> RUNNING
+STARTING_BACKEND -> FAILED
 RUNNING -> RESULT_READY
 RUNNING -> FAILED
 ```
 
-No other transition is valid in v0.
+`STARTING_BACKEND` means the controller is making ComfyUI ready/submitting work. It is not owner-visible proof of execution.
 
-`RUNNING` is recorded immediately before the runner issues the real OpenAI API request, after all task/reference validation and idempotency checks have passed. A queued or merely-started GitHub workflow is not `RUNNING`.
+For SALVADOR, `RUNNING` may be recorded only after ComfyUI has accepted the workflow and returned a real `prompt_id`.
 
-If the API call then fails, the next durable transition is `FAILED`.
+`RESULT_READY` may be recorded only after a non-empty supported output image exists in the canonical local result directory and its checksum/metadata have been written.
 
-`RESULT_READY` is written only after output bytes have been validated as a non-empty supported image and persisted privately.
+## 10. Controller process
 
-## 8. SALVADOR role prompt
+The local controller is a small long-running Python process with no paid SDK dependency.
 
-The private runner owns a versioned role prompt file. The prompt establishes permanent SALVADOR production-simplification laws for this task class:
+Responsibilities:
+
+- poll GitHub for eligible task issues;
+- parse fixed task contract;
+- track durable events and idempotency;
+- inspect fixed local inbox;
+- dispatch by `AGENT` and `TASK_KIND` through a backend registry;
+- post durable GitHub events using authenticated GitHub CLI;
+- persist local result metadata;
+- never execute arbitrary commands derived from issue content.
+
+Suggested process cadence:
+
+```text
+POLL_INTERVAL_SECONDS = 15
+```
+
+This is configuration, not governance authority.
+
+## 11. GitHub authentication
+
+v0 uses the official GitHub CLI (`gh`) authenticated once on the local Windows account.
+
+The controller shells out only to fixed, preconstructed `gh` commands whose user-controlled values are passed as arguments, not interpolated into shell source.
+
+No GitHub PAT is written into repository files or issue text.
+
+If `gh` is not authenticated, the controller enters configuration failure and does not pretend agents are running.
+
+## 12. SALVADOR / ComfyUI adapter
+
+Adapter contract:
+
+```text
+ensure_ready() -> BackendReady | error
+submit(task, reference) -> execution_id
+poll(execution_id) -> RUNNING | COMPLETE | FAILED
+collect(execution_id) -> result image
+```
+
+For ComfyUI:
+
+- base URL defaults to `http://127.0.0.1:8188`;
+- workflow JSON is versioned in the controller codebase;
+- task text fills only approved prompt fields;
+- model/checkpoint names come from local config/workflow, never issue-controlled arbitrary paths;
+- real `prompt_id` returned by ComfyUI is the execution evidence used before posting `SALVADOR_RUNNING`;
+- history/output API is polled until success/failure/timeout;
+- output is copied to the canonical task result directory.
+
+If ComfyUI is down, v0 may attempt to launch the known local `run_nvidia_gpu.bat` through a fixed configured path, then wait for readiness. Failure becomes `BACKEND_UNAVAILABLE`.
+
+## 13. SALVADOR task laws
+
+The adapter owns a versioned production prompt/rules file. For production simplification:
 
 - no redesign;
-- preserve identity and silhouette-relevant face/body/hair/costume/weapon/asymmetry when present in the supplied reference;
-- remove micro-detail and visual noise;
-- enlarge/clarify major forms;
-- reduce unnecessary internal lines;
-- graphite / production pencil when requested;
-- obey exact view count and orientation;
+- preserve identity and defining forms visible in supplied reference;
 - do not invent missing reference facts;
-- return exactly one result when one result is requested.
+- reduce micro-detail and visual noise;
+- clarify major forms and reduce unnecessary internal lines;
+- obey requested view count/orientation;
+- graphite / production pencil when requested;
+- return one result when one result is requested.
 
-Task-specific issue text is appended after the permanent role prompt.
+Task-specific art direction is data; it cannot change controller privileges or backend selection.
 
-## 9. OpenAI image execution
+## 14. Durable events
 
-v0 uses the OpenAI image-edit API with the model name isolated in configuration.
-
-Initial implementation target:
-
-```text
-MODEL = gpt-image-2-2026-04-21
-MODE = IMAGE EDIT
-INPUT = one reference image + SALVADOR role prompt + task art direction
-OUTPUT = one image
-```
-
-Current OpenAI documentation lists GPT Image 2 as supporting image input/output and the image-edit endpoint. Pinning the published snapshot prevents silent model-alias drift during v0 validation. A future model migration changes configuration, not orchestration semantics.
-
-The controller records only non-secret execution metadata: model snapshot, request start/end timestamps, workflow run ID, task ID, result byte size, and output checksum.
-
-## 10. Result persistence
-
-Production image bytes remain private.
-
-v0 uses a dedicated branch in the private runner repository:
-
-```text
-generated-results
-```
-
-Canonical paths:
-
-```text
-results/<TASK_ID>/result.png
-results/<TASK_ID>/result.json
-```
-
-The generated-results branch is never merged into the runner code branch/main.
-
-`result.json` contains:
-
-```json
-{
-  "taskId": "...",
-  "agent": "SALVADOR",
-  "state": "RESULT_READY",
-  "model": "gpt-image-2-2026-04-21",
-  "workflowRunId": 0,
-  "sha256": "...",
-  "bytes": 0,
-  "createdAt": "..."
-}
-```
-
-No prompt secrets, API key material, or signed private attachment URL is persisted in result metadata.
-
-## 11. Durable issue events
-
-The private task issue is the v0 human-readable execution log.
-
-Material events use this format:
+Material issue comments use:
 
 ```text
 ZB_AGENT_EVENT_V0
 TASK_ID = ...
 AGENT = SALVADOR
 STATE = WAITING_REFERENCE | RUNNING | RESULT_READY | FAILED
-WORKFLOW_RUN_ID = ...
-RESULT_PATH = results/<TASK_ID>/result.png | NONE
+BACKEND = COMFYUI_LOCAL
+EXECUTION_ID = <prompt_id | NONE>
+RESULT_SHA256 = <sha256 | NONE>
 ERROR_CODE = <stable code | NONE>
 ```
 
-For compatibility with the existing handoff language, the runner additionally posts:
+Compatibility lines:
 
 ```text
 SALVADOR_RUNNING
-```
-
-when entering `RUNNING`, and:
-
-```text
 SALVADOR_RESULT_READY
+SALVADOR_REFERENCE_REQUIRED
 ```
 
-when entering `RESULT_READY`.
+Public comments never contain image bytes or arbitrary local filesystem contents.
 
-The event must never contain `OPENAI_API_KEY`, raw API responses, or signed private attachment URLs.
+## 15. Idempotency
 
-## 12. Error behavior
+Each task has immutable `TASK_ID`.
 
-Input errors are not model failures.
+Before dispatch, controller checks:
 
-```text
-missing reference -> WAITING_REFERENCE
-multiple references -> FAILED / INPUT_REFERENCE_COUNT_INVALID
-invalid task contract -> FAILED / TASK_CONTRACT_INVALID before model call
-missing OPENAI_API_KEY -> FAILED / OPENAI_KEY_MISSING
-OpenAI request/API error -> FAILED / OPENAI_REQUEST_FAILED
-empty/invalid image output -> FAILED / OUTPUT_IMAGE_INVALID
-result persistence failure -> FAILED / RESULT_PERSIST_FAILED
-```
+1. existing durable terminal event on issue;
+2. existing canonical local `result.json` for task;
+3. active in-memory execution lock for task.
 
-The private issue receives a concise durable failure event with the stable error code. Full stack traces remain in Actions logs and must not expose secrets.
+If a valid `RESULT_READY` already exists, the task is not generated again.
 
-## 13. Security
+One controller process may execute at most one active SALVADOR image task at a time in v0 to protect 4 GB VRAM.
 
-Required minimum workflow permissions:
+## 16. Startup / always-on behavior
 
-```text
-contents: write
-issues: write
-```
+After functional acceptance, installer configures Windows Task Scheduler or Startup entry so the controller starts at user login.
 
-Everything else defaults to `none` where GitHub permits.
+Controller startup must not automatically run unrelated GitHub issues. It only processes tasks matching the fixed contract and allowed agent/task vocabulary.
 
-Additional laws:
+ComfyUI may be started lazily only when a SALVADOR task actually requires it.
 
-- never execute arbitrary shell/code from issue text;
-- never interpolate issue body directly into shell commands;
-- validate task fields against fixed vocabularies;
-- accepted reference count is exactly one;
-- implementation must set an explicit input-image byte-size cap;
-- accept only explicitly supported image MIME types;
-- never log `OPENAI_API_KEY`;
-- never publish production image bytes to public Shared HQ;
-- no writes to runtime repository;
-- no merge, governance-verdict, activation, or owner-lock authority in the runner.
+## 17. Security
 
-## 14. Idempotency and duplicate protection
+Hard requirements:
 
-Each task has one immutable `TASK_ID`.
+- no paid API secrets;
+- no arbitrary shell/code execution from issue text;
+- fixed allowlist for agent/task kinds;
+- fixed local root directories;
+- reject path traversal;
+- supported image extension + magic/content validation;
+- input byte-size cap;
+- one active GPU task at a time;
+- no writes to `zorr-blatt-runtime`;
+- no merge, OWNER LOCK, runtime activation, or governance-verdict authority;
+- browser ChatGPT sessions are not automated;
+- public GitHub state contains metadata only, not production image bytes.
 
-Before calling OpenAI, the runner checks `generated-results` for an existing terminal result for that task and checks the issue's durable events. If a terminal result exists, it exits successfully without another model call.
+## 18. Testing
 
-The workflow concurrency key is derived from the same `TASK_ID`.
+Implementation must prove with automated tests:
 
-A SHA-256 result checksum makes duplicate persistence detectable.
-
-## 15. Testing
-
-v0 must have tests for:
-
-- task-block parsing;
-- allowed and forbidden state transitions;
-- missing reference -> `WAITING_REFERENCE` with zero OpenAI calls;
-- `WAITING_REFERENCE` plus a later attachment -> `RUNNING` path;
-- duplicate event -> zero second OpenAI call;
-- invalid MIME and oversized input rejection;
+- strict task parser;
+- allowed/forbidden state transitions;
+- path traversal rejection;
+- missing reference -> `WAITING_REFERENCE`;
+- later local reference -> automatic eligibility;
 - multiple reference rejection;
-- OpenAI failure -> `FAILED`;
-- valid mocked image output -> `RESULT_READY` only after private persistence;
-- durable event serialization excludes secret/private signed URL data;
-- workflow has least-privilege permissions and concurrency keyed by task ID.
+- duplicate task -> no second backend submission;
+- mocked ComfyUI submission returns execution ID before RUNNING event;
+- backend failure -> FAILED;
+- RESULT_READY only after result image + metadata persistence;
+- event formatter never leaks local image bytes;
+- only allowlisted task/agent values dispatch;
+- single-GPU-task lock works.
 
-A live smoke test uses a non-sensitive disposable reference image first. Production art is not used until the mocked and disposable-image paths are green.
+Mocked tests come before any live model download/configuration requirement.
 
-## 16. Acceptance criteria
+## 19. Acceptance criteria
 
-Agent Controller v0 passes only if one end-to-end private test proves:
+Controller v0 passes only when one disposable end-to-end test proves:
 
 ```text
-private issue ASSIGNED
--> GitHub Action actually runs
--> validated reference exists
--> SALVADOR_RUNNING is durably recorded at real API-call start
--> real OpenAI image-edit request executes
--> exactly one image is generated
--> private result.png + result.json are persisted
--> SALVADOR_RESULT_READY is durably recorded
--> duplicate trigger does not generate a second image
+GitHub task = ASSIGNED
+-> local controller discovers task without manual chat relay
+-> reference is found in fixed local inbox
+-> local ComfyUI accepts real workflow and returns prompt_id
+-> SALVADOR_RUNNING is durably posted
+-> exactly one local image completes
+-> result.png + result.json exist
+-> SALVADOR_RESULT_READY is durably posted
+-> duplicate discovery does not run a second generation
 ```
 
-Failure at any step is not a pass.
+Only after that test passes may the approved production face-sheet reference be used.
 
-## 17. Non-goals
+## 20. Non-goals for v0
 
-Not in v0:
+Not in the first vertical slice:
 
-- waking or controlling ChatGPT browser sessions;
-- multi-agent orchestration;
-- automatic DUNCAN QC;
+- paid OpenAI or other cloud inference;
+- browser-tab automation;
+- full local LESTER reasoning backend;
+- full local DUNCAN reasoning backend;
 - automatic merge;
-- automatic OWNER LOCK;
+- OWNER LOCK;
 - runtime activation;
-- public storage of art;
-- automatic public Control Room projection;
-- Control Room file-upload UI;
-- general-purpose autonomous shell execution;
-- arbitrary model/tool selection from issue text.
+- public image storage;
+- Control Room file-upload UI.
 
-## 18. Rollout order
+The orchestration interface must nevertheless be designed so LESTER and DUNCAN adapters can be added next without replacing the controller core.
 
-1. Complete one-time private repository/OpenAI secret prerequisites.
-2. Implement parser/state machine with mocked OpenAI client.
-3. Implement private issue attachment resolution and input validation.
-4. Implement GPT Image edit call.
-5. Implement `generated-results` persistence and metadata.
-6. Add idempotency/concurrency.
-7. Run disposable-image end-to-end smoke.
-8. Only then run the approved SALVADOR production-sheet task.
-9. After v0 proves stable, design public Control Room projection and additional agents separately.
+## 21. Rollout order
 
-## 19. Owner-visible meaning
+1. Replace obsolete paid implementation plan.
+2. LESTER implements controller/parser/state machine with mocked backend.
+3. Implement fixed local inbox/result persistence and GitHub CLI adapter.
+4. Implement mocked ComfyUI backend contract.
+5. Run all controller tests without downloading a production model.
+6. Configure one lightweight ComfyUI workflow/model compatible with 4 GB VRAM.
+7. Run disposable local end-to-end smoke.
+8. Run SALVADOR production face-sheet task.
+9. Design/implement LESTER local backend.
+10. Design/implement DUNCAN local QC backend.
+11. Feed durable states into Control Room.
 
-After v0 is deployed, the owner creates/assigns one SALVADOR task in the private runner repository and no longer has to open a SALVADOR ChatGPT tab or relay prompts between agents.
+## 22. Owner-visible meaning
 
-The visible distinction is exact:
+After v0 deployment:
 
 ```text
-ASSIGNED = queued work exists
-WAITING_REFERENCE = task is valid but no executable reference is available
-RUNNING = the real OpenAI image request is being issued/executed
-RESULT_READY = a real persisted private image exists
-FAILED = execution did not succeed
+ASSIGNED = real queued task exists
+WAITING_REFERENCE = controller saw it but executable image is absent
+RUNNING = local ComfyUI returned a real execution id
+RESULT_READY = real local persisted output exists
+FAILED = execution failed with durable reason
 ```
 
-The controller must never use optimistic status language unsupported by durable execution evidence.
+SPARX no longer needs to open a SALVADOR ChatGPT tab to make an assigned image task execute.

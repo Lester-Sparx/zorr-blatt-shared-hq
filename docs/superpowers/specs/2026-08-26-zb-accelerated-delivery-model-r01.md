@@ -129,13 +129,22 @@ LESS GOVERNANCE
 
 ### 3.1 Earliest Visible Proof law
 
-Every major engineering phase must expose the earliest safe visual result that can reveal wrong direction without pretending that the visible result is canonical truth.
+Every major engineering phase must expose the earliest safe human-inspectable result that can reveal wrong direction without pretending that the result is canonical truth.
 
 Hard law:
 
 ```text
 EVERY MAJOR ENGINEERING PHASE
 MUST PRODUCE THE EARLIEST SAFE VISIBLE PROOF.
+```
+
+For a phase whose natural output is spatial/visual, the visible proof should become an actual geometry/frame/image as early as safely possible. For a foundation-only phase such as P1, this law **must not create renderer or presentation scope**: its earliest visible proof may instead be a minimal human-inspectable deterministic contract/hash/evidence result produced by the existing phase scope.
+
+Therefore:
+
+```text
+VISIBLE PROOF MUST REVEAL THE PHASE'S REAL OUTPUT.
+VISIBLE PROOF MUST NOT INVENT A NEW SUBSYSTEM JUST TO BE VISUAL.
 ```
 
 A visible proof must be explicitly classified as one of:
@@ -771,7 +780,7 @@ provided none claims unfinished P1/P2/P3/P4 data as canonical production truth.
 
 ### 13.2 Dependency rule
 
-If Lane B depends on an output from Lane A that is not yet accepted:
+If one lane depends on an output from another lane that is not yet accepted:
 
 ```text
 USE TEST/NONCANONICAL INPUT
@@ -1120,8 +1129,8 @@ The delivery model is acceptable only if it simultaneously satisfies all of the 
 1. preserves the existing P1–P6 authority graph;
 2. preserves role separation and authenticated identity requirements;
 3. closes project memory before depending on automation;
-4. keeps P1 deliberately small;
-5. requires the earliest safe visible proof from major engineering phases;
+4. keeps P1 deliberately small and prevents visible-proof scope creep in foundation-only phases;
+5. requires the earliest safe visible/human-inspectable proof from major engineering phases;
 6. makes P2 white-proxy visualization an early milestone rather than phase completion;
 7. permits SALVADOR visual/canon preparation in parallel only under separate assignment and existing authority;
 8. classifies V0 Babylon sandbox as disposable/noncanonical;
@@ -1145,7 +1154,7 @@ DO NOT MOVE FASTER BY WEAKENING AUTHORITY.
 
 PROJECT MEMORY FIRST.
 TINY P1.
-EARLY VISIBLE PROOF.
+EARLY VISIBLE PROOF WITHOUT SCOPE CREEP.
 P2 WHITE PROXY EARLY.
 V0 BABYLON = DISPOSABLE / NON_CANONICAL.
 NO DIRECT V0 CODE PROMOTION TO P5.

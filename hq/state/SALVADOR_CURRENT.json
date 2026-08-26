@@ -1,73 +1,47 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "agentId": "SALVADOR",
   "role": "ART DIRECTOR / VISUAL PRODUCTION SUPERVISOR",
   "wakeCommand": "SALVADOR, WAKE.",
-  "status": "ACTIVE / JINGO-SUPERVISED / JINGO HEAD-FACE STUDY R02 CORRECTION LOGIC READY / GENERATION HOLD",
-  "activeScope": "JINGO HEAD / FACE STUDY R02 — correction logic ready; no generation",
+  "status": "ACTIVE / JINGO-SUPERVISED / JINGO HEAD-FACE STUDY R02 REVIEWED / R03 CORRECTION LOGIC NEXT / GENERATION HOLD",
+  "activeScope": "JINGO HEAD / FACE STUDY — R02 reviewed; prepare R03 local correction logic only",
   "facialDNA": "ACCEPTED",
-  "faceStudySpec": "R02 CORRECTION LOGIC READY",
-  "correctionLogicPath": "docs/team/SALVADOR_JINGO_HEAD_FACE_STUDY_R02_CORRECTION_LOGIC.md",
-  "correctionLogicCommit": "fe4427b1b5441b6411ebdb57d3498db021546cde",
   "faceAuthority": "NONE",
-  "fullBodyR01": "EXPLORATION ONLY",
   "generation": "HOLD",
-  "latestVerdict": "R01 NOT APPROVED",
-  "repairStartingPoint": "RIGHT R01 VARIANT ONLY — NOT FACE LOCK",
-  "r01Keep": [
-    "Bald / mature adult / broad cranial direction.",
-    "Deep-set, not-large eyes and calm neutral expression.",
-    "Broad-mouth direction with visible lip mass.",
-    "Dark-skinned Vallori-type read.",
-    "Clean production line/cel language."
+  "latestVerdict": "R02 NOT APPROVED / REAL PROGRESS",
+  "latestJingoReviewComment": 5426439174,
+  "bestStartingPoint": "RIGHT R02 VARIANT ONLY — NOT FACE LOCK",
+  "r02Keep": [
+    "Same-person continuity across all three variants.",
+    "Improved facial compactness and reduced lower-third elongation.",
+    "Structural nose breadth improved without outline shortcut.",
+    "Cheeks less hollow and more structurally read.",
+    "Calm mature read, deep-set/not-large eyes, broad mouth and lip mass preserved.",
+    "No stubble/costume/jewelry/scars/tattoos used as identity crutches."
   ],
-  "r02LocalFixOnly": [
-    "Compact facial construction and shorter visual lower third.",
-    "Remove symmetrical cheek-to-jaw handsome taper.",
-    "Structural broad nose via bridge width, side walls, alar base and tip mass — not thicker outline.",
-    "Build cheek volume structurally, not with graphic cheek lines or hollowing.",
-    "Broader/shorter non-template chin and more individual jaw architecture.",
-    "Add minimal structural natural asymmetry.",
-    "Remove stubble, collar, jewelry, costume identity, tattoos, scars and dramatic lighting for diagnostic study."
+  "r03LocalFixOnly": [
+    "Reduce heroic/blocky jaw overcorrection without returning to handsome taper.",
+    "Shorten chin vertical read while keeping it substantial and non-pointed.",
+    "Remove massive neck/trapezius/body-type cue; use minimal neutral neck only.",
+    "Add subtle structural natural asymmetry without decorative crookedness.",
+    "Improve whole-head compactness without solving it by enlarging the jaw.",
+    "Preserve current nose family, mouth family, eye category, mature age and cranial width.",
+    "Keep cheeks structurally full but not swollen."
   ],
-  "doNotChange": [
-    "personality read",
-    "mature age category",
-    "baldness",
-    "eye-size category",
-    "deep-set eye direction",
-    "broad forehead",
-    "general cranial width",
-    "wide-mouth direction",
-    "visible lip mass"
-  ],
-  "variationLimit": [
-    "nose breadth",
-    "cheek fullness",
-    "jaw taper",
-    "chin width",
-    "eye depth",
-    "natural asymmetry"
-  ],
-  "antiTemplateTest": "Remove skin color mentally; judge only skull/eyes/nose/cheeks/mouth/jaw/chin/ears. If it reads as a standard attractive bald man instead of specific JINGO: FAIL.",
-  "successTarget": "compact mature head / broad structural nose / non-hollow cheeks / wide mouth with real lip mass / non-template jaw-chin / subtle natural irregularity",
-  "supervisionLaw": {
-    "jingoRole": "CONTROL / TEACH / REVIEW / TRAIN SALVADOR",
-    "salvadorRole": "PRODUCE ART-DIRECTION ANALYSIS AND VISUAL CANDIDATES ONLY WITH AUTHORIZED GENERATION",
-    "jingoMustReviewEveryPass": true,
-    "jingoMustExtractDurableLessons": true,
-    "jingoMustReturnConcreteTrainingCorrections": true,
-    "jingoMustNotGenerateOnSalvadorsBehalf": true,
-    "ownerIsNotCourier": true
-  },
   "lockedRules": [
     "SAME JINGO — BETTER RESOLVED FACIAL GEOMETRY.",
-    "Uniqueness must be built through proportions, not decoration.",
-    "BROAD NOSE != THICK OUTLINE.",
+    "ANTI-TEMPLATE != HEROIC EXAGGERATION.",
+    "UNIQUE FACE = SPECIFIC PROPORTIONAL RELATIONSHIPS, NOT GENERIC STRENGTH.",
     "GENERIC HANDSOME FACE DRIFT = FAIL.",
     "FACIAL MANNEQUIN DRIFT = FAIL.",
-    "SAME-PERSON CONTINUITY = FAIL if too many facial families change at once."
+    "NO NEW FACIAL FAMILY DURING LOCAL REPAIR."
   ],
+  "supervisionLaw": {
+    "jingoRole": "CONTROL / TEACH / REVIEW / TRAIN SALVADOR",
+    "jingoMustReviewEveryPass": true,
+    "jingoMustReturnConcreteTrainingCorrections": true,
+    "jingoMustNotGenerateOnSalvadorsBehalf": true
+  },
   "generationGate": {
     "durableAuthorizationRequired": true,
     "explicitCurrentUserGenerationRequestRequired": true,
@@ -76,6 +50,6 @@
     "tokenConsumedPerExecution": true,
     "coldBootTokenState": "ABSENT"
   },
-  "nextAction": "STOP. Await explicit transition JINGO HEAD / FACE STUDY — AUTHORIZED. Even after durable authorization, do not generate unless SPARX explicitly requests generation in the current message and provides the live token ГЕНЕРИРУЙ.",
+  "nextAction": "SALVADOR prepares R03 correction logic only from JINGO review comment 5426439174. STOP before generation. No image generation unless durable authorization + explicit current SPARX request + live token ГЕНЕРИРУЙ are all present.",
   "ownerLock": false
 }

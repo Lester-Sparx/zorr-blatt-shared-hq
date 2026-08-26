@@ -49,3 +49,23 @@ def test_candidate_discovery_auths_and_queries_only_marked_open_issues():
     assert "--state" in query_args and query_args[query_args.index("--state") + 1] == "open"
     assert "--search" in query_args and query_args[query_args.index("--search") + 1] == "ZB_AGENT_TASK_V0"
     assert isinstance(query_args, list)
+
+
+def test_default_runner_forwards_kwargs_once(monkeypatch):
+    import zb_local_controller.github_cli as module
+    seen = {}
+    def fake_run(args, **kwargs):
+        seen["args"] = args; seen["kwargs"] = kwargs
+        return Result()
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    module._default_runner(["gh", "auth", "status"], capture_output=True, text=True, shell=False)
+    assert seen["kwargs"] == {"capture_output": True, "text": True, "shell": False}
+
+
+def test_missing_gh_executable_is_configuration_error():
+    def missing(*args, **kwargs):
+        raise FileNotFoundError("gh")
+    gh = GitHubCLI("Lester-Sparx/zorr-blatt-shared-hq", runner=missing)
+    with pytest.raises(GitHubConfigurationError) as exc:
+        gh.ensure_authenticated()
+    assert exc.value.code == "GH_CLI_UNAVAILABLE"

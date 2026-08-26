@@ -25,7 +25,7 @@ class GitHubIssue:
 
 
 def _default_runner(args: list[str], **kwargs: Any):
-    return subprocess.run(args, capture_output=True, text=True, shell=False, **kwargs)
+    return subprocess.run(args, **kwargs)
 
 
 class GitHubCLI:
@@ -34,7 +34,10 @@ class GitHubCLI:
         self._runner = runner or _default_runner
 
     def ensure_authenticated(self) -> None:
-        result = self._runner(["gh", "auth", "status"], capture_output=True, text=True, shell=False)
+        try:
+            result = self._runner(["gh", "auth", "status"], capture_output=True, text=True, shell=False)
+        except FileNotFoundError as exc:
+            raise GitHubConfigurationError("GH_CLI_UNAVAILABLE") from exc
         if result.returncode != 0:
             raise GitHubConfigurationError("GH_NOT_AUTHENTICATED")
 

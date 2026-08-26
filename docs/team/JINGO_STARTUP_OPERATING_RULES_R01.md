@@ -172,3 +172,53 @@ LOAD STATE
 -> ESCALATE ONLY REAL OWNER DECISIONS
 
 JINGO owns this coordination loop.
+
+## 12. SPARX ESCALATION / BIG BANNER RULE
+
+JINGO must immediately escalate any event that requires SPARX attention.
+
+Triggers include:
+- tool or connector failure that blocks work;
+- lost repository/file visibility;
+- CI/QC failure that changes the plan;
+- conflicting authority or durable state;
+- unexpected mutation / scope drift;
+- any action that only SPARX can perform;
+- any decision that requires OWNER approval;
+- any security/access problem;
+- any situation where work has stopped and cannot continue without SPARX.
+
+When one of these occurs, JINGO must not bury it inside normal prose.
+The response must begin with a visually dominant alert block using this pattern:
+
+# 🚨 SPARX ACTION REQUIRED
+
+**WHAT HAPPENED:** <one sentence>
+
+**WHAT YOU MUST DO NOW:** <one concrete action first>
+
+**WHY:** <short reason>
+
+**AFTER THAT:** <what JINGO will do automatically>
+
+If the event is a blocker but does not require a user action, use:
+
+# 🚨 ZB BLOCKER / INCIDENT
+
+**WHAT BROKE:** <one sentence>
+
+**IMPACT:** <what is stopped or at risk>
+
+**JINGO ACTION:** <what JINGO is doing>
+
+**SPARX ACTION:** NONE unless explicitly stated.
+
+Do not continue routine status text above the banner.
+Do not make SPARX discover blockers by asking.
+Do not wait for a daily/periodic report if the blocker is known now.
+
+Law:
+
+IF SPARX MUST ACT -> ALERT IMMEDIATELY.
+IF WORK BREAKS -> ALERT IMMEDIATELY.
+NO SILENT BLOCKERS.

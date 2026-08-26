@@ -1,14 +1,14 @@
 {
   "schemaId": "ZB_CHECKPOINT_V1",
   "schemaVersion": 1,
-  "checkpointId": "2026-08-26-R02",
-  "createdAt": "2026-08-26T07:48:06Z",
+  "checkpointId": "2026-08-26-R01",
+  "createdAt": "2026-08-26T07:08:50Z",
   "createdBy": "Duncan-Sparx-ZB",
-  "previousCheckpointId": "2026-08-26-R01",
+  "previousCheckpointId": null,
   "project": "ZORR BLATT",
   "sharedHq": {
     "repository": "Lester-Sparx/zorr-blatt-shared-hq",
-    "stateBasisCommit": "8c1cb6cc53befbaf7f17b607896bc89499a3c309"
+    "stateBasisCommit": "6cbae60cb5a678c89104368aeabf284fdf3bb716"
   },
   "currentPhase": {
     "id": "P1_RUNTIME_BOOTSTRAP",
@@ -28,8 +28,7 @@
       },
       "phaseB": {
         "status": "COMPLETE",
-        "initialCheckpointId": "2026-08-26-R01",
-        "initialPublicationCommit": "9f46f46fe2058bc78bbc0f285447f859e2a6bff5"
+        "checkpointId": "2026-08-26-R01"
       }
     },
     "signalProtocol": {
@@ -51,10 +50,7 @@
       "status": "PAUSED",
       "targetRepository": "Lester-Sparx/zorr-blatt-runtime",
       "targetVisibility": "PRIVATE",
-      "repositoryPresent": true,
-      "repositoryVerified": true,
-      "repositoryId": "1347034859",
-      "verifiedVisibility": "private"
+      "repositoryPresent": false
     },
     "p1Implementation": {"status": "NOT_AUTHORIZED"},
     "p2BodyCompiler": {"status": "NOT_AUTHORIZED"},
@@ -122,21 +118,53 @@
       }
     }
   ],
-  "openBlockers": [],
+  "openBlockers": [
+    {
+      "blockerId": "BLK-P1-RUNTIME-REPO-MISSING",
+      "status": "OPEN",
+      "summary": "Target P1 runtime repository does not exist.",
+      "blocks": ["P1_RUNTIME_BOOTSTRAP"],
+      "owner": "SPARX",
+      "resolutionRequired": "Create PRIVATE GitHub repository Lester-Sparx/zorr-blatt-runtime.",
+      "evidence": [
+        {
+          "type": "EXTERNAL_BINDING",
+          "system": "GitHub",
+          "resource": "Lester-Sparx/zorr-blatt-runtime",
+          "result": "NOT_FOUND_404",
+          "checkedAt": "2026-08-26T07:08:50Z"
+        }
+      ]
+    }
+  ],
   "latestHandoffs": [],
   "nextTransitions": [
     {
       "order": 1,
-      "transition": "P1_RUNTIME_BOOTSTRAP_RESUME",
-      "actor": "Lester-Sparx",
+      "transition": "CREATE_P1_RUNTIME_REPOSITORY",
+      "actor": "SPARX",
       "status": "NOT_STARTED",
       "blockedBy": []
+    },
+    {
+      "order": 2,
+      "transition": "VERIFY_P1_RUNTIME_REPOSITORY",
+      "actor": "Duncan-Sparx-ZB",
+      "status": "BLOCKED",
+      "blockedBy": ["BLK-P1-RUNTIME-REPO-MISSING"]
+    },
+    {
+      "order": 3,
+      "transition": "P1_RUNTIME_BOOTSTRAP_RESUME",
+      "actor": "Lester-Sparx",
+      "status": "BLOCKED",
+      "blockedBy": ["BLK-P1-RUNTIME-REPO-MISSING"]
     }
   ],
   "ownerActionRequired": {
-    "required": false,
-    "action": null,
-    "reason": null
+    "required": true,
+    "action": "SPARX manual action: create PRIVATE GitHub repository Lester-Sparx/zorr-blatt-runtime.",
+    "reason": "The connected GitHub toolset can verify and mutate repository contents but does not provide repository creation. This is not an OWNER_LOCK or production-activation action."
   },
   "locks": {
     "ownerLock": {
@@ -151,42 +179,56 @@
       "reason": "Coordinate policy remains OPEN; no coordinate-system lock is authorized."
     }
   ],
-  "activeAlert": null,
-  "checkpointReason": {
-    "kind": "UNBLOCKED",
-    "source": "P1_RUNTIME_REPOSITORY_VERIFIED_SIGNAL_3_CLEAR",
-    "signal": {
-      "level": "SIGNAL_1",
-      "code": "MILESTONE_COMPLETE"
-    },
+  "activeAlert": {
+    "signalId": "SIG-20260826T070850Z-001",
+    "level": "SIGNAL_3",
+    "class": "OWNER_ACTION",
+    "status": "ACTIVE",
+    "code": "OWNER_ACTION_REQUIRED",
+    "summary": "P1 runtime repository must be created before bootstrap can resume.",
+    "raisedBy": "Duncan-Sparx-ZB",
+    "raisedAt": "2026-08-26T07:08:50Z",
+    "blocks": ["P1_RUNTIME_BOOTSTRAP"],
+    "ownerActionRequired": true,
+    "requiredAction": "Create PRIVATE GitHub repository Lester-Sparx/zorr-blatt-runtime.",
     "evidence": [
       {
         "type": "EXTERNAL_BINDING",
         "system": "GitHub",
         "resource": "Lester-Sparx/zorr-blatt-runtime",
-        "repositoryId": "1347034859",
-        "visibility": "private",
-        "permissions": {
-          "pull": true,
-          "push": true,
-          "triage": true,
-          "maintain": false,
-          "admin": false
-        },
-        "result": "VERIFIED",
-        "checkedAt": "2026-08-26T07:48:06Z"
+        "result": "NOT_FOUND_404",
+        "checkedAt": "2026-08-26T07:08:50Z"
+      }
+    ],
+    "clearPolicy": "SPARX_ACTION_PLUS_GATE_HOLDER_VERIFICATION"
+  },
+  "checkpointReason": {
+    "kind": "COMPLETE",
+    "source": "CHECKPOINT_SYSTEM_PHASE_B_INITIAL_PUBLICATION",
+    "signal": {
+      "level": "SIGNAL_1",
+      "code": "MILESTONE_CHECKPOINT_PUBLISHED"
+    },
+    "evidence": [
+      {
+        "type": "GITHUB_PR",
+        "repository": "Lester-Sparx/zorr-blatt-shared-hq",
+        "number": 27,
+        "headSha": "956534f4d438bdd37ba2e9c9d9ee2b55511d05e4",
+        "result": "MERGED"
       },
       {
         "type": "GITHUB_COMMIT",
         "repository": "Lester-Sparx/zorr-blatt-shared-hq",
-        "sha": "8c1cb6cc53befbaf7f17b607896bc89499a3c309",
-        "role": "STATE_BASIS"
+        "sha": "6cbae60cb5a678c89104368aeabf284fdf3bb716",
+        "role": "STATE_BASIS_M1"
       },
       {
-        "type": "GITHUB_COMMIT",
+        "type": "WORKFLOW_RUN",
         "repository": "Lester-Sparx/zorr-blatt-shared-hq",
-        "sha": "9f46f46fe2058bc78bbc0f285447f859e2a6bff5",
-        "role": "PREVIOUS_CHECKPOINT_PUBLICATION"
+        "runId": 32941201857,
+        "name": "hq-validate",
+        "result": "SUCCESS"
       }
     ]
   }

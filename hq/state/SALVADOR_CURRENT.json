@@ -1,34 +1,66 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "agentId": "SALVADOR",
   "role": "ART DIRECTOR / VISUAL PRODUCTION SUPERVISOR",
   "wakeCommand": "SALVADOR, WAKE.",
-  "status": "ACTIVE / JINGO HEAD-FACE STUDY R01 / GENERATION HOLD",
-  "activeScope": "JINGO HEAD / FACE STUDY R01 — controlled facial search",
+  "status": "ACTIVE / JINGO-SUPERVISED / JINGO HEAD-FACE STUDY R02 PREP / GENERATION HOLD",
+  "activeScope": "JINGO HEAD / FACE STUDY R02 — local correction planning only",
   "facialDNA": "ACCEPTED",
-  "faceStudySpec": "READY",
+  "faceStudySpec": "R02 PREP",
   "faceAuthority": "NONE",
   "fullBodyR01": "EXPLORATION ONLY",
   "generation": "HOLD",
+  "latestVerdict": "R01 NOT APPROVED",
+  "r01Keep": [
+    "Controlled search consistency: three variants read as the same JINGO.",
+    "Bald / mature adult / readable ears.",
+    "Broad forehead.",
+    "Eyes directional pass: calm, not oversized, sufficiently deep-set.",
+    "Mouth / lip mass pass.",
+    "No decorative uniqueness shortcuts."
+  ],
+  "r02LocalFixOnly": [
+    "Make facial construction more medium/compact with a comparatively shorter lower third.",
+    "Improve skull-to-lower-face relation; avoid generic handsome tapered template.",
+    "Increase structural/broad nose participation, including bridge and alar mass.",
+    "Build cheek volume structurally rather than with graphic cheek lines or hollowing.",
+    "Rework jaw/chin architecture to reduce beautified taper.",
+    "Add slight natural construction asymmetry without decorative distortion.",
+    "Remove stubble for diagnostic pass.",
+    "Remove collar/garment fragment for diagnostic pass."
+  ],
+  "unresolved": [
+    "Exact nose ratios.",
+    "Cheek fullness.",
+    "Jaw taper."
+  ],
+  "supervisionLaw": {
+    "jingoRole": "CONTROL / TEACH / REVIEW / TRAIN SALVADOR",
+    "salvadorRole": "PRODUCE ART-DIRECTION ANALYSIS AND VISUAL CANDIDATES ONLY WITH AUTHORIZED GENERATION",
+    "jingoMustReviewEveryPass": true,
+    "jingoMustExtractDurableLessons": true,
+    "jingoMustReturnConcreteTrainingCorrections": true,
+    "jingoMustNotGenerateOnSalvadorsBehalf": true,
+    "ownerIsNotCourier": true
+  },
   "lockedRules": [
     "Future variants must remain the same JINGO; only explicitly named UNRESOLVED facial parameters may vary.",
     "Uniqueness must be built through proportions, not decoration.",
     "No costume, tattoo, scar, beard or lighting shortcuts for identity.",
     "The grayscale/line-only face must remain recognizable.",
     "Personality adjectives do not substitute for facial geometry.",
-    "Do not invent exact measurements without evidence."
-  ],
-  "allowedNextTransitions": [
-    "FACIAL DNA — FURTHER VERBAL REFINEMENT",
-    "JINGO HEAD / FACE STUDY — AUTHORIZED"
+    "Do not invent exact measurements without evidence.",
+    "GENERIC HANDSOME FACE DRIFT = FAIL.",
+    "FACIAL MANNEQUIN DRIFT = FAIL."
   ],
   "generationGate": {
     "durableAuthorizationRequired": true,
+    "explicitCurrentUserGenerationRequestRequired": true,
     "liveExecutionTokenRequired": true,
     "liveExecutionToken": "ГЕНЕРИРУЙ",
     "tokenConsumedPerExecution": true,
     "coldBootTokenState": "ABSENT"
   },
-  "nextAction": "Hold generation. Continue verbal Facial DNA refinement only if assigned, or wait for explicit JINGO HEAD / FACE STUDY authorization. Even after authorization, do not generate until SPARX provides the live execution token ГЕНЕРИРУЙ in the active conversation.",
+  "nextAction": "JINGO reviews and teaches. SALVADOR prepares R02 correction logic only. Do not generate any image unless SPARX explicitly requests generation in the current message AND provides the live execution token ГЕНЕРИРУЙ after durable authorization.",
   "ownerLock": false
 }

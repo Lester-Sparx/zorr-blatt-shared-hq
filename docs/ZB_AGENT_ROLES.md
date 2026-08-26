@@ -264,6 +264,54 @@ ACCEPTED → automatic OWNER LOCK
 
 ---
 
+## 7A. Automated routing and parallel-work authority
+
+Canonical accelerated-delivery model:
+
+```text
+docs/superpowers/specs/2026-08-26-zb-accelerated-delivery-model-r01.md
+```
+
+The project should minimize SPARX acting as a routine courier between agents when Shared HQ already contains exact work/evidence bindings.
+
+Target routing pattern:
+
+```text
+LESTER candidate/evidence
+→ DUNCAN QC queue
+→ DJANGO architecture queue after valid QC_PASS
+→ NEXT LEGAL TRANSITION
+```
+
+Hard laws:
+
+```text
+SPARX SHOULD NOT BE A ROUTINE COURIER BETWEEN AGENTS.
+AUTO ROUTING MAY TRANSFER CONTEXT, NOT VERDICTS.
+AUTO ROUTING ≠ AUTO QC_PASS.
+AUTO ROUTING ≠ AUTO ACCEPTED.
+AUTO ROUTING ≠ AUTO OWNER DECISION.
+PARALLEL WORK DOES NOT TRANSFER AUTHORITY.
+```
+
+An orchestrator or agent may read CURRENT, handoffs and evidence and route work to the next legal actor. It may not forge the actor identity or create a verdict reserved for another role.
+
+If the required authenticated actor is unavailable, the legal behavior is:
+
+```text
+ROUTE / WAIT / SIGNAL
+```
+
+not:
+
+```text
+IMPERSONATE / SUBSTITUTE / AUTO-APPROVE
+```
+
+Parallel engineering, visual preparation, V0 sandbox work or Studio-S probes remain individually scoped and separately authorized. Their simultaneous execution never merges their authority domains.
+
+---
+
 ## 8. Checkpoint / handoff responsibilities
 
 Canonical Checkpoint System:

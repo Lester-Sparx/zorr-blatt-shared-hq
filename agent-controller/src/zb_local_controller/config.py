@@ -19,6 +19,7 @@ class ControllerConfig:
     comfyui_url: str = "http://127.0.0.1:8188"
     workflow_path: Path = Path("src/zb_local_controller/workflows/salvador-production-image-edit.json")
     poll_interval_seconds: float = 15.0
+    max_execution_seconds: float = 900.0
 
 
 def load_config(path: Path) -> ControllerConfig:
@@ -26,7 +27,7 @@ def load_config(path: Path) -> ControllerConfig:
         raw = json.loads(Path(path).read_text(encoding="utf-8"))
     except Exception as exc:
         raise ConfigurationError("CONFIG_INVALID") from exc
-    allowed = {"repository", "inboxRoot", "resultRoot", "comfyuiUrl", "workflowPath", "pollIntervalSeconds"}
+    allowed = {"repository", "inboxRoot", "resultRoot", "comfyuiUrl", "workflowPath", "pollIntervalSeconds", "maxExecutionSeconds"}
     if set(raw) - allowed:
         raise ConfigurationError("CONFIG_UNKNOWN_KEY")
     return ControllerConfig(
@@ -36,4 +37,5 @@ def load_config(path: Path) -> ControllerConfig:
         comfyui_url=str(raw.get("comfyuiUrl", ControllerConfig.comfyui_url)),
         workflow_path=Path(raw.get("workflowPath", str(ControllerConfig.workflow_path))),
         poll_interval_seconds=float(raw.get("pollIntervalSeconds", ControllerConfig.poll_interval_seconds)),
+        max_execution_seconds=float(raw.get("maxExecutionSeconds", ControllerConfig.max_execution_seconds)),
     )

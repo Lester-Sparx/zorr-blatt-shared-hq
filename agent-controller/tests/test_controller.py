@@ -4,7 +4,7 @@ from pathlib import Path
 
 from zb_local_controller.backends.base import BackendError, BackendPollResult
 from zb_local_controller.controller import Controller
-from zb_local_controller.github_cli import GitHubIssue
+from zb_local_controller.github_cli import GitHubCLIError, GitHubIssue
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"result-bytes"
 
@@ -38,6 +38,21 @@ class FakeGitHub:
         self.issues[issue_number] = GitHubIssue(issue.number, issue.title, issue.body, issue.comments + (event,))
         if self.on_post:
             self.on_post(issue_number, event)
+
+
+
+
+class FlakyGitHub(FakeGitHub):
+    def __init__(self, issues, fail_state):
+        super().__init__(issues)
+        self.fail_state = fail_state
+        self.failed_once = False
+
+    def post_comment(self, issue_number, event):
+        if not self.failed_once and f"STATE = {self.fail_state}" in event:
+            self.failed_once = True
+            raise GitHubCLIError("GH_COMMENT_FAILED")
+        super().post_comment(issue_number, event)
 
 
 class FakeBackend:
@@ -174,3 +189,128 @@ def test_second_salvador_task_does_not_submit_while_lock_held(tmp_path):
     for task_id in ids: add_ref(inbox, task_id)
     c.run_once(); c.run_once()
     assert backend.submit_calls == 1
+
+
+def test_durable_failed_is_terminal_and_never_resubmits(tmp_path):
+    task_id = "ZB-SALVADOR-X-010"
+    failed = f"ZB_AGENT_EVENT_V0\nTASK_ID = {task_id}\nSTATE = FAILED\nEXECUTION_ID = prompt-old\nERROR_CODE = BACKEND_EXECUTION_FAILED"
+    gh = FakeGitHub([GitHubIssue(10, "task", body(task_id), (failed,))])
+    backend = FakeBackend()
+    c, inbox, _ = make_controller(tmp_path, gh, backend)
+    add_ref(inbox, task_id)
+
+    c.run_once()
+
+    assert backend.submit_calls == 0
+
+
+def test_restart_reconstructs_running_before_any_new_submission(tmp_path):
+    assigned_id = "ZB-SALVADOR-X-011"
+    running_id = "ZB-SALVADOR-X-012"
+    running = f"ZB_AGENT_EVENT_V0\nTASK_ID = {running_id}\nSTATE = RUNNING\nEXECUTION_ID = prompt-existing"
+    issues = [
+        GitHubIssue(11, "new", body(assigned_id)),
+        GitHubIssue(12, "active", body(running_id), (running,)),
+    ]
+    gh = FakeGitHub(issues)
+    backend = FakeBackend(polls=[BackendPollResult("RUNNING")])
+    c, inbox, _ = make_controller(tmp_path, gh, backend)
+    add_ref(inbox, assigned_id)
+    add_ref(inbox, running_id)
+
+    c.run_once()
+
+    assert backend.submit_calls == 0
+    assert backend.poll_calls == 1
+
+
+def test_result_ready_publication_failure_is_healed_without_regeneration(tmp_path):
+    task_id = "ZB-SALVADOR-X-013"
+    gh = FlakyGitHub([GitHubIssue(13, "task", body(task_id))], fail_state="RESULT_READY")
+    backend = FakeBackend(polls=[BackendPollResult("COMPLETE")])
+    c, inbox, results = make_controller(tmp_path, gh, backend)
+    add_ref(inbox, task_id)
+
+    c.run_once()
+    assert (results / task_id / "result.png").exists()
+    assert (results / task_id / "result.json").exists()
+    assert not any("STATE = RESULT_READY" in p for _, p in gh.posts)
+
+    c.run_once()
+
+    assert backend.submit_calls == 1
+    assert any("STATE = RESULT_READY" in p for _, p in gh.posts)
+
+
+def test_running_publication_failure_survives_restart_without_resubmit(tmp_path):
+    task_id = "ZB-SALVADOR-X-014"
+    gh = FlakyGitHub([GitHubIssue(14, "task", body(task_id))], fail_state="RUNNING")
+    backend = FakeBackend(polls=[BackendPollResult("RUNNING")])
+    c1, inbox, results = make_controller(tmp_path, gh, backend)
+    add_ref(inbox, task_id)
+
+    try:
+        c1.run_once()
+    except GitHubCLIError:
+        pass
+    assert backend.submit_calls == 1
+    assert not any("STATE = RUNNING" in p for _, p in gh.posts)
+
+    c2 = Controller(gh, inbox, results, {("SALVADOR", "PRODUCTION_IMAGE_EDIT"): backend})
+    c2.run_once()
+
+    assert backend.submit_calls == 1
+    assert any("STATE = RUNNING" in p for _, p in gh.posts)
+
+
+def test_malformed_task_id_is_isolated_and_next_issue_still_processes(tmp_path):
+    bad = GitHubIssue(15, "bad", body("..\\outside"))
+    good_id = "ZB-SALVADOR-X-015"
+    good = GitHubIssue(16, "good", body(good_id))
+    gh = FakeGitHub([bad, good])
+    backend = FakeBackend()
+    c, inbox, _ = make_controller(tmp_path, gh, backend)
+    add_ref(inbox, good_id)
+
+    c.run_once()
+
+    assert backend.submit_calls == 1
+    assert any("STATE = RUNNING" in p for _, p in gh.posts)
+
+
+class FakeClock:
+    def __init__(self, value=1000.0):
+        self.value = value
+
+    def __call__(self):
+        return self.value
+
+    def advance(self, seconds):
+        self.value += seconds
+
+
+def test_running_execution_times_out_without_replacement_submission(tmp_path):
+    task_id = "ZB-SALVADOR-X-016"
+    gh = FakeGitHub([GitHubIssue(17, "task", body(task_id))])
+    backend = FakeBackend(polls=[BackendPollResult("RUNNING")])
+    clock = FakeClock()
+    inbox = tmp_path / "inbox"; inbox.mkdir()
+    results = tmp_path / "results"; results.mkdir()
+    c = Controller(
+        gh,
+        inbox,
+        results,
+        {("SALVADOR", "PRODUCTION_IMAGE_EDIT"): backend},
+        max_execution_seconds=30.0,
+        clock=clock,
+    )
+    add_ref(inbox, task_id)
+
+    c.run_once()
+    assert backend.submit_calls == 1
+    clock.advance(31.0)
+    c.run_once()
+    c.run_once()
+
+    assert backend.submit_calls == 1
+    assert any("STATE = FAILED" in p and "ERROR_CODE = EXECUTION_TIMEOUT" in p for _, p in gh.posts)

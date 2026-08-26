@@ -13,7 +13,8 @@ Implemented v0 mocked components:
 - fixed-root local inbox/result safety;
 - durable metadata-only GitHub events through fixed `gh` argv;
 - mocked ComfyUI evidence adapter where RUNNING requires a non-empty `prompt_id`;
-- orchestration, duplicate suppression, atomic result persistence, and one active SALVADOR GPU task;
+- orchestration, duplicate suppression, atomic result persistence, restart-safe one-active-SALVADOR GPU locking, and durable event reconciliation;
+- local accepted-execution journal for prompt/event crash recovery and a deployment-owned execution deadline (`maxExecutionSeconds`);
 - Windows launcher and one-cycle CLI.
 
 ## Local target

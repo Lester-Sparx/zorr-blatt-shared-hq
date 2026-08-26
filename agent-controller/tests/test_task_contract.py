@@ -65,3 +65,7 @@ def test_rejects_unknown_machine_key():
 def test_rejects_empty_direction():
     head = VALID.split("\n\n", 1)[0]
     assert_code(head + "\n", "EMPTY_DIRECTION")
+
+
+def test_rejects_path_unsafe_task_id():
+    assert_code(VALID.replace("TASK_ID = ZB-SALVADOR-20260826T160000Z-001", "TASK_ID = ..\\outside"), "INVALID_TASK_ID")

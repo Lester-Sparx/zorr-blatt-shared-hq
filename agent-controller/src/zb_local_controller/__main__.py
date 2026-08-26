@@ -36,6 +36,7 @@ def main(
             config.result_root,
             {("SALVADOR", "PRODUCTION_IMAGE_EDIT"): backend},
             poll_interval_seconds=config.poll_interval_seconds,
+            max_execution_seconds=config.max_execution_seconds,
         )
         if args.once:
             summary = controller.run_once()

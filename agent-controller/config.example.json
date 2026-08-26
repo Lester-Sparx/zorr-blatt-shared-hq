@@ -4,5 +4,6 @@
   "resultRoot": "D:\\BLATT2\\ZB_AGENT_RESULTS",
   "comfyuiUrl": "http://127.0.0.1:8188",
   "workflowPath": "src\\zb_local_controller\\workflows\\salvador-production-image-edit.json",
-  "pollIntervalSeconds": 15
+  "pollIntervalSeconds": 15,
+  "maxExecutionSeconds": 900
 }

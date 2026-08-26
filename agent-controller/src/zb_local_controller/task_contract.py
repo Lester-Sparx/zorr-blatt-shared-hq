@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 ALLOWED_AGENTS = {"SALVADOR"}
 ALLOWED_TASK_KINDS = {"PRODUCTION_IMAGE_EDIT"}
 ALLOWED_STATES = {"ASSIGNED", "WAITING_REFERENCE"}
 ALLOWED_REFERENCE_MODES = {"LOCAL_INBOX"}
 _MACHINE_KEYS = ("TASK_ID", "AGENT", "TASK_KIND", "STATE", "REFERENCE")
+_TASK_ID_RE = re.compile(r"^[A-Z0-9_-]+$")
 
 
 class TaskContractError(ValueError):
@@ -58,6 +60,8 @@ def parse_task(body: str) -> AgentTask:
     if not direction:
         raise TaskContractError("EMPTY_DIRECTION")
 
+    if not _TASK_ID_RE.fullmatch(fields["TASK_ID"]):
+        raise TaskContractError("INVALID_TASK_ID")
     if fields["AGENT"] not in ALLOWED_AGENTS:
         raise TaskContractError("INVALID_AGENT")
     if fields["TASK_KIND"] not in ALLOWED_TASK_KINDS:

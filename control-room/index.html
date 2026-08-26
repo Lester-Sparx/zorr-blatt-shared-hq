@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZORR BLATT CONTROL ROOM</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nes.css@2.3.0/css/nes.min.css">
+  <link rel="stylesheet" href="./app.css">
+  <script src="https://cdn.jsdelivr.net/npm/beepjs@1.0.1/build/beep.min.js"></script>
+</head>
+<body>
+  <main class="control-room">
+    <header class="nes-container is-dark room-header">
+      <h1>ZORR BLATT CONTROL ROOM</h1>
+      <div class="status-grid">
+        <section>
+          <h2>CURRENT GATE</h2>
+          <p id="current-gate">LOADING</p>
+        </section>
+        <section>
+          <h2>LAST UPDATE</h2>
+          <p id="last-update">UNKNOWN</p>
+        </section>
+      </div>
+    </header>
+
+    <section id="alert-panel" class="nes-container is-dark alert-panel" aria-live="assertive" hidden>
+      <h2 id="alert-title">ALERT</h2>
+      <p id="alert-message"></p>
+      <p id="alert-action"></p>
+    </section>
+
+    <section class="nes-container is-dark controls" aria-label="Control room controls">
+      <button id="arm-alarms" class="nes-btn" type="button">ARM ALARMS</button>
+      <strong id="data-health" role="status">DATA NOT LOADED</strong>
+    </section>
+
+    <section class="roster" aria-label="Agent status">
+      <div class="table-scroll">
+        <table class="nes-table is-bordered is-dark">
+          <thead>
+            <tr>
+              <th>AGENT</th>
+              <th>STATUS</th>
+              <th>CURRENT WORK</th>
+              <th>NEXT TRIGGER</th>
+            </tr>
+          </thead>
+          <tbody id="agent-table-body">
+            <tr>
+              <td colspan="4">WAITING FOR STATE</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>

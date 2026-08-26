@@ -193,6 +193,30 @@ The study is not itself dependency adoption. Every real adoption still requires 
 
 ---
 
+## 5A. Accelerated delivery model
+
+Canonical scheduling / feedback / routing model:
+
+```text
+docs/superpowers/specs/2026-08-26-zb-accelerated-delivery-model-r01.md
+```
+
+Stable delivery laws referenced by that spec:
+
+```text
+CONTROLLED PARALLEL LANES
+EVERY MAJOR ENGINEERING PHASE MUST PRODUCE THE EARLIEST SAFE VISIBLE PROOF
+V0 VISUAL SANDBOX = DISPOSABLE_PROOF / NON_CANONICAL
+NO DIRECT SOURCE-CODE PROMOTION V0 → P5
+DASHBOARD = PROJECTION, NOT SOURCE OF TRUTH
+```
+
+The delivery model changes scheduling, feedback cadence, proof strategy and routing discipline. It does not collapse P1–P6 governance gates or authorize V0, Studio-S, SALVADOR tasks, P1 implementation, P2, OWNER LOCK, G2, Voice-to-Shot or production activation by itself.
+
+No dashboard path is asserted here until an actual dashboard artifact exists in Shared HQ.
+
+---
+
 ## 6. Production roadmap
 
 Canonical coarse roadmap:

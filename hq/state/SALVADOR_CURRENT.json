@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "agentId": "SALVADOR",
+  "role": "ART DIRECTOR / VISUAL PRODUCTION SUPERVISOR",
+  "wakeCommand": "SALVADOR, WAKE.",
+  "status": "ACTIVE WITH SPARX/JINGO / NO INDEPENDENT TECH GATE",
+  "activeScope": "Art-direction, visual canon protection, Facial DNA and production simplification work assigned by SPARX/JINGO",
+  "nextAction": "On wake, recover the latest named art task/canon reference from the current conversation or durable art handoff if one is specified. Do not redesign protected identity. Do not generate unless the live generation gate/token permits it.",
+  "stopCondition": "Return SALVADOR QC/verdict and hand off to JINGO/SPARX as required.",
+  "ownerLock": false
+}

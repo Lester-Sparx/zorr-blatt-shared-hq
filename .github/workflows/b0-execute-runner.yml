@@ -1,0 +1,168 @@
+name: b0-execute-runner
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/b0-execute-runner.yml"
+      - "experiments/b0/**"
+
+permissions:
+  contents: read
+
+jobs:
+  b0-babylon-body-compiler-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout ZB spike branch
+        uses: actions/checkout@v4
+
+      - name: Checkout exact pinned OxiHuman commit
+        uses: actions/checkout@v4
+        with:
+          repository: cool-japan/oxihuman
+          ref: 603b446854c3d5a9ca478214e7b85008d54786b9
+          path: oxihuman
+
+      - name: Verify exact donor source and pack bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd oxihuman
+          test "$(git rev-parse HEAD)" = "603b446854c3d5a9ca478214e7b85008d54786b9"
+          pack="assets/packs/oxihuman-core-v1.ohpk"
+          actual_size="$(stat -c%s "$pack")"
+          actual_sha="$(sha256sum "$pack" | awk '{print $1}')"
+          echo "B0_OHPK_SIZE=$actual_size"
+          echo "B0_OHPK_SHA256=$actual_sha"
+          test "$actual_size" = "2093260"
+          test "$actual_sha" = "09c4bb1f849fe5d2bc21db6dd8a8bf7c753ee58db185bc46ab4c6b8e0dc0f6f7"
+
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Show toolchains
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo --version
+          node --version
+          npm --version
+
+      - name: Inject throwaway Rust body compiler harness into pinned donor checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > oxihuman/crates/oxihuman-wasm/examples/b0_compile.rs <<'RS'
+          use std::fs;
+          use std::path::Path;
+
+          use oxihuman_wasm::WasmEngine;
+          use serde_json::{json, Value};
+
+          fn bbox(positions: &[[f32; 3]]) -> ([f32; 3], [f32; 3]) {
+              let mut min = [f32::INFINITY; 3];
+              let mut max = [f32::NEG_INFINITY; 3];
+              for p in positions {
+                  for i in 0..3 {
+                      min[i] = min[i].min(p[i]);
+                      max[i] = max[i].max(p[i]);
+                  }
+              }
+              (min, max)
+          }
+
+          fn main() {
+              let pack = fs::read("assets/packs/oxihuman-core-v1.ohpk").expect("read exact OHPK");
+              let mut engine = WasmEngine::new_from_core_pack_bytes(&pack).expect("load exact OHPK");
+
+              let target = r#"{"height_cm":172.0,"chest_cm":96.0,"waist_cm":82.0,"hip_cm":98.0,"max_iterations":60}"#;
+              let fit_text = engine.fit_to_measurements(target).expect("fit brief-172");
+              let fit: Value = serde_json::from_str(&fit_text).expect("parse fit report");
+
+              let mesh = engine.build_mesh_prepared();
+              assert!(mesh.has_suit, "compiled mesh must pass OxiHuman bodysuit gate");
+              assert!(!mesh.positions.is_empty(), "compiled mesh has no vertices");
+              assert!(!mesh.indices.is_empty(), "compiled mesh has no indices");
+
+              let (min, max) = bbox(&mesh.positions);
+              let span = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
+
+              oxihuman_export::glb::export_glb(&mesh, Path::new("../b0-body.glb"))
+                  .expect("export bodysuit-gated GLB");
+
+              let report = json!({
+                  "proof": "B0_RUST_COMPILED_BODY_V1",
+                  "upstream_commit": "603b446854c3d5a9ca478214e7b85008d54786b9",
+                  "has_suit": mesh.has_suit,
+                  "vertex_count": mesh.positions.len(),
+                  "index_count": mesh.indices.len(),
+                  "bbox_min": min,
+                  "bbox_max": max,
+                  "bbox_span": span,
+                  "fit": fit,
+                  "authority": {
+                      "donor_params_are_character_truth": false,
+                      "donor_skeleton_is_rest_rig": false,
+                      "compiled_mesh_is_derived": true
+                  }
+              });
+              fs::write("../b0-rust.json", serde_json::to_vec_pretty(&report).unwrap())
+                  .expect("write Rust report");
+              println!("{}", serde_json::to_string_pretty(&report).unwrap());
+          }
+          RS
+
+      - name: Compile fitted body and export safety-gated GLB
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd oxihuman
+          cargo run -p oxihuman-wasm --example b0_compile --release
+          cd ..
+          test -s b0-body.glb
+          test -s b0-rust.json
+          test "$(head -c4 b0-body.glb)" = "glTF"
+          echo "B0_GLB_BYTES=$(stat -c%s b0-body.glb)"
+          echo "B0_GLB_SHA256=$(sha256sum b0-body.glb | awk '{print $1}')"
+
+      - name: Install exact Babylon probe dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null
+          npm install --no-save --no-package-lock \
+            @babylonjs/core@9.22.2 \
+            @babylonjs/loaders@9.22.2 \
+            xhr2@0.2.1
+
+      - name: Load compiled GLB in Babylon NullEngine and verify geometry contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node experiments/b0/babylon_contract_check.mjs b0-body.glb b0-rust.json b0-babylon.json
+          test -s b0-babylon.json
+          grep -q '"result": "PASS"' b0-babylon.json
+
+      - name: Print B0 evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '--- Rust compiled body report ---'
+          cat b0-rust.json
+          echo '--- Babylon contract report ---'
+          cat b0-babylon.json
+
+      - name: Upload B0 proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: b0-babylon-body-compiler-report
+          path: |
+            b0-body.glb
+            b0-rust.json
+            b0-babylon.json
+          if-no-files-found: error

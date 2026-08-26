@@ -73,3 +73,14 @@ export function alertIdentity(alert) {
     requireString(alert.action, 'alert.action'),
   ].join('|');
 }
+
+export function shouldBeep({ armed, previousIdentity, nextAlert }) {
+  requireObject(nextAlert, 'nextAlert');
+  if (!ALERT_LEVELS.has(nextAlert.level)) {
+    throw new TypeError(`invalid alert level: ${String(nextAlert.level)}`);
+  }
+  if (!armed || nextAlert.level === 'NONE') {
+    return false;
+  }
+  return alertIdentity(nextAlert) !== previousIdentity;
+}

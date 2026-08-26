@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   alertIdentity,
   normalizeControlRoomState,
+  shouldBeep,
 } from '../state.mjs';
 
 const validState = {
@@ -45,4 +46,45 @@ test('alertIdentity is stable for unchanged content and changes with material co
   assert.notEqual(alertIdentity(alert), alertIdentity({ ...alert, title: 'BLOCKER' }));
   assert.notEqual(alertIdentity(alert), alertIdentity({ ...alert, message: 'Different message' }));
   assert.notEqual(alertIdentity(alert), alertIdentity({ ...alert, action: 'Different action' }));
+});
+
+test('shouldBeep is false before alarms are armed', () => {
+  assert.equal(shouldBeep({
+    armed: false,
+    previousIdentity: null,
+    nextAlert: { level: 'BLOCKER', title: 'B', message: 'M', action: 'A' },
+  }), false);
+});
+
+test('shouldBeep is false for NONE alerts', () => {
+  assert.equal(shouldBeep({
+    armed: true,
+    previousIdentity: null,
+    nextAlert: { level: 'NONE', title: '', message: '', action: '' },
+  }), false);
+});
+
+test('shouldBeep is false for an unchanged active alert', () => {
+  const nextAlert = { level: 'ACTION_REQUIRED', title: 'T', message: 'M', action: 'A' };
+  assert.equal(shouldBeep({
+    armed: true,
+    previousIdentity: alertIdentity(nextAlert),
+    nextAlert,
+  }), false);
+});
+
+test('shouldBeep is true for a new BLOCKER alert', () => {
+  assert.equal(shouldBeep({
+    armed: true,
+    previousIdentity: 'NONE|||',
+    nextAlert: { level: 'BLOCKER', title: 'T', message: 'M', action: 'A' },
+  }), true);
+});
+
+test('shouldBeep is true when ACTION_REQUIRED content materially changes', () => {
+  assert.equal(shouldBeep({
+    armed: true,
+    previousIdentity: 'ACTION_REQUIRED|T|old|A',
+    nextAlert: { level: 'ACTION_REQUIRED', title: 'T', message: 'new', action: 'A' },
+  }), true);
 });

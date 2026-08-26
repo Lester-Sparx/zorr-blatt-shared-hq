@@ -1,6 +1,6 @@
 # ZORR BLATT — SALVADOR v1 CANON REFERENCE EDIT Design
 
-Status: **OWNER-APPROVED IN CHAT / WRITTEN SPEC REVIEW REQUIRED BEFORE IMPLEMENTATION PLAN**
+Status: **OWNER-APPROVED WRITTEN SPEC / IMPLEMENTATION PLAN REQUIRED BEFORE CODE**
 
 Authority repository: `Lester-Sparx/zorr-blatt-shared-hq`
 
@@ -8,7 +8,7 @@ Design branch: `salvador/v1-canon-reference-edit-design`
 
 Base commit: `cf68c4882f84d8d0cce07f05ccc15345b913ddca`
 
-Owner approval phrase: `ОДОБРЯЮ SALVADOR V1 DESIGN` on 2026-08-26.
+Owner approval phrases: `ОДОБРЯЮ SALVADOR V1 DESIGN` and `ОДОБРЯЮ SPEC #55` on 2026-08-26.
 
 ## 1. Purpose
 
@@ -452,4 +452,4 @@ After written-spec approval:
 - SALVADOR is the logical production image role using the local ComfyUI backend;
 - OWNER controls final production activation.
 
-No implementation starts from this document until the owner approves the written spec.
+Implementation starts only from an owner-approved implementation plan. Production activation remains separately gated.

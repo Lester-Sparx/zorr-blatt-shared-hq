@@ -14,7 +14,7 @@ Core law:
 
 ```text
 ASSIGNED != RUNNING.
-RUNNING is emitted only after a real OpenAI API request has started.
+RUNNING is emitted only when the runner is actually issuing the OpenAI image request.
 RESULT_READY is emitted only after a real output artifact exists.
 FAILED is explicit; failures must never be reported as ACTIVE or RUNNING.
 ```
@@ -23,20 +23,20 @@ The controller does not automate ChatGPT browser tabs. It executes SALVADOR thro
 
 ## 2. v0 scope
 
-v0 supports exactly one agent role:
+v0 supports exactly one agent role and one task kind:
 
 ```text
 AGENT = SALVADOR
 TASK_KIND = PRODUCTION_IMAGE_EDIT
 ```
 
-The first target task is the approved middle-face production simplification flow represented by Shared HQ issue #45.
+The first production target is the approved middle-face simplification flow represented by Shared HQ issue #45.
 
 v0 does not automate LESTER, DUNCAN, JINGO reasoning, merges, owner locks, runtime activation, or multi-agent fan-out. Those are later extensions after this vertical slice works.
 
 ## 3. Repositories and privacy boundary
 
-`Lester-Sparx/zorr-blatt-shared-hq` is public and remains the public/sanitized coordination plane. Production reference images and generated art must not be committed to it.
+`Lester-Sparx/zorr-blatt-shared-hq` is public and remains the public coordination/design plane. Production reference images and generated art must not be committed to it.
 
 v0 therefore requires one dedicated private execution repository:
 
@@ -45,28 +45,32 @@ Lester-Sparx/zorr-blatt-agent-runner
 VISIBILITY = PRIVATE
 ```
 
-This repository contains:
+This private repository contains:
 
 - GitHub Actions workflow;
 - the small Python runner;
 - tests;
 - private task issues and image attachments;
-- generated result artifacts or private result files.
+- a private generated-results branch.
 
 No agent-controller code or art asset is written to `zorr-blatt-runtime`.
 
-Public Shared HQ may receive only sanitized state transitions such as task ID, agent, state, workflow run ID, timestamps, and a private-result pointer that does not reveal image bytes or secrets.
+Public Shared HQ contains the design/spec and may contain a human-readable pointer to the private task, but v0 does not automatically publish execution state back to the public repository. Public projection is deliberately deferred until the private vertical slice is proven.
 
-## 4. One-time owner setup
+## 4. One-time owner prerequisites
 
-Because repository creation and Actions secret APIs are owner-sensitive and are not available through the current connected GitHub tool, v0 has exactly two manual owner setup actions:
+Execution requires these one-time prerequisites:
 
-1. Create private repository `Lester-Sparx/zorr-blatt-agent-runner`.
-2. In that private repository add Actions secret `OPENAI_API_KEY`.
+1. An OpenAI API project/account with access to the selected image model and sufficient billing/usage capacity.
+2. A usable OpenAI API key for that project.
+3. Private repository `Lester-Sparx/zorr-blatt-agent-runner`.
+4. Actions secret `OPENAI_API_KEY` in that private repository.
 
-No API key is stored in source, issues, logs, artifacts, comments, or Shared HQ.
+Repository creation and secret creation are owner-sensitive and are not available through the current connected GitHub tool, so those steps require direct owner action once.
 
-After those one-time actions, normal task execution must not require opening a SALVADOR ChatGPT tab.
+No API key is stored in source, issues, logs, artifacts, comments, result metadata, or Shared HQ.
+
+After these prerequisites are complete, normal SALVADOR task execution must not require opening a SALVADOR ChatGPT tab.
 
 ## 5. Task contract
 
@@ -84,33 +88,42 @@ PUBLIC_TRACKING_ISSUE = <owner/repo#number | NONE>
 REFERENCE = ATTACHMENT_REQUIRED
 ```
 
-The issue body also contains the complete art direction. The reference image is attached to that private issue or supplied as another private repository attachment URL.
+The issue body also contains the complete task-specific art direction.
 
-If no usable reference image exists, the controller must not invoke image generation. It transitions to:
+Exactly one reference image must be resolvable from an attachment in the issue body or its comments. Private GitHub issue attachments are the v0 transport for production input images.
+
+If no usable reference exists, the controller must not invoke image generation. It transitions to:
 
 ```text
 STATE = WAITING_REFERENCE
 ```
 
-and posts `SALVADOR_REFERENCE_REQUIRED`.
+and posts `SALVADOR_REFERENCE_REQUIRED` on the private issue.
 
 ## 6. Trigger
 
-The private runner workflow listens to GitHub issue lifecycle events on the private repository.
+The private runner workflow listens to:
 
-The workflow may start execution only when all of the following are true:
+```text
+issues: opened, edited, labeled
+issue_comment: created
+workflow_dispatch: manual diagnostic/recovery only
+```
+
+An event may start execution only when all of the following are true:
 
 ```text
 AGENT == SALVADOR
 TASK_KIND == PRODUCTION_IMAGE_EDIT
-STATE == ASSIGNED
+STATE == ASSIGNED or WAITING_REFERENCE
 exactly one usable reference image is resolvable
 OPENAI_API_KEY is available to the workflow
+no terminal result already exists for TASK_ID
 ```
 
-Duplicate events must be idempotent. A task with a terminal state must not execute again unless an explicit future retry command is added by a later version.
+A comment containing a newly attached image can therefore move a task from `WAITING_REFERENCE` to real execution without opening a ChatGPT agent session.
 
-GitHub Actions `concurrency` uses `TASK_ID` so two runs for the same task cannot execute concurrently.
+Duplicate events must be idempotent. GitHub Actions `concurrency` uses `TASK_ID` so two runs for the same task cannot execute concurrently.
 
 ## 7. State machine
 
@@ -129,35 +142,40 @@ Allowed transitions:
 ```text
 ASSIGNED -> WAITING_REFERENCE
 ASSIGNED -> RUNNING
+WAITING_REFERENCE -> RUNNING
 RUNNING -> RESULT_READY
 RUNNING -> FAILED
 ```
 
 No other transition is valid in v0.
 
-`RUNNING` is written only after the runner has validated input and immediately before/at successful initiation of the real OpenAI API call. A workflow merely being queued or started is not sufficient.
+`RUNNING` is recorded immediately before the runner issues the real OpenAI API request, after all task/reference validation and idempotency checks have passed. A queued or merely-started GitHub workflow is not `RUNNING`.
 
-`RESULT_READY` is written only after output bytes have been validated as a non-empty supported image and persisted in the private execution repository or as a private Actions artifact.
+If the API call then fails, the next durable transition is `FAILED`.
+
+`RESULT_READY` is written only after output bytes have been validated as a non-empty supported image and persisted privately.
 
 ## 8. SALVADOR role prompt
 
-The runner owns a versioned role prompt file. The prompt establishes permanent SALVADOR production-simplification laws for this task class:
+The private runner owns a versioned role prompt file. The prompt establishes permanent SALVADOR production-simplification laws for this task class:
 
 - no redesign;
-- preserve identity, silhouette-relevant face shape, hair/body/costume/weapon/asymmetry when present in the supplied reference;
+- preserve identity and silhouette-relevant face/body/hair/costume/weapon/asymmetry when present in the supplied reference;
 - remove micro-detail and visual noise;
 - enlarge/clarify major forms;
 - reduce unnecessary internal lines;
 - graphite / production pencil when requested;
 - obey exact view count and orientation;
 - do not invent missing reference facts;
-- return one result when one result is requested.
+- return exactly one result when one result is requested.
 
 Task-specific issue text is appended after the permanent role prompt.
 
 ## 9. OpenAI image execution
 
-v0 uses the OpenAI image API with a pinned image model snapshot rather than a floating alias when available. Initial implementation target:
+v0 uses the OpenAI image-edit API with the model name isolated in configuration.
+
+Initial implementation target:
 
 ```text
 MODEL = gpt-image-2-2026-04-21
@@ -166,7 +184,7 @@ INPUT = one reference image + SALVADOR role prompt + task art direction
 OUTPUT = one image
 ```
 
-The current OpenAI API documentation lists GPT Image 2 as supporting image input/output and the image-edit endpoint. The implementation must isolate the model name in configuration so a future model migration does not change orchestration semantics.
+Current OpenAI documentation lists GPT Image 2 as supporting image input/output and the image-edit endpoint. Pinning the published snapshot prevents silent model-alias drift during v0 validation. A future model migration changes configuration, not orchestration semantics.
 
 The controller records only non-secret execution metadata: model snapshot, request start/end timestamps, workflow run ID, task ID, result byte size, and output checksum.
 
@@ -174,14 +192,20 @@ The controller records only non-secret execution metadata: model snapshot, reque
 
 Production image bytes remain private.
 
-Preferred v0 persistence:
+v0 uses a dedicated branch in the private runner repository:
+
+```text
+generated-results
+```
+
+Canonical paths:
 
 ```text
 results/<TASK_ID>/result.png
 results/<TASK_ID>/result.json
 ```
 
-inside the private runner repository on a dedicated generated-results branch, or a private Actions artifact if repository-file persistence proves unnecessarily complex during implementation.
+The generated-results branch is never merged into the runner code branch/main.
 
 `result.json` contains:
 
@@ -198,26 +222,39 @@ inside the private runner repository on a dedicated generated-results branch, or
 }
 ```
 
-No prompt secrets, API key material, or signed private attachment URL is persisted in public state.
+No prompt secrets, API key material, or signed private attachment URL is persisted in result metadata.
 
-## 11. Public projection
+## 11. Durable issue events
 
-If `PUBLIC_TRACKING_ISSUE` is present, the runner may publish a sanitized comment to that Shared HQ issue after each material transition:
+The private task issue is the v0 human-readable execution log.
+
+Material events use this format:
 
 ```text
 ZB_AGENT_EVENT_V0
 TASK_ID = ...
 AGENT = SALVADOR
-STATE = RUNNING | RESULT_READY | FAILED | WAITING_REFERENCE
+STATE = WAITING_REFERENCE | RUNNING | RESULT_READY | FAILED
 WORKFLOW_RUN_ID = ...
-PRIVATE_RESULT = AVAILABLE | NONE
+RESULT_PATH = results/<TASK_ID>/result.png | NONE
+ERROR_CODE = <stable code | NONE>
 ```
 
-The public comment must not include private attachment URLs, image bytes, API responses, or secrets.
+For compatibility with the existing handoff language, the runner additionally posts:
 
-Cross-repository publication requires a credential with write access to the public Shared HQ repository. This credential is a separate implementation decision and must use least privilege. If no safe cross-repository credential is configured in v0, public projection is deferred and the private issue remains the authoritative live state.
+```text
+SALVADOR_RUNNING
+```
 
-Control Room integration is not a prerequisite for v0 execution; it is a later consumer of these sanitized transitions.
+when entering `RUNNING`, and:
+
+```text
+SALVADOR_RESULT_READY
+```
+
+when entering `RESULT_READY`.
+
+The event must never contain `OPENAI_API_KEY`, raw API responses, or signed private attachment URLs.
 
 ## 12. Error behavior
 
@@ -225,21 +262,22 @@ Input errors are not model failures.
 
 ```text
 missing reference -> WAITING_REFERENCE
-invalid task contract -> workflow fails before model call
-missing OPENAI_API_KEY -> FAILED with configuration error
-OpenAI request/API error -> FAILED
-empty/invalid image output -> FAILED
-persistence failure after valid generation -> FAILED
+multiple references -> FAILED / INPUT_REFERENCE_COUNT_INVALID
+invalid task contract -> FAILED / TASK_CONTRACT_INVALID before model call
+missing OPENAI_API_KEY -> FAILED / OPENAI_KEY_MISSING
+OpenAI request/API error -> FAILED / OPENAI_REQUEST_FAILED
+empty/invalid image output -> FAILED / OUTPUT_IMAGE_INVALID
+result persistence failure -> FAILED / RESULT_PERSIST_FAILED
 ```
 
-The issue receives a concise durable failure event with a stable error code. Full stack traces remain in Actions logs and must not expose secrets.
+The private issue receives a concise durable failure event with the stable error code. Full stack traces remain in Actions logs and must not expose secrets.
 
 ## 13. Security
 
 Required minimum workflow permissions:
 
 ```text
-contents: write   # only if private result branch persistence is selected
+contents: write
 issues: write
 ```
 
@@ -250,39 +288,41 @@ Additional laws:
 - never execute arbitrary shell/code from issue text;
 - never interpolate issue body directly into shell commands;
 - validate task fields against fixed vocabularies;
-- cap accepted reference count at one for v0;
-- cap input image byte size in implementation;
-- accept only supported image MIME types;
+- accepted reference count is exactly one;
+- implementation must set an explicit input-image byte-size cap;
+- accept only explicitly supported image MIME types;
 - never log `OPENAI_API_KEY`;
-- never publish private image URLs to public Shared HQ;
+- never publish production image bytes to public Shared HQ;
 - no writes to runtime repository;
-- no merge or owner-lock authority in the runner.
+- no merge, governance-verdict, activation, or owner-lock authority in the runner.
 
 ## 14. Idempotency and duplicate protection
 
 Each task has one immutable `TASK_ID`.
 
-Before calling OpenAI, the runner checks for an existing terminal event/result for that task. If found, it exits successfully without another model call.
+Before calling OpenAI, the runner checks `generated-results` for an existing terminal result for that task and checks the issue's durable events. If a terminal result exists, it exits successfully without another model call.
 
-A lock/concurrency key uses the same `TASK_ID`.
+The workflow concurrency key is derived from the same `TASK_ID`.
 
-A result checksum makes duplicate persistence detectable.
+A SHA-256 result checksum makes duplicate persistence detectable.
 
 ## 15. Testing
 
 v0 must have tests for:
 
 - task-block parsing;
-- allowed/forbidden state transitions;
+- allowed and forbidden state transitions;
 - missing reference -> `WAITING_REFERENCE` with zero OpenAI calls;
+- `WAITING_REFERENCE` plus a later attachment -> `RUNNING` path;
 - duplicate event -> zero second OpenAI call;
-- invalid MIME/oversized input rejection;
+- invalid MIME and oversized input rejection;
+- multiple reference rejection;
 - OpenAI failure -> `FAILED`;
-- valid mocked image output -> `RESULT_READY` only after persistence;
-- sanitized public event contains no private URL/API key data;
+- valid mocked image output -> `RESULT_READY` only after private persistence;
+- durable event serialization excludes secret/private signed URL data;
 - workflow has least-privilege permissions and concurrency keyed by task ID.
 
-A live smoke test uses a non-sensitive disposable reference image first. Production art is not used until the mocked/throwaway path is green.
+A live smoke test uses a non-sensitive disposable reference image first. Production art is not used until the mocked and disposable-image paths are green.
 
 ## 16. Acceptance criteria
 
@@ -291,10 +331,11 @@ Agent Controller v0 passes only if one end-to-end private test proves:
 ```text
 private issue ASSIGNED
 -> GitHub Action actually runs
--> real OpenAI image-edit request starts
--> SALVADOR_RUNNING is durably recorded
+-> validated reference exists
+-> SALVADOR_RUNNING is durably recorded at real API-call start
+-> real OpenAI image-edit request executes
 -> exactly one image is generated
--> private result is persisted
+-> private result.png + result.json are persisted
 -> SALVADOR_RESULT_READY is durably recorded
 -> duplicate trigger does not generate a second image
 ```
@@ -312,30 +353,34 @@ Not in v0:
 - automatic OWNER LOCK;
 - runtime activation;
 - public storage of art;
+- automatic public Control Room projection;
 - Control Room file-upload UI;
 - general-purpose autonomous shell execution;
 - arbitrary model/tool selection from issue text.
 
 ## 18. Rollout order
 
-1. Create private runner repository and secret.
+1. Complete one-time private repository/OpenAI secret prerequisites.
 2. Implement parser/state machine with mocked OpenAI client.
-3. Implement private reference download and validation.
+3. Implement private issue attachment resolution and input validation.
 4. Implement GPT Image edit call.
-5. Persist private result and metadata.
+5. Implement `generated-results` persistence and metadata.
 6. Add idempotency/concurrency.
 7. Run disposable-image end-to-end smoke.
 8. Only then run the approved SALVADOR production-sheet task.
-9. After v0 proves stable, design Control Room public projection and additional agents separately.
+9. After v0 proves stable, design public Control Room projection and additional agents separately.
 
 ## 19. Owner-visible meaning
 
-After v0 is deployed, the owner should be able to create/assign one SALVADOR task and then stop acting as a message courier. The visible distinction is exact:
+After v0 is deployed, the owner creates/assigns one SALVADOR task in the private runner repository and no longer has to open a SALVADOR ChatGPT tab or relay prompts between agents.
+
+The visible distinction is exact:
 
 ```text
 ASSIGNED = queued work exists
-RUNNING = a real API execution is in progress/has started
-RESULT_READY = a real persisted image exists
+WAITING_REFERENCE = task is valid but no executable reference is available
+RUNNING = the real OpenAI image request is being issued/executed
+RESULT_READY = a real persisted private image exists
 FAILED = execution did not succeed
 ```
 

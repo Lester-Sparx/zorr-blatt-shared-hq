@@ -1,98 +1,77 @@
 # ZORR BLATT — CURRENT CHECKPOINT
 
 **Schema:** `ZB_CHECKPOINT_V1`  
-**Checkpoint ID:** `2026-08-26-R03`  
-**Created:** `2026-08-26T08:09:10Z`  
-**Created by:** `Duncan-Sparx-ZB`  
-**Previous checkpoint:** `2026-08-26-R02`
+**Checkpoint ID:** `2026-08-26-R04`  
+**Created:** `2026-08-26T09:48:38Z`  
+**Created by:** `Lester-Sparx`  
+**Previous checkpoint:** `2026-08-26-R03`
 
 ## State basis
 
 ```text
 Shared HQ: Lester-Sparx/zorr-blatt-shared-hq
-stateBasisCommit: 7f053409f9e8ac6632083cd39de8ce704f4b2ded
+stateBasisCommit: f4dcb5dd888aa06df546f85b1b86088129a5706e
 ```
 
 ## Current phase
 
 ```text
-P1_RUNTIME_BOOTSTRAP = PAUSED
+P1_RUNTIME_BOOTSTRAP = AWAITING_REVIEW
+P1_IMPLEMENTATION = NOT_AUTHORIZED
 ```
 
-The runtime repository exists and is verified PRIVATE. The bootstrap execution plan and immutable DUNCAN→LESTER handoff are merged. Runtime builder mutations cannot resume until the authenticated GitHub actor is `Lester-Sparx`.
+The authenticated builder is exactly `Lester-Sparx`. The runtime bootstrap foundation candidate is open at runtime PR #1 and CI is successful at the exact head. Bootstrap is not complete and P1 implementation has not started.
 
-## Active blocker
+## Signal state
 
 ```text
-BLK-P1-LESTER-AUTH-NOT-ACTIVE = OPEN
-blocks: P1_RUNTIME_BOOTSTRAP_RESUME
-connected actor: Duncan-Sparx-ZB
-required builder actor: Lester-Sparx
+activeAlert = null
+SIGNAL_3 SIG-20260826T080910Z-002 = CLEARED
+authenticated actor: Lester-Sparx
+checkedAt: 2026-08-26T09:48:38Z
+ownerActionRequired = false
 ```
 
-This is an authenticated-identity boundary, not a role-label issue:
+## Runtime candidate
 
 ```text
-ROLE CONTEXT ≠ AUTHENTICATED ACTOR IDENTITY
-```
-
-## Active alert
-
-```text
-SIGNAL_3 / OWNER_ACTION / ACTIVE
-signalId: SIG-20260826T080910Z-002
-code: OWNER_ACTION_REQUIRED
-```
-
-Required action:
-
-```text
-Switch/reconnect the ChatGPT GitHub connection used for runtime builder mutations to Lester-Sparx.
-```
-
-Clear policy:
-
-```text
-SPARX ACTION → GATE-HOLDER VERIFY → CLEAR
+repository: Lester-Sparx/zorr-blatt-runtime
+visibility: private
+anchor: 7185ab444d8af1dbe2ec4cbab4710020d93afa7f
+branch: bootstrap/p1-runtime-bootstrap-r01
+head: b20924ee963aadae304c05c269822481d03bab87
+pull request: 1
+workflow: p1-bootstrap / 32954709328 / SUCCESS
+Cargo.lock blob: 21472bb92e8e6749a2efff4c4e0b0a19b5148378
+architecture-binding blob: a5d3e80a3089e91e2e9d5067ad92520cdd3c29f7
 ```
 
 ## Latest handoff
 
 ```text
-handoffId: 20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01
-from: DUNCAN
-to: LESTER
-status: MERGED
-path: handoffs/20260826T080346Z-DUNCAN-P1-RUNTIME-BOOTSTRAP-R01.json
-merge: 7f053409f9e8ac6632083cd39de8ce704f4b2ded
+handoffId: 20260826T094838Z-LESTER-P1-RUNTIME-BOOTSTRAP-R01
+from: LESTER
+to: DUNCAN
+status: COMPLETE
+path: handoffs/20260826T094838Z-LESTER-P1-RUNTIME-BOOTSTRAP-R01.json
+next transition: P1_RUNTIME_BOOTSTRAP_QC
 ```
 
-## Runtime binding
+## Open blockers
 
 ```text
-repository: Lester-Sparx/zorr-blatt-runtime
-repositoryId: 1347034859
-visibility: private
-repositoryVerified: true
-bootstrap design: docs/superpowers/specs/2026-08-26-p1-runtime-bootstrap-design.md
-bootstrap execution plan: docs/superpowers/plans/2026-08-26-p1-runtime-bootstrap-execution-r01.md
-plan merge: 4f955bc73a586638ddd6f74554bf8938b00e1947
+none
 ```
 
-## Next legal transitions
+Pending independent QC and architecture review are governance gates, not resolved verdicts.
+
+## Next legal transition
 
 ```text
-1. SWITCH_GITHUB_ACTOR_TO_LESTER
-   actor: SPARX
+1. P1_RUNTIME_BOOTSTRAP_QC
+   actor: Duncan-Sparx-ZB
    status: NOT_STARTED
-
-2. VERIFY_LESTER_GITHUB_IDENTITY
-   actor: DUNCAN
-   status: BLOCKED
-
-3. P1_RUNTIME_BOOTSTRAP_RESUME
-   actor: Lester-Sparx
-   status: BLOCKED
+   exact head: b20924ee963aadae304c05c269822481d03bab87
 ```
 
 ## Protected gates unchanged

@@ -4,7 +4,7 @@
 
 **Goal:** Add the first real zero-budget SALVADOR production mode that takes one drawn local reference and produces one canon-preserving ComfyUI image-to-image result under `TASK_KIND = CANON_REFERENCE_EDIT` without activating production automatically.
 
-**Architecture:** Keep the accepted controller state/evidence core unchanged and add a separate production backend beside the disposable smoke backend. The production backend owns immutable canon prompt composition, safe local reference staging into ComfyUI input, deterministic bounded preprocessing, production workflow materialization, model preflight, and provenance capture; the generic controller remains responsible for durable GitHub state, restart safety, result persistence, and duplicate suppression.
+**Architecture:** Keep the accepted controller state/evidence core intact and add a separate production backend beside the disposable smoke backend. The production backend owns immutable canon prompt composition, safe local reference staging into ComfyUI input, deterministic bounded preprocessing, production workflow materialization, model preflight, and provenance capture; the generic controller remains responsible for durable GitHub state, restart safety, result persistence, and duplicate suppression.
 
 **Tech Stack:** Python 3.12+, pytest, Pillow, GitHub CLI, local ComfyUI HTTP API, core ComfyUI SD1.5-class img2img nodes, Windows local filesystem.
 
@@ -19,13 +19,13 @@
 - `TASK_KIND = CANON_REFERENCE_EDIT`, `AGENT = SALVADOR`, `REFERENCE = LOCAL_INBOX`, `BACKEND = COMFYUI_LOCAL`.
 - Local inference only; zero paid inference APIs and no `OPENAI_API_KEY`.
 - Keep the disposable `PRODUCTION_IMAGE_EDIT` / `ImageInvert` smoke path intact for regression proof; never silently repurpose it as production.
-- Fixed local input root remains `D:\BLATT2\ZB_AGENT_INBOX\<TASK_ID>\`; GitHub issue text never supplies a filesystem path.
-- Production ComfyUI staging is deployment-owned and must remain under `D:\BLATT2\ComfyUI_windows_portable\ComfyUI\input`.
+- Fixed local input root remains `D:\BLATT2\ZB_AGENT_INBOX\<TASK_ID>\`; `<TASK_ID>` is the strict parsed task identifier, never issue-controlled path text.
+- Production ComfyUI staging is deployment-owned and remains under `D:\BLATT2\ComfyUI_windows_portable\ComfyUI\input`.
 - Batch size = 1; output count = 1; first 4 GB target long side <= 768 px; no crop; deterministic aspect-preserving normalization.
 - First compatibility baseline is a lightweight SD1.5-class local illustration/anime img2img path with conservative denoise in `0.25..0.45`; optional one structural ControlNet only if a separate local smoke proves it fits reliably.
 - Exact production checkpoint/control model names remain external deployment configuration and model binaries are never committed to Shared HQ.
 - `RUNNING` only after real ComfyUI returns a non-empty `prompt_id`.
-- `RESULT_READY` only after real output bytes, checksum, and atomic result metadata are persisted.
+- `RESULT_READY` only after real output bytes, checksum, production provenance, and atomic result metadata are persisted.
 - Existing terminal `FAILED`, restart recovery, one-active-SALVADOR GPU lock, GitHub reconciliation, and duplicate suppression laws remain intact.
 - Merging implementation is not production activation. `PRODUCTION_ACTIVATION = NO` until the full eight-gate acceptance in the spec passes.
 - SALVADOR v2 `TEXTURE_PASS` is out of scope.
@@ -36,11 +36,11 @@
 - Create `agent-controller/src/zb_local_controller/production_policy.py` — immutable-vs-task prompt composition and mechanically detectable canon-conflict rejection.
 - Modify `agent-controller/src/zb_local_controller/config.py` — deployment-owned production paths/model/denoise/size settings.
 - Modify `agent-controller/src/zb_local_controller/__main__.py` — register smoke and production backends side by side.
-- Create `agent-controller/src/zb_local_controller/backends/canon_reference_edit.py` — production-only staging, preprocessing, workflow materialization, readiness/model preflight, prompt submission, provenance.
+- Create `agent-controller/src/zb_local_controller/backends/canon_reference_edit.py` — production-only staging, preprocessing, workflow materialization, readiness/model preflight, prompt submission, output validation, provenance.
 - Modify `agent-controller/src/zb_local_controller/controller.py` — persist optional backend provenance restart-safely without changing state semantics.
 - Create `agent-controller/src/zb_local_controller/prompts/salvador-canon-reference-edit-v1.txt` — immutable repository-owned canon prompt.
 - Create `agent-controller/src/zb_local_controller/workflows/salvador-canon-reference-edit-v1.json` — separate production img2img template; smoke workflow remains unchanged.
-- Modify `agent-controller/pyproject.toml` — add Pillow for deterministic input decode/resize and output decode validation.
+- Modify `agent-controller/pyproject.toml` — add Pillow for deterministic input/output decode and bounded resize.
 - Modify `agent-controller/config.example.json` — document production deployment fields with an intentionally empty model name.
 - Modify `agent-controller/README.md` — document v1 task contract, local model setup boundary, and non-activation law.
 - Modify/add tests under `agent-controller/tests/` for contract, policy, config, production backend, controller provenance, CLI registry, and full regression.
@@ -57,7 +57,7 @@
 
 **Interfaces:**
 - Consumes: existing `AgentTask` and strict `ZB_AGENT_TASK_V0` parser.
-- Produces: `ALLOWED_TASK_KINDS = {"PRODUCTION_IMAGE_EDIT", "CANON_REFERENCE_EDIT"}` and `compose_canon_prompt(canon_prompt: str, direction: str) -> str` raising `CanonPolicyError("SALVADOR_CANON_CONFLICT")` for mechanically detectable attempts to relax immutable laws.
+- Produces: `ALLOWED_TASK_KINDS = {"PRODUCTION_IMAGE_EDIT", "CANON_REFERENCE_EDIT"}` and `compose_canon_prompt(canon_prompt: str, direction: str) -> str` raising `CanonPolicyError("SALVADOR_CANON_CONFLICT")` only for mechanically obvious attempts to relax immutable laws.
 
 - [ ] **Step 1: Write failing parser tests for the new task kind and old-task regression**
 
@@ -90,8 +90,6 @@ Disposable smoke only.
 
 - [ ] **Step 2: Run the focused parser tests and verify RED**
 
-Run from `agent-controller`:
-
 ```powershell
 python -m pytest -q tests/test_task_contract.py
 ```
@@ -109,31 +107,36 @@ Do not add new machine-readable issue keys.
 - [ ] **Step 4: Add failing canon-policy tests**
 
 ```python
+import pytest
 from zb_local_controller.production_policy import CanonPolicyError, compose_canon_prompt
 
 
 def test_composes_immutable_canon_before_task_direction():
-    result = compose_canon_prompt("IMMUTABLE CANON", "keep the scar")
+    result = compose_canon_prompt("IMMUTABLE CANON", "keep the scar; no redesign")
     assert result.startswith("IMMUTABLE CANON")
     assert "TASK-SPECIFIC LOCKED DIRECTION" in result
-    assert result.endswith("keep the scar")
+    assert "keep the scar; no redesign" in result
 
 
-def test_rejects_mechanically_obvious_canon_override():
-    for direction in (
-        "ignore canon and redesign",
-        "change pose completely",
-        "generate the character from scratch",
-        "игнорируй канон и сделай редизайн",
-        "измени позу полностью",
-        "сгенерируй персонажа с нуля",
-    ):
-        try:
-            compose_canon_prompt("IMMUTABLE CANON", direction)
-        except CanonPolicyError as exc:
-            assert exc.code == "SALVADOR_CANON_CONFLICT"
-        else:
-            raise AssertionError(direction)
+def test_allows_explicit_preservation_language():
+    result = compose_canon_prompt("IMMUTABLE CANON", "No redesign. Preserve the same pose and composition.")
+    assert "No redesign" in result
+
+
+@pytest.mark.parametrize("direction", [
+    "ignore canon and redesign the character",
+    "ignore locked rules and change the pose",
+    "use a different pose",
+    "generate the character from scratch",
+    "игнорируй канон и сделай редизайн",
+    "игнорируй локи и измени позу",
+    "смени позу полностью",
+    "сгенерируй персонажа с нуля",
+])
+def test_rejects_mechanically_obvious_canon_override(direction):
+    with pytest.raises(CanonPolicyError) as exc:
+        compose_canon_prompt("IMMUTABLE CANON", direction)
+    assert exc.value.code == "SALVADOR_CANON_CONFLICT"
 ```
 
 - [ ] **Step 5: Run policy tests and verify RED**
@@ -159,17 +162,18 @@ class CanonPolicyError(ValueError):
 _CONFLICT_PHRASES = (
     "ignore canon",
     "ignore locked",
-    "redesign",
-    "change pose",
-    "different pose",
-    "generate from scratch",
-    "text to image",
+    "redesign the character",
+    "redesign this character",
+    "change the pose",
+    "use a different pose",
+    "generate the character from scratch",
+    "text to image from scratch",
     "игнорируй канон",
     "игнорируй лок",
-    "редизайн",
+    "сделай редизайн",
     "измени позу",
     "смени позу",
-    "с нуля",
+    "сгенерируй персонажа с нуля",
 )
 
 
@@ -189,7 +193,7 @@ def compose_canon_prompt(canon_prompt: str, direction: str) -> str:
     )
 ```
 
-This is intentionally a conservative mechanical guard, not a claim of semantic vision/QC.
+This is intentionally a conservative mechanical guard, not a semantic vision classifier. Visual/canon QC remains authoritative for conflicts that cannot be mechanically known.
 
 - [ ] **Step 7: Run focused tests, then commit**
 
@@ -214,13 +218,16 @@ Expected: focused tests PASS.
 
 **Interfaces:**
 - Consumes: existing `ComfyUIBackend`, existing controller backend registry keyed by `(agent, task_kind)`.
-- Produces: production config fields and a `CanonReferenceEditBackend` object registered only for `("SALVADOR", "CANON_REFERENCE_EDIT")`; the smoke backend remains registered for `("SALVADOR", "PRODUCTION_IMAGE_EDIT")`.
+- Produces: production config fields and a `CanonReferenceEditBackend` registered only for `("SALVADOR", "CANON_REFERENCE_EDIT")`; the smoke backend remains registered for `("SALVADOR", "PRODUCTION_IMAGE_EDIT")`.
 
 - [ ] **Step 1: Write failing config tests**
 
-Add tests that load exactly these deployment-owned keys:
-
 ```python
+import json
+import pytest
+from zb_local_controller.config import ConfigurationError, load_config
+
+
 def test_loads_canon_reference_edit_deployment_settings(tmp_path):
     path = tmp_path / "config.json"
     path.write_text(json.dumps({
@@ -236,9 +243,20 @@ def test_loads_canon_reference_edit_deployment_settings(tmp_path):
     assert config.canon_model_name == "local-sd15-illustration.safetensors"
     assert config.canon_denoise == 0.35
     assert config.canon_max_long_side == 768
-```
 
-Also add rejection tests for `canonDenoise < 0.25`, `canonDenoise > 0.45`, and `canonMaxLongSide > 768`; each must raise `ConfigurationError("CONFIG_INVALID")`.
+
+@pytest.mark.parametrize("payload", [
+    {"canonDenoise": 0.24},
+    {"canonDenoise": 0.46},
+    {"canonMaxLongSide": 769},
+])
+def test_rejects_out_of_policy_canon_settings(tmp_path, payload):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ConfigurationError) as exc:
+        load_config(path)
+    assert exc.value.code == "CONFIG_INVALID"
+```
 
 - [ ] **Step 2: Run config tests and verify RED**
 
@@ -246,11 +264,11 @@ Also add rejection tests for `canonDenoise < 0.25`, `canonDenoise > 0.45`, and `
 python -m pytest -q tests/test_config.py
 ```
 
-Expected: missing config fields / unknown keys.
+Expected: unknown deployment keys or missing attributes.
 
 - [ ] **Step 3: Extend `ControllerConfig` and `load_config`**
 
-Add fields with safe non-activated defaults:
+Add safe non-activated defaults:
 
 ```python
 comfyui_input_root: Path = Path(r"D:\BLATT2\ComfyUI_windows_portable\ComfyUI\input")
@@ -274,7 +292,7 @@ canonMaxLongSide
 canonNegativePrompt
 ```
 
-Validate after parsing:
+Construct the dataclass first, then validate:
 
 ```python
 if not 0.25 <= config.canon_denoise <= 0.45:
@@ -283,26 +301,52 @@ if not 64 <= config.canon_max_long_side <= 768:
     raise ConfigurationError("CONFIG_INVALID")
 ```
 
-An empty `canonModelName` is valid configuration but means production model preflight must fail closed when a production task is actually attempted.
+An empty `canonModelName` is valid static configuration but production model preflight must fail closed when a production task is attempted.
 
-- [ ] **Step 4: Create a minimal production backend skeleton and failing CLI registry test**
-
-Initial class:
+- [ ] **Step 4: Create the backend constructor skeleton**
 
 ```python
+from __future__ import annotations
+from pathlib import Path
+from typing import Any
 from .comfyui import ComfyUIBackend
 
 
 class CanonReferenceEditBackend(ComfyUIBackend):
     WORKFLOW_VERSION = "salvador-canon-reference-edit-v1"
     CANON_PROMPT_VERSION = "salvador-canon-v1"
+
+    def __init__(
+        self,
+        base_url: str,
+        workflow_path: Path,
+        canon_prompt_path: Path,
+        comfyui_input_root: Path,
+        model_name: str,
+        denoise: float,
+        max_long_side: int,
+        negative_prompt: str,
+        transport: Any | None = None,
+    ):
+        super().__init__(base_url, workflow_path, transport=transport)
+        self.canon_prompt_path = Path(canon_prompt_path)
+        self.comfyui_input_root = Path(comfyui_input_root)
+        self.model_name = str(model_name)
+        self.denoise = float(denoise)
+        self.max_long_side = int(max_long_side)
+        self.negative_prompt = str(negative_prompt)
+        self._execution_metadata: dict[str, dict[str, Any]] = {}
 ```
 
-Add a CLI test using injected factories to assert the controller registry receives two mappings and that the two task kinds do not share the same backend object.
+- [ ] **Step 5: Write a failing CLI registry test and switch CLI injection to a registry factory**
 
-- [ ] **Step 5: Update `_default_backend_factory` into a registry factory**
+Change `main()` injection from a single `backend_factory` to:
 
-Use one smoke backend plus one production backend:
+```python
+backend_registry_factory: Callable[[ControllerConfig], dict[tuple[str, str], Any]] = _default_backend_registry
+```
+
+Build registry exactly:
 
 ```python
 def _default_backend_registry(config: ControllerConfig):
@@ -323,7 +367,7 @@ def _default_backend_registry(config: ControllerConfig):
     }
 ```
 
-Keep dependency injection in `main()` testable; do not instantiate or call a production model during CLI construction.
+The CLI test must inject a registry factory returning two sentinel backend objects and assert `Controller.backend_registry` receives both exact keys. No backend method is called merely by constructing the CLI.
 
 - [ ] **Step 6: Run focused tests, then commit**
 
@@ -333,7 +377,7 @@ git add src/zb_local_controller/config.py src/zb_local_controller/__main__.py sr
 git commit -m "feat: register canon reference edit backend"
 ```
 
-Expected: focused tests PASS; smoke CLI behavior remains unchanged.
+Expected: focused tests PASS; smoke CLI behavior remains available.
 
 ---
 
@@ -346,33 +390,111 @@ Expected: focused tests PASS; smoke CLI behavior remains unchanged.
 
 **Interfaces:**
 - Consumes: validated `ReferenceFile.path`, strict `task.task_id`, deployment-owned `comfyui_input_root`.
-- Produces: `_stage_reference(task, reference) -> StagedReference` where `StagedReference` records staged filename/path, source SHA-256, working width, and working height.
+- Produces: `_stage_reference(task, reference) -> StagedReference` with filesystem path, ComfyUI-relative input name, source SHA-256, working width, and working height.
 
-- [ ] **Step 1: Add Pillow dependency and write failing staging tests**
+- [ ] **Step 1: Add Pillow and create an exact test scaffold**
 
-In `pyproject.toml` set:
+In `pyproject.toml`:
 
 ```toml
 dependencies = ["Pillow>=11"]
 ```
 
-Test with a generated `1600x900` RGB PNG and assert:
+Start `tests/test_canon_reference_edit.py` with:
 
 ```python
-staged = backend._stage_reference(TASK, REF)
-assert staged.path.parent == comfyui_input_root / "ZB_CANON_REFERENCE_EDIT"
-assert staged.path.name.startswith("ZB-SALVADOR-CANON-001-")
-assert staged.path.suffix == ".png"
-assert max(staged.working_width, staged.working_height) == 768
-assert abs((staged.working_width / staged.working_height) - (1600 / 900)) < 0.01
-assert staged.source_sha256 == hashlib.sha256(source_bytes).hexdigest()
+import hashlib
+import json
+from pathlib import Path
+from types import SimpleNamespace
+import pytest
+from PIL import Image
+
+from zb_local_controller.backends.base import BackendError
+from zb_local_controller.backends.canon_reference_edit import CanonReferenceEditBackend
+from zb_local_controller.task_contract import AgentTask
+
+TASK = AgentTask(
+    "ZB-SALVADOR-CANON-001",
+    "SALVADOR",
+    "CANON_REFERENCE_EDIT",
+    "ASSIGNED",
+    "LOCAL_INBOX",
+    "No redesign. Preserve the same pose and composition.",
+)
+
+
+class FakeTransport:
+    def __init__(self, json_responses=None, byte_responses=None, errors=None):
+        self.json_responses = list(json_responses or [])
+        self.byte_responses = list(byte_responses or [])
+        self.errors = list(errors or [])
+        self.calls = []
+
+    def request_json(self, method, path, payload=None):
+        self.calls.append((method, path, payload))
+        if self.errors:
+            error = self.errors.pop(0)
+            if error is not None:
+                raise error
+        return self.json_responses.pop(0) if self.json_responses else {}
+
+    def request_bytes(self, path):
+        self.calls.append(("GET_BYTES", path, None))
+        return self.byte_responses.pop(0) if self.byte_responses else b""
+
+
+def make_backend(tmp_path, transport=None, model_name="local-model.safetensors"):
+    workflow = tmp_path / "workflow.json"
+    workflow.write_text("{}", encoding="utf-8")
+    prompt = tmp_path / "canon.txt"
+    prompt.write_text("IMMUTABLE CANON", encoding="utf-8")
+    return CanonReferenceEditBackend(
+        base_url="http://127.0.0.1:8188",
+        workflow_path=workflow,
+        canon_prompt_path=prompt,
+        comfyui_input_root=tmp_path / "comfy-input",
+        model_name=model_name,
+        denoise=0.35,
+        max_long_side=768,
+        negative_prompt="redesign, changed pose, extra limbs",
+        transport=transport or FakeTransport(),
+    )
 ```
 
-Add a second test with `512x700` input to assert it is not upscaled: `max(...) == 700`.
+- [ ] **Step 2: Write failing staging tests**
 
-Add a corrupt-image test that must raise `BackendError("SALVADOR_UNSUPPORTED_INPUT")`.
+```python
+def test_stages_large_reference_as_bounded_png_without_crop(tmp_path):
+    source = tmp_path / "source.png"
+    Image.new("RGB", (1600, 900), "white").save(source)
+    source_bytes = source.read_bytes()
+    staged = make_backend(tmp_path)._stage_reference(TASK, SimpleNamespace(path=source))
+    assert staged.path.parent == tmp_path / "comfy-input" / "ZB_CANON_REFERENCE_EDIT"
+    assert staged.comfyui_name == f"ZB_CANON_REFERENCE_EDIT/{staged.path.name}"
+    assert staged.path.name.startswith("ZB-SALVADOR-CANON-001-")
+    assert staged.path.suffix == ".png"
+    assert max(staged.working_width, staged.working_height) == 768
+    assert abs((staged.working_width / staged.working_height) - (1600 / 900)) < 0.01
+    assert staged.source_sha256 == hashlib.sha256(source_bytes).hexdigest()
 
-- [ ] **Step 2: Run the new backend tests and verify RED**
+
+def test_does_not_upscale_reference(tmp_path):
+    source = tmp_path / "source.png"
+    Image.new("RGB", (512, 700), "white").save(source)
+    staged = make_backend(tmp_path)._stage_reference(TASK, SimpleNamespace(path=source))
+    assert (staged.working_width, staged.working_height) == (512, 700)
+
+
+def test_corrupt_reference_is_stable_unsupported_input(tmp_path):
+    source = tmp_path / "source.png"
+    source.write_bytes(b"not an image")
+    with pytest.raises(BackendError) as exc:
+        make_backend(tmp_path)._stage_reference(TASK, SimpleNamespace(path=source))
+    assert exc.value.code == "SALVADOR_UNSUPPORTED_INPUT"
+```
+
+- [ ] **Step 3: Run staging tests and verify RED**
 
 ```powershell
 python -m pytest -q tests/test_canon_reference_edit.py
@@ -380,20 +502,19 @@ python -m pytest -q tests/test_canon_reference_edit.py
 
 Expected: missing `StagedReference` / `_stage_reference`.
 
-- [ ] **Step 3: Implement deterministic staging**
-
-Use:
+- [ ] **Step 4: Implement deterministic staging**
 
 ```python
 from dataclasses import dataclass
 from hashlib import sha256
-from PIL import Image
 import os
+from PIL import Image
 
 
 @dataclass(frozen=True)
 class StagedReference:
     path: Path
+    comfyui_name: str
     source_sha256: str
     working_width: int
     working_height: int
@@ -401,22 +522,21 @@ class StagedReference:
 
 Algorithm:
 
-1. Read source bytes and hash them.
-2. Decode with Pillow and force full `image.load()`.
+1. Read source bytes and SHA-256 them.
+2. Decode with Pillow and force `image.load()`; decode failure -> `BackendError("SALVADOR_UNSUPPORTED_INPUT")`.
 3. Convert to RGB.
-4. If long side > `max_long_side`, call `thumbnail((max_long_side, max_long_side), Image.Resampling.LANCZOS)`; otherwise keep native dimensions.
+4. If long side > `max_long_side`, call `thumbnail((max_long_side, max_long_side), Image.Resampling.LANCZOS)`; otherwise do not resize.
 5. Never crop and never upscale.
-6. Write PNG atomically under `<comfyui_input_root>/ZB_CANON_REFERENCE_EDIT/`.
-7. Filename is `<task_id>-<source_sha256[:12]>.png`.
-8. Use a `.tmp` sibling and `os.replace`.
+6. Create `<comfyui_input_root>/ZB_CANON_REFERENCE_EDIT`.
+7. Filename is `<task.task_id>-<source_sha256[:12]>.png`.
+8. Save a PNG to a `.tmp` sibling and atomically `os.replace` it.
+9. Return `comfyui_name = "ZB_CANON_REFERENCE_EDIT/" + filename` so ComfyUI `LoadImage` can resolve the subdirectory safely.
 
-Do not stage outside the deployment-owned ComfyUI input root.
+- [ ] **Step 5: Add idempotence test**
 
-- [ ] **Step 4: Add idempotence test**
+Call `_stage_reference` twice for the same task/source and assert exact same path, `comfyui_name`, SHA-256, dimensions, and staged bytes.
 
-Call `_stage_reference` twice for the same task/source and assert the exact same staged path and exact same bytes. This prevents unnecessary staging churn during retries.
-
-- [ ] **Step 5: Run focused tests, then commit**
+- [ ] **Step 6: Run focused tests, then commit**
 
 ```powershell
 python -m pytest -q tests/test_canon_reference_edit.py
@@ -428,7 +548,7 @@ Expected: all staging tests PASS.
 
 ---
 
-### Task 4: Add immutable canon prompt asset and a separate SD1.5 img2img workflow template
+### Task 4: Add immutable canon prompt asset and separate SD1.5 img2img workflow materialization
 
 **Files:**
 - Create: `agent-controller/src/zb_local_controller/prompts/salvador-canon-reference-edit-v1.txt`
@@ -437,10 +557,10 @@ Expected: all staging tests PASS.
 - Modify: `agent-controller/tests/test_canon_reference_edit.py`
 
 **Interfaces:**
-- Consumes: staged reference filename, external model name, immutable canon prompt file, task direction, negative prompt, configured denoise.
-- Produces: `_workflow_for(task, reference) -> dict[str, Any]` containing no unresolved `__ZB_*__` tokens and exactly one output branch.
+- Consumes: `StagedReference`, external model name, immutable canon prompt file, task direction, negative prompt, configured denoise.
+- Produces: `_materialize_workflow(task, staged) -> tuple[dict[str, Any], int]`, returning a fully typed ComfyUI prompt and deterministic seed with no unresolved `__ZB_*__` tokens.
 
-- [ ] **Step 1: Write the immutable prompt asset exactly as a production law**
+- [ ] **Step 1: Write the immutable prompt asset exactly**
 
 ```text
 ZORR BLATT SALVADOR CANON REFERENCE EDIT V1.
@@ -453,37 +573,9 @@ CANON > prettier output.
 One input character. One output image.
 ```
 
-- [ ] **Step 2: Write a failing template-materialization test**
+- [ ] **Step 2: Create the baseline production workflow JSON**
 
-The test template contract must require these tokens exactly once where applicable:
-
-```text
-__ZB_REFERENCE__
-__ZB_MODEL__
-__ZB_POSITIVE_PROMPT__
-__ZB_NEGATIVE_PROMPT__
-__ZB_DENOISE__
-__ZB_SEED__
-```
-
-After `_workflow_for`, recursively assert no string starts with `__ZB_`.
-
-- [ ] **Step 3: Create the production workflow JSON with only core img2img nodes**
-
-Use this node flow:
-
-```text
-CheckpointLoaderSimple
-  -> CLIPTextEncode positive
-  -> CLIPTextEncode negative
-LoadImage
-CheckpointLoaderSimple.VAE + LoadImage.IMAGE -> VAEEncode
-CheckpointLoaderSimple.MODEL + positive + negative + VAEEncode.LATENT -> KSampler
-KSampler.LATENT + CheckpointLoaderSimple.VAE -> VAEDecode
-VAEDecode.IMAGE -> SaveImage
-```
-
-The committed workflow template must use:
+Use only these core img2img nodes:
 
 ```json
 {
@@ -498,26 +590,39 @@ The committed workflow template must use:
 }
 ```
 
-Do not add ControlNet in the baseline workflow. Structural ControlNet is a later compatibility enhancement only if the baseline already works on 4 GB and a separate smoke proves the additional model fits.
+Do not add `EmptyLatentImage`, ControlNet, multi-image batch, upscale, or texture/material nodes.
 
-- [ ] **Step 4: Implement exact token replacement and deterministic seed**
+- [ ] **Step 3: Write failing materialization tests**
 
-Compose positive prompt with `compose_canon_prompt()`.
+Tests must assert the template contains exact counts:
 
-Derive seed from task/source identity:
+```text
+__ZB_REFERENCE__ = 1
+__ZB_MODEL__ = 1
+__ZB_POSITIVE_PROMPT__ = 1
+__ZB_NEGATIVE_PROMPT__ = 1
+__ZB_DENOISE__ = 1
+__ZB_SEED__ = 1
+```
+
+After materialization, recursively assert no string begins with `__ZB_`; `KSampler.inputs.seed` is `int`; `denoise` is `float`; LoadImage uses `staged.comfyui_name`.
+
+- [ ] **Step 4: Implement `_materialize_workflow`**
+
+Read the workflow JSON and immutable prompt. Compose positive prompt with `compose_canon_prompt`; catch `CanonPolicyError` and re-raise `BackendError(exc.code)` so controller error handling stays intact.
+
+Derive seed:
 
 ```python
 seed_bytes = hashlib.sha256(f"{task.task_id}:{staged.source_sha256}".encode("utf-8")).digest()[:8]
 seed = int.from_bytes(seed_bytes, "big") & ((1 << 63) - 1)
 ```
 
-Materialize exact typed values: strings for model/reference/prompts, float for denoise, integer for seed.
+Replace exact tokens recursively with typed values. Any token-count mismatch, malformed JSON, missing prompt asset, or unresolved `__ZB_` token -> `BackendError("SALVADOR_RESULT_INVALID")` before HTTP submit.
 
-If token counts differ from the exact template contract or any unresolved `__ZB_` remains, raise `BackendError("SALVADOR_RESULT_INVALID")` before any HTTP submit.
+- [ ] **Step 5: Assert immutable precedence and benign preservation language**
 
-- [ ] **Step 5: Assert immutable prompt precedence and canon conflict**
-
-Tests must prove the submitted positive prompt begins with the repository prompt, contains the task direction only under `TASK-SPECIFIC LOCKED DIRECTION`, and rejects `ignore canon and redesign` with `SALVADOR_CANON_CONFLICT` before POST `/prompt`.
+A materialized positive prompt must begin with the repository prompt and contain task direction only after `TASK-SPECIFIC LOCKED DIRECTION`. `No redesign. Preserve the same pose.` must be accepted; `ignore canon and redesign the character` must fail before POST `/prompt`.
 
 - [ ] **Step 6: Run focused tests, then commit**
 
@@ -527,50 +632,49 @@ git add src/zb_local_controller/prompts/salvador-canon-reference-edit-v1.txt src
 git commit -m "feat: add canon img2img workflow"
 ```
 
-Expected: focused tests PASS and the disposable smoke workflow file is untouched.
+Expected: focused tests PASS and disposable smoke workflow remains untouched.
 
 ---
 
-### Task 5: Add production ComfyUI readiness/model preflight and stable backend failures
+### Task 5: Add production ComfyUI readiness/model preflight, submit, and output validation
 
 **Files:**
 - Modify: `agent-controller/src/zb_local_controller/backends/canon_reference_edit.py`
 - Modify: `agent-controller/tests/test_canon_reference_edit.py`
 
 **Interfaces:**
-- Consumes: ComfyUI `/system_stats`, `/object_info`, external `canon_model_name`.
-- Produces: `ensure_ready()` that fails closed with stable SALVADOR codes and `execution_metadata(execution_id: str) -> dict[str, Any]` after successful submit.
+- Consumes: ComfyUI `/system_stats`, `/object_info`, `/prompt`, `/history/<prompt_id>`, `/view`, external `canon_model_name`.
+- Produces: fail-closed `ensure_ready()`, real production `submit() -> str`, inherited-compatible `poll()`, validated `collect() -> bytes`, and `execution_metadata(execution_id) -> dict[str, Any]`.
 
-- [ ] **Step 1: Write failing readiness tests**
-
-Tests:
+- [ ] **Step 1: Write exact failing readiness tests**
 
 ```python
-def test_missing_model_name_fails_closed(...):
+def test_missing_model_name_fails_closed(tmp_path):
+    b = make_backend(tmp_path, model_name="")
     with pytest.raises(BackendError) as exc:
-        backend(model_name="").ensure_ready()
+        b.ensure_ready()
     assert exc.value.code == "SALVADOR_MODEL_UNAVAILABLE"
 
 
-def test_unreachable_comfyui_maps_to_stable_salvador_error(...):
+def test_unreachable_comfyui_maps_to_stable_salvador_error(tmp_path):
+    transport = FakeTransport(errors=[OSError("down")])
+    b = make_backend(tmp_path, transport=transport)
     with pytest.raises(BackendError) as exc:
-        backend(...).ensure_ready()
+        b.ensure_ready()
     assert exc.value.code == "SALVADOR_BACKEND_UNAVAILABLE"
 ```
 
-Add a response fixture for `/object_info/CheckpointLoaderSimple` whose `ckpt_name` list excludes the configured model and assert `SALVADOR_MODEL_UNAVAILABLE`.
+Add a ready fixture where `/system_stats` succeeds and `/object_info` contains all required classes but `CheckpointLoaderSimple.input.required.ckpt_name[0]` excludes `local-model.safetensors`; assert `SALVADOR_MODEL_UNAVAILABLE`.
 
-Add a node preflight fixture missing `KSampler` and assert `SALVADOR_BACKEND_UNAVAILABLE` because the deployment cannot execute the approved workflow.
+Add a fixture missing `KSampler`; assert `SALVADOR_BACKEND_UNAVAILABLE`.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [ ] **Step 2: Run focused readiness tests and verify RED**
 
 ```powershell
-python -m pytest -q tests/test_canon_reference_edit.py -k "ready or model or preflight"
+python -m pytest -q tests/test_canon_reference_edit.py -k "model_name or unreachable or preflight"
 ```
 
 - [ ] **Step 3: Implement readiness preflight**
-
-Required node classes:
 
 ```python
 _REQUIRED_NODES = {
@@ -584,51 +688,52 @@ _REQUIRED_NODES = {
 }
 ```
 
-`ensure_ready()` order:
+Order:
 
-1. model name non-empty else `SALVADOR_MODEL_UNAVAILABLE`;
-2. `GET /system_stats` else `SALVADOR_BACKEND_UNAVAILABLE`;
-3. `GET /object_info` and ensure all required classes exist else `SALVADOR_BACKEND_UNAVAILABLE`;
-4. inspect `CheckpointLoaderSimple.input.required.ckpt_name[0]` and require exact configured model name else `SALVADOR_MODEL_UNAVAILABLE`.
+1. empty model -> `SALVADOR_MODEL_UNAVAILABLE`;
+2. `GET /system_stats` transport failure -> `SALVADOR_BACKEND_UNAVAILABLE`;
+3. `GET /object_info`; missing required class -> `SALVADOR_BACKEND_UNAVAILABLE`;
+4. require exact configured model filename in checkpoint choices -> `SALVADOR_MODEL_UNAVAILABLE` otherwise.
 
-Never infer a model by fuzzy filename matching.
+Never fuzzy-match or auto-select a checkpoint.
 
-- [ ] **Step 4: Override submit only enough to stage/materialize and record metadata**
+- [ ] **Step 4: Write failing real-submit metadata test**
 
-On successful `POST /prompt`, require a real non-empty string `prompt_id`, then store:
-
-```python
-self._execution_metadata[prompt_id] = {
-    "taskKind": "CANON_REFERENCE_EDIT",
-    "workflowVersion": self.WORKFLOW_VERSION,
-    "canonPromptVersion": self.CANON_PROMPT_VERSION,
-    "modelId": self.model_name,
-    "workingWidth": staged.working_width,
-    "workingHeight": staged.working_height,
-    "sourceSha256": staged.source_sha256,
-    "seed": seed,
-    "denoise": self.denoise,
-}
-```
-
-Expose a defensive copy from:
+Create a 512x512 test reference and `FakeTransport(json_responses=[{"prompt_id": "canon-prompt-1"}])`. Call `submit(TASK, REF)` and assert exact return `canon-prompt-1`, one POST `/prompt`, and metadata:
 
 ```python
-def execution_metadata(self, execution_id: str) -> dict[str, Any]:
-    return dict(self._execution_metadata.get(execution_id, {}))
+meta = b.execution_metadata("canon-prompt-1")
+assert meta["taskKind"] == "CANON_REFERENCE_EDIT"
+assert meta["workflowVersion"] == "salvador-canon-reference-edit-v1"
+assert meta["canonPromptVersion"] == "salvador-canon-v1"
+assert meta["modelId"] == "local-model.safetensors"
+assert meta["workingWidth"] == 512
+assert meta["workingHeight"] == 512
+assert meta["sourceSha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
+assert meta["denoise"] == 0.35
+assert isinstance(meta["seed"], int)
 ```
 
-- [ ] **Step 5: Add failure mapping for poll/collect**
+- [ ] **Step 5: Implement submit and provenance capture**
 
-For the production backend only:
+`submit()` must:
 
-- transport failure -> `SALVADOR_BACKEND_UNAVAILABLE`;
-- completed execution without one image -> `SALVADOR_RESULT_INVALID`;
-- collected non-PNG/empty bytes -> `SALVADOR_RESULT_INVALID`.
+1. `_stage_reference(task, reference)`;
+2. `_materialize_workflow(task, staged)`;
+3. POST `{"prompt": workflow}` to `/prompt`;
+4. transport failure or missing/blank `prompt_id` -> `BackendError("SALVADOR_BACKEND_UNAVAILABLE")`;
+5. record metadata keyed by the real prompt id;
+6. return the real prompt id.
 
-Keep generic smoke backend error codes unchanged.
+`execution_metadata()` returns a defensive copy.
 
-- [ ] **Step 6: Run focused tests, then commit**
+- [ ] **Step 6: Add production poll/collect validation tests**
+
+Test transport failure maps to `SALVADOR_BACKEND_UNAVAILABLE`; completed history without exactly one image maps to `SALVADOR_RESULT_INVALID`; collected empty/non-PNG bytes maps to `SALVADOR_RESULT_INVALID`.
+
+For a valid PNG, `collect()` must decode with Pillow via `Image.open(BytesIO(content)); image.load()` and require positive dimensions. Decode/format failure -> `SALVADOR_RESULT_INVALID`.
+
+- [ ] **Step 7: Run focused tests, then commit**
 
 ```powershell
 python -m pytest -q tests/test_canon_reference_edit.py
@@ -648,11 +753,11 @@ Expected: production backend tests PASS.
 
 **Interfaces:**
 - Consumes: optional backend method `execution_metadata(execution_id) -> dict[str, Any]`.
-- Produces: execution journal field `backendMetadata` and final `result.json` production provenance without changing old smoke metadata validity or state transitions.
+- Produces: execution journal field `backendMetadata` and final production provenance without changing old smoke result validity or state transitions.
 
-- [ ] **Step 1: Write a failing provenance persistence test**
+- [ ] **Step 1: Write failing provenance persistence test**
 
-Use a fake backend that returns prompt id `canon-prompt-1` and:
+Use a fake backend returning `canon-prompt-1` and:
 
 ```python
 def execution_metadata(self, execution_id):
@@ -669,9 +774,7 @@ def execution_metadata(self, execution_id):
     }
 ```
 
-After submit, assert `execution.json` contains that exact object under `backendMetadata`.
-
-After result completion, assert `result.json` contains:
+After submit, `execution.json` must contain that exact object under `backendMetadata`. After completion:
 
 ```python
 assert meta["taskKind"] == "CANON_REFERENCE_EDIT"
@@ -686,17 +789,15 @@ assert meta["resultSha256"] == meta["sha256"]
 
 - [ ] **Step 2: Add restart test before implementation**
 
-Create controller A, submit once, persist journal, destroy it; create controller B with the same result root and issue comments not yet containing RUNNING. Assert B reconstructs the same execution id and does not call `submit()` again. The final result must retain the original `backendMetadata` from the journal.
+Controller A submits once and persists journal. Controller B starts from the same result root before RESULT_READY. Assert B reconstructs the same execution id and never calls `submit()` a second time. Final result retains original `backendMetadata` from the journal.
 
-- [ ] **Step 3: Run focused controller tests and verify RED**
+- [ ] **Step 3: Run focused tests and verify RED**
 
 ```powershell
 python -m pytest -q tests/test_controller.py -k "metadata or provenance or restart"
 ```
 
-- [ ] **Step 4: Implement generic optional metadata capture**
-
-After backend submit:
+- [ ] **Step 4: Implement optional metadata capture at submit**
 
 ```python
 metadata_fn = getattr(backend, "execution_metadata", None)
@@ -704,7 +805,7 @@ backend_metadata = metadata_fn(execution_id) if callable(metadata_fn) else {}
 self._persist_execution_journal(task, execution_id, backend_metadata)
 ```
 
-Change journal payload to:
+Journal payload:
 
 ```python
 {
@@ -715,11 +816,13 @@ Change journal payload to:
 }
 ```
 
-When an existing journal is loaded, preserve that metadata verbatim. Do not regenerate model provenance from current config after a restart.
+Give `_persist_execution_journal(..., backend_metadata=None)` a default so existing recovery call sites remain valid.
 
-- [ ] **Step 5: Extend `_persist_result` without breaking smoke**
+- [ ] **Step 5: Persist allowlisted production provenance**
 
-Load `backendMetadata` from the execution journal and merge only allowlisted keys:
+In `_finish_execution`, load the current journal before `_persist_result`. For `CANON_REFERENCE_EDIT`, missing/empty `backendMetadata` at result time must fail closed with `BackendError("SALVADOR_RESULT_INVALID")`; a production result must not be declared ready without provenance.
+
+Allow only:
 
 ```python
 _PROVENANCE_KEYS = {
@@ -735,20 +838,20 @@ _PROVENANCE_KEYS = {
 }
 ```
 
-Always add aliases required by the spec:
+Add:
 
 ```python
 metadata["promptId"] = execution_id
 metadata["resultSha256"] = digest
 ```
 
-Do not allow backend metadata to overwrite `taskId`, `agent`, `backend`, `state`, `executionId`, `sha256`, `bytes`, or `createdAt`.
+Backend metadata cannot overwrite `taskId`, `agent`, `backend`, `state`, `executionId`, `sha256`, `bytes`, or `createdAt`.
 
-- [ ] **Step 6: Preserve old result reconciliation**
+- [ ] **Step 6: Preserve smoke compatibility**
 
-Update `_existing_result_metadata()` only if necessary so old smoke results and new production results both validate by canonical `sha256`. Do not make provenance mandatory for old `PRODUCTION_IMAGE_EDIT` results.
+Old `PRODUCTION_IMAGE_EDIT` results remain valid with only canonical `sha256`; production provenance is mandatory only for `CANON_REFERENCE_EDIT`.
 
-- [ ] **Step 7: Run full controller tests, then commit**
+- [ ] **Step 7: Run controller tests, then commit**
 
 ```powershell
 python -m pytest -q tests/test_controller.py
@@ -760,7 +863,7 @@ Expected: controller tests PASS including restart and duplicate regression.
 
 ---
 
-### Task 7: Complete mocked end-to-end production regression and deployment docs
+### Task 7: Complete mocked end-to-end regression and deployment documentation
 
 **Files:**
 - Modify: `agent-controller/config.example.json`
@@ -770,27 +873,26 @@ Expected: controller tests PASS including restart and duplicate regression.
 - Modify: `agent-controller/tests/test_canon_reference_edit.py`
 
 **Interfaces:**
-- Consumes: all Tasks 1–6.
-- Produces: one fully mocked `CANON_REFERENCE_EDIT` lifecycle proof plus clear deployment instructions; no live model call yet.
+- Consumes: Tasks 1–6.
+- Produces: fully mocked `CANON_REFERENCE_EDIT` lifecycle proof plus exact deployment instructions; no live model call.
 
-- [ ] **Step 1: Add a full mocked lifecycle test**
+- [ ] **Step 1: Add a full mocked production lifecycle test**
 
-Test one candidate issue with `CANON_REFERENCE_EDIT` and a valid temp reference. Assert:
+One candidate issue, one valid reference, one production backend. Assert:
 
 ```text
-cycle 1: one submit with non-empty prompt id
-RUNNING durable event uses that exact id
-completed backend result writes result.png + result.json
-RESULT_READY uses the exact result SHA256
+cycle 1: exactly one submit with non-empty prompt id
+RUNNING durable event uses exact prompt id
+completion writes result.png + result.json
+RESULT_READY uses exact result SHA256
+result.json contains production provenance
 cycle 2: submitted == 0
 no third durable event
 ```
 
-The fake production backend must expose production provenance and the final JSON must contain it.
+- [ ] **Step 2: Add disposable smoke regression**
 
-- [ ] **Step 2: Add explicit smoke-path regression**
-
-Run the existing disposable `PRODUCTION_IMAGE_EDIT` test fixture and assert it still selects the original `ComfyUIBackend` workflow and does not require `canonModelName`.
+Existing `PRODUCTION_IMAGE_EDIT` must still use the original smoke backend/workflow and must not require `canonModelName`.
 
 - [ ] **Step 3: Update `config.example.json`**
 
@@ -806,24 +908,24 @@ Add:
 "canonNegativePrompt": "redesign, changed pose, changed composition, extra limbs, text, watermark"
 ```
 
-The empty model name is intentional: the repository never chooses or activates a production binary automatically.
+Empty model name is intentional and keeps production deactivated by default.
 
-- [ ] **Step 4: Update README with exact operator flow**
+- [ ] **Step 4: Update README operator flow**
 
-Document:
+Document exactly:
 
 ```text
-1. Put exactly one drawn reference in D:\BLATT2\ZB_AGENT_INBOX\<TASK_ID>\
-2. Configure exact installed SD1.5-class checkpoint filename in local config as canonModelName.
-3. Create GitHub task with TASK_KIND = CANON_REFERENCE_EDIT.
-4. Run controller from agent-controller working directory.
-5. RUNNING requires real prompt_id; RESULT_READY requires local result files/checksum.
-6. Implementation merge != production activation.
+1. Put exactly one drawn reference in D:\BLATT2\ZB_AGENT_INBOX\<TASK_ID>\ where <TASK_ID> is the task's strict machine ID.
+2. Configure the exact already-installed SD1.5-class checkpoint filename as canonModelName in local deployment config.
+3. Create a GitHub task with TASK_KIND = CANON_REFERENCE_EDIT.
+4. Run controller from the agent-controller working directory with that local config.
+5. RUNNING requires a real prompt_id; RESULT_READY requires local result files/checksum/provenance.
+6. Implementation merge is not production activation.
 ```
 
-State explicitly that chat attachment -> Windows inbox transport is not part of v1.
+Also state: chat attachment -> Windows inbox transport is not part of v1.
 
-- [ ] **Step 5: Run the entire suite and compile**
+- [ ] **Step 5: Run full suite and compile**
 
 ```powershell
 python -m pytest -q
@@ -841,64 +943,59 @@ git commit -m "test: cover canon reference edit lifecycle"
 
 ---
 
-### Task 8: Independent source/QC gate before any live production-model call
+### Task 8: Independent DUNCAN source/QC gate before any live model call
 
 **Files:**
-- No production source change is allowed in this task unless a finding sends work back to an earlier task.
+- No source change unless QC returns findings to an earlier task.
 
 **Interfaces:**
 - Consumes: exact implementation head after Task 7.
-- Produces: DUNCAN verdict `PASS` or `CHANGES_REQUIRED` for source identity, tests, safety boundaries, workflow scope, and production non-activation.
+- Produces: independent `PASS` or `CHANGES_REQUIRED` on source identity, tests, safety, workflow scope, and non-activation.
 
-- [ ] **Step 1: Record exact implementation head and file delta**
-
-Commands:
+- [ ] **Step 1: Capture exact head and delta**
 
 ```powershell
-git rev-parse HEAD
+$head = git rev-parse HEAD
+$head
 git diff --stat cf68c4882f84d8d0cce07f05ccc15345b913ddca..HEAD
 ```
 
-Reviewer must verify the disposable smoke workflow remains byte-identical unless a separately justified regression fix was required.
+Reviewer verifies disposable smoke workflow remains byte-identical unless a separately justified regression fix exists.
 
-- [ ] **Step 2: Independently rerun tests and compile from exact blobs**
+- [ ] **Step 2: Independently rerun tests and compile**
 
 ```powershell
 python -m pytest -q
 python -m compileall -q src
 ```
 
-No author-supplied test result counts as independent QC.
+Author-supplied results do not count as independent QC.
 
 - [ ] **Step 3: Verify security/evidence laws**
 
-Reviewer must verify:
-
 ```text
-issue text cannot choose a filesystem path
-issue text cannot choose a model filename
+issue text cannot choose filesystem path
+issue text cannot choose model filename
 canon model is deployment config only
-no shell execution from direction text
+no shell execution from task direction
 no paid API key/dependency
 RUNNING still requires real prompt_id
-RESULT_READY still requires persisted bytes/checksum
+RESULT_READY still requires bytes/checksum/provenance
 terminal FAILED remains terminal
 duplicate/restart tests remain green
-production activation remains NO
+PRODUCTION_ACTIVATION = NO
 ```
 
-- [ ] **Step 4: Verify workflow scope**
+- [ ] **Step 4: Verify baseline workflow scope**
 
-Baseline production workflow may contain only the core img2img classes from Task 4. No text-to-image empty latent node, no multi-image batch, no ControlNet yet, no upscale stage, no texture/material nodes.
+Allowed classes are exactly `CheckpointLoaderSimple`, `CLIPTextEncode`, `LoadImage`, `VAEEncode`, `KSampler`, `VAEDecode`, `SaveImage`. No `EmptyLatentImage`, ControlNet, multi-image batch, upscale, or texture/material nodes.
 
-- [ ] **Step 5: Post durable verdict**
-
-Exact durable header:
+- [ ] **Step 5: Post durable verdict with exact head output**
 
 ```text
 DUNCAN_SALVADOR_V1_IMPLEMENTATION_QC_COMPLETE
 VERDICT = PASS|CHANGES_REQUIRED
-EXACT_HEAD = <actual exact head>
+EXACT_HEAD = value printed by `git rev-parse HEAD` in Step 1
 PRODUCTION_ACTIVATION = NO
 ```
 
@@ -909,14 +1006,14 @@ If `CHANGES_REQUIRED`, stop. Do not begin Task 9.
 ### Task 9: Run the first 4 GB local model compatibility and preservation smoke
 
 **Files:**
-- Local deployment config only; never commit model binaries or local machine config.
+- Local deployment config only; never commit model binaries or machine-specific model selection.
 - Disposable local reference/result directories only.
 
 **Interfaces:**
-- Consumes: DUNCAN-PASS implementation head, local ComfyUI, one free/local SD1.5-class illustration/anime checkpoint, one non-sensitive drawn single-character test reference.
-- Produces: real ComfyUI prompt id, local result/checksum/provenance, duplicate proof, and a go/no-go visual preservation verdict. This is still not production activation.
+- Consumes: DUNCAN-PASS implementation head, local ComfyUI, one verified free/local SD1.5-class illustration/anime checkpoint, one non-sensitive drawn single-character test reference.
+- Produces: real prompt id, local result/checksum/provenance, duplicate proof, and visual preservation verdict. Still no production activation.
 
-- [ ] **Step 1: Install the exact approved implementation on owner Windows and rerun tests**
+- [ ] **Step 1: Install exact implementation and rerun tests on owner Windows**
 
 From `D:\BLATT2\zb-local-agent-controller\agent-controller`:
 
@@ -925,7 +1022,7 @@ python -m pip install -e ".[test]"
 python -m pytest -q
 ```
 
-Stop on any failure.
+Stop on failure.
 
 - [ ] **Step 2: Fresh ComfyUI preflight**
 
@@ -935,31 +1032,43 @@ Stop on any failure.
 
 Expected: `200`.
 
-- [ ] **Step 3: Resolve an exact local checkpoint without guessing**
+- [ ] **Step 3: Resolve exact local checkpoint without guessing**
 
-Inspect:
+List candidates:
 
-```text
-D:\BLATT2\ComfyUI_windows_portable\ComfyUI\models\checkpoints\
+```powershell
+Get-ChildItem 'D:\BLATT2\ComfyUI_windows_portable\ComfyUI\models\checkpoints' -File -Filter '*.safetensors' | Select-Object FullName,Length
 ```
 
-Select one exact free/local SD1.5-class illustration/anime `.safetensors` checkpoint whose provenance/license is acceptable and whose architecture is known to be SD1.5-compatible. Record the exact filename and file SHA-256 in the deployment/QC handoff. If no suitable checkpoint exists, stop with `OWNER_ACTION_REQUIRED = MODEL_ACQUISITION`; do not silently download a random checkpoint and do not switch to a paid backend.
+After provenance/license/architecture review identifies one acceptable SD1.5-class illustration/anime checkpoint, capture it interactively and hash it:
 
-- [ ] **Step 4: Create a local production config outside GitHub history**
+```powershell
+$modelPath = Read-Host 'Paste the exact full path of the verified SD1.5 checkpoint'; if (-not (Test-Path -LiteralPath $modelPath -PathType Leaf)) { throw 'MODEL FILE NOT FOUND' }; $modelName = [System.IO.Path]::GetFileName($modelPath); $modelSha256 = (Get-FileHash -LiteralPath $modelPath -Algorithm SHA256).Hash.ToLower(); $modelName; $modelSha256
+```
 
-Use a local JSON file whose `canonModelName` is the exact installed filename, `canonDenoise = 0.35`, and `canonMaxLongSide = 768`. Do not commit this file if it contains machine-specific model selection.
+If no acceptable candidate exists, stop with `OWNER_ACTION_REQUIRED = MODEL_ACQUISITION`. Do not silently download a random checkpoint and do not switch to paid inference.
+
+- [ ] **Step 4: Create exact local production config path**
+
+Create `D:\BLATT2\ZB_AGENT_CONFIG\salvador-canon-reference-edit.json` from the selected runtime model variable:
+
+```powershell
+$configDir='D:\BLATT2\ZB_AGENT_CONFIG'; New-Item -ItemType Directory -Force -Path $configDir | Out-Null; @{ comfyuiUrl='http://127.0.0.1:8188'; comfyuiInputRoot='D:\BLATT2\ComfyUI_windows_portable\ComfyUI\input'; canonReferenceWorkflowPath='src\zb_local_controller\workflows\salvador-canon-reference-edit-v1.json'; canonPromptPath='src\zb_local_controller\prompts\salvador-canon-reference-edit-v1.txt'; canonModelName=$modelName; canonDenoise=0.35; canonMaxLongSide=768; canonNegativePrompt='redesign, changed pose, changed composition, extra limbs, text, watermark' } | ConvertTo-Json | Set-Content -Encoding UTF8 'D:\BLATT2\ZB_AGENT_CONFIG\salvador-canon-reference-edit.json'
+```
+
+This local file is not committed.
 
 - [ ] **Step 5: Prepare one disposable preservation reference**
 
-Create task directory:
+Create:
 
 ```text
 D:\BLATT2\ZB_AGENT_INBOX\ZB-SALVADOR-CANON-SMOKE-001\
 ```
 
-Put exactly one non-sensitive drawn single-character reference there. Do not use locked production face/body art for this first model-compatibility smoke.
+Put exactly one non-sensitive drawn single-character reference in that directory. Do not use locked production face/body art for the first model-compatibility smoke.
 
-- [ ] **Step 6: Create the disposable GitHub task**
+- [ ] **Step 6: Create disposable GitHub task**
 
 Body exactly:
 
@@ -971,18 +1080,18 @@ TASK_KIND = CANON_REFERENCE_EDIT
 STATE = ASSIGNED
 REFERENCE = LOCAL_INBOX
 
-Preserve the same subject, geometry, pose, framing, composition, silhouette, major costume shapes, and asymmetries. Apply the approved ZORR BLATT production drawing treatment. No redesign.
+No redesign. Preserve the same subject, geometry, pose, framing, composition, silhouette, major costume shapes, and asymmetries. Apply the approved ZORR BLATT production drawing treatment.
 ```
 
 - [ ] **Step 7: Run exactly one real controller cycle**
 
-From the `agent-controller` working directory with the local production config:
+From `D:\BLATT2\zb-local-agent-controller\agent-controller`:
 
 ```powershell
-python -m zb_local_controller --once --config <local-config-path>
+python -m zb_local_controller --once --config 'D:\BLATT2\ZB_AGENT_CONFIG\salvador-canon-reference-edit.json'
 ```
 
-Required evidence before calling it RUNNING:
+Required before calling it RUNNING:
 
 ```text
 submitted = 1
@@ -990,9 +1099,9 @@ real non-empty ComfyUI prompt_id
 SALVADOR_RUNNING durable event contains the same id
 ```
 
-- [ ] **Step 8: Finish the execution if the first cycle did not already finish**
+- [ ] **Step 8: Finish if the first cycle did not already finish**
 
-Run one additional `--once` only after checking the first durable event. Required final evidence:
+Run the exact same command one additional time only after inspecting the first durable state. Required final evidence:
 
 ```text
 SALVADOR_RESULT_READY
@@ -1004,31 +1113,31 @@ result.json records taskKind/workflowVersion/canonPromptVersion/modelId/working 
 
 - [ ] **Step 9: Prove duplicate suppression**
 
-Run one further unchanged `--once` and require `submitted = 0`. Confirm the task has exactly one RUNNING and one RESULT_READY event for the same execution id.
+After RESULT_READY, run the same command once more and require `submitted = 0`. Confirm exactly one RUNNING and one RESULT_READY event exist for the same execution id.
 
-- [ ] **Step 10: Perform visual preservation gate**
+- [ ] **Step 10: Visual preservation gate**
 
-JINGO/OWNER compares input and output. PASS requires all of:
+JINGO/OWNER PASS requires:
 
 ```text
-same subject is clearly retained
+same subject clearly retained
 pose/composition materially unchanged
 major geometry preserved
 no unsolicited redesign
 one character only
-output moves visibly toward approved production drawing treatment
-no locked canon used or violated in this disposable smoke
+output visibly moves toward approved production drawing treatment
+no locked production canon used or violated in this disposable smoke
 ```
 
-If geometry preservation is weak at `denoise = 0.35`, repeat only as a new disposable task id with one documented lower denoise value inside the approved range, starting at `0.30`, then `0.25`; never mutate a completed task back to ASSIGNED. If even `0.25` fails preservation, the baseline model is rejected.
+If preservation is weak at `0.35`, use a new disposable task id with `canonDenoise = 0.30`; if still weak, another new task id with `0.25`. Never mutate a completed task back to ASSIGNED. If `0.25` still fails, reject the baseline model.
 
-- [ ] **Step 11: Optional structural-conditioning spike only after baseline result**
+- [ ] **Step 11: Structural-conditioning spike remains separate**
 
-Only if the baseline runs reliably but visual preservation is insufficient may a separate spike test one line-art/canny ControlNet compatible with the selected SD1.5 checkpoint. It must be a separate branch/task, separate VRAM smoke, and separate QC delta. It is not part of the baseline implementation merge.
+Only if baseline runs reliably but visual preservation remains insufficient may a new design/spike test one compatible line-art/canny ControlNet. It must be a separate branch/task, VRAM smoke, and QC delta; it is not smuggled into the baseline implementation.
 
-- [ ] **Step 12: Record smoke handoff**
+- [ ] **Step 12: Record durable smoke handoff**
 
-Durable evidence must include exact implementation head, exact model filename + SHA-256, prompt id, result SHA-256, denoise, working dimensions, duplicate submission = NO, and visual preservation verdict. Keep `PRODUCTION_ACTIVATION = NO`.
+Record implementation head, exact model filename, model SHA-256, prompt id, result SHA-256, denoise, working dimensions, `DUPLICATE_SUBMISSION = NO`, visual preservation verdict, and `PRODUCTION_ACTIVATION = NO`.
 
 ---
 
@@ -1039,7 +1148,7 @@ Durable evidence must include exact implementation head, exact model filename + 
 
 **Interfaces:**
 - Consumes: Tasks 1–9 PASS plus one owner-selected non-sensitive drawn production acceptance reference.
-- Produces: explicit owner decision only; no implicit activation.
+- Produces: explicit owner decision only; never implicit activation.
 
 - [ ] **Step 1: Reconfirm all eight spec gates**
 
@@ -1056,7 +1165,7 @@ Durable evidence must include exact implementation head, exact model filename + 
 
 - [ ] **Step 2: Do not infer approval from merge, PASS comments, or successful model output**
 
-Until the owner explicitly writes a production activation approval, durable state remains:
+Until explicit owner production activation approval:
 
 ```text
 PRODUCTION_ACTIVATION = NO
@@ -1064,12 +1173,14 @@ PRODUCTION_ACTIVATION = NO
 
 - [ ] **Step 3: After explicit owner approval only, record activation metadata**
 
-Record the exact implementation commit, exact approved model filename/SHA-256, workflow version, canon prompt version, accepted denoise/working-size profile, and acceptance evidence issue/comment IDs. Activation metadata may point to local model identity but must not publish the model binary or private local files.
+Record exact implementation commit, approved model filename/SHA-256, workflow version, canon prompt version, accepted denoise/working-size profile, and acceptance evidence issue/comment IDs. Never publish the model binary or private local files.
 
 ## Plan Self-Review
 
-- Spec coverage: all v1 requirements map to Tasks 1–10; `TEXTURE_PASS`, chat-to-local bridge, photo input, multi-character generation, pose changes, upscale, and ControlNet baseline expansion remain excluded.
-- Placeholder scan: no `TBD`, `TODO`, or unspecified implementation steps remain. Runtime-selected production checkpoint identity is intentionally discovered in Task 9 because the approved spec requires external deployment configuration; the plan gives an exact selection/stop rule rather than a placeholder.
-- Type consistency: `CanonReferenceEditBackend.execution_metadata(execution_id) -> dict[str, Any]`, journal `backendMetadata`, and result provenance keys are named consistently across Tasks 5–7.
-- Evidence consistency: existing `executionId` remains the canonical ComfyUI prompt id; `promptId` is an explicit result-metadata alias only. Existing `sha256` remains canonical checksum; `resultSha256` is an explicit production alias only.
-- Safety: production issue text cannot choose paths/models or bypass canon policy; live activation remains owner-gated.
+- Spec coverage: Tasks 1–10 cover contract, immutable canon prompt, separate production workflow, local staging, 4 GB limits, external model identity, state/evidence law, provenance, independent QC, live preservation smoke, visual QC, duplicate proof, and explicit owner activation.
+- Excluded scope remains excluded: `TEXTURE_PASS`, chat-to-local bridge, photo input, multi-character generation, pose changes, upscale, and baseline ControlNet.
+- Placeholder scan: no implementation code uses `...`, `TBD`, or `TODO`. Symbolic `<TASK_ID>` appears only where it denotes the runtime strict task identifier defined by the task contract; runtime model identity is deliberately selected and captured by exact commands in Task 9.
+- Type consistency: `StagedReference.comfyui_name`, `_materialize_workflow(task, staged) -> tuple[dict[str, Any], int]`, `execution_metadata(execution_id) -> dict[str, Any]`, journal `backendMetadata`, and result provenance keys are consistent across tasks.
+- Evidence consistency: existing `executionId` remains canonical ComfyUI prompt id; `promptId` is a result-metadata alias. Existing `sha256` remains canonical checksum; `resultSha256` is a production alias.
+- Policy consistency: benign `No redesign` language is accepted; only mechanically explicit attempts to relax immutable laws fail as `SALVADOR_CANON_CONFLICT`.
+- Safety: production issue text cannot choose paths/models or shell commands; live activation remains owner-gated.

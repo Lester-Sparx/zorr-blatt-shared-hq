@@ -1,0 +1,11 @@
+{
+  "repository": "Lester-Sparx/zorr-blatt-shared-hq",
+  "driveSyncRoot": "G:\\My Drive\\ZORR_REFERENCE_DROP",
+  "driveDropFolderId": "EXAMPLE_FOLDER_ID_NOT_PRODUCTION",
+  "inboxRoot": "D:\\BLATT2\\ZB_AGENT_INBOX",
+  "runtimeRoot": "D:\\BLATT2\\ZB_AGENT_RUNTIME\\reference-bridge",
+  "quarantineRoot": "D:\\BLATT2\\ZB_REFERENCE_QUARANTINE",
+  "pollIntervalSeconds": 5,
+  "cloudRetryTimeoutSeconds": 300,
+  "maxSourceBytes": 20971520
+}

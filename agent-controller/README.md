@@ -100,3 +100,28 @@ Daemon v1 explicitly does **not**:
 - mutate canon or activate production.
 
 Owner-PC Task Scheduler registration and live daemon smoke are a later gate after DUNCAN independent QC; they are not part of implementation verification.
+
+## ZORR Reference Bridge v1 — implementation boundary
+
+Reference Bridge v1 is a **separate sibling process** (`zb_reference_bridge`). GitHub remains task authority and durable evidence; Google Drive carries image bytes only. The bridge validates one `ZB_REFERENCE_DELIVERY_V1` against the exact task, synced source size/SHA256/extension/MIME/magic, stages on the local `D:` volume, atomically publishes into `D:\BLATT2\ZB_AGENT_INBOX\<TASK_ID>\`, and posts only `ZB_REFERENCE_EVENT_V1` transport results.
+
+Important authority rules:
+
+- cloud upload or Drive sync completion is **not** local reference readiness;
+- `REFERENCE_READY` is emitted only after validated atomic inbox publish;
+- Reference Bridge never writes `ZB_AGENT_EVENT_V0` and never executes SALVADOR tasks;
+- Controller Daemon remains independent and unchanged;
+- accepted inbox references are never automatically overwritten or deleted on conflict.
+
+Operator commands after the separate independent-QC and owner-PC setup gates:
+
+```powershell
+python -m zb_reference_bridge --preflight --config .\reference-bridge.local.json
+python -m zb_reference_bridge --once --config .\reference-bridge.local.json
+python -m zb_reference_bridge --status --config .\reference-bridge.local.json
+.\deploy\windows\ZbReferenceBridge.ps1 -Action Install -ConfigPath .\reference-bridge.local.json -WorkingDirectory 'D:\BLATT2\zb-local-agent-controller\agent-controller'
+```
+
+`reference-bridge.config.example.json` is explicitly non-production. Google Drive for desktop is required later on the owner PC, but **is not installed by this implementation**. The exact private Drive drop-folder ID and exact local sync root are discovered/materialized only during the post-Duncan owner-PC setup gate. Mirror/local-backed Drive mode is preferred there to reduce placeholder ambiguity, while bridge byte validation remains authoritative regardless of sync mode.
+
+No production Reference Bridge config is created or activated by this implementation, and no owner-PC smoke is performed before independent QC.

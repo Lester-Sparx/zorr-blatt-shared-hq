@@ -1,0 +1,38 @@
+from pathlib import Path
+
+SCRIPT = Path(__file__).resolve().parents[1] / "deploy" / "windows" / "ZbControllerDaemon.ps1"
+
+
+def text():
+    return SCRIPT.read_text(encoding="utf-8")
+
+
+def test_canonical_name_and_commands_are_declared():
+    source = text()
+    assert "ZB Controller Daemon v1" in source
+    assert "-m zb_local_controller --daemon --config" in source
+    assert "--daemon-preflight" in source
+
+
+def test_locked_scheduler_policy_is_declared():
+    source = text()
+    for token in (
+        "MultipleInstances IgnoreNew",
+        "RestartCount 5",
+        "New-TimeSpan -Minutes 1",
+        "ExecutionTimeLimit ([TimeSpan]::Zero)",
+        "DontStopIfGoingOnBatteries",
+        "AllowStartIfOnBatteries",
+        "StartWhenAvailable",
+        "RunLevel Limited",
+        "LogonType Interactive",
+    ):
+        assert token in source
+
+
+def test_no_service_or_elevation_fallback():
+    source = text().lower()
+    assert "runlevel highest" not in source
+    assert "new-service" not in source
+    assert "nssm" not in source
+    assert "-password" not in source

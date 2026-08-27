@@ -119,17 +119,33 @@ def format_reference_ready(task_id: str, delivery_id: str, source_sha256: str) -
     ))
 
 
-def format_reference_failed(task_id: str, delivery_id: str, error_code: str) -> str:
+def format_reference_failed(
+    task_id: str,
+    delivery_id: str,
+    error_code: str,
+    *,
+    source_comment_id: str | None = None,
+    delivery_metadata_sha256: str | None = None,
+) -> str:
     if not _TASK_ID_RE.fullmatch(task_id) or not delivery_id.strip() or not error_code.strip():
         raise ValueError("REFERENCE_EVENT_INVALID")
-    return "\n".join((
+    if source_comment_id is not None and (not source_comment_id.strip() or "\n" in source_comment_id):
+        raise ValueError("REFERENCE_EVENT_INVALID")
+    if delivery_metadata_sha256 is not None and not _SHA_RE.fullmatch(delivery_metadata_sha256):
+        raise ValueError("REFERENCE_EVENT_INVALID")
+    lines = [
         _REFERENCE_MARKER,
         f"TASK_ID = {task_id}",
         f"DELIVERY_ID = {delivery_id}",
         "STATE = REFERENCE_FAILED",
         f"ERROR_CODE = {error_code}",
-        "TRANSPORT = GOOGLE_DRIVE",
-    ))
+    ]
+    if source_comment_id is not None:
+        lines.append(f"SOURCE_COMMENT_ID = {source_comment_id}")
+    if delivery_metadata_sha256 is not None:
+        lines.append(f"DELIVERY_METADATA_SHA256 = {delivery_metadata_sha256}")
+    lines.append("TRANSPORT = GOOGLE_DRIVE")
+    return "\n".join(lines)
 
 
 def latest_agent_terminal_state(comments: tuple[str, ...], task_id: str) -> str | None:

@@ -318,6 +318,7 @@ def test_historical_ready_and_conflict_failed_are_consumed_without_reposting(tmp
                 SimpleNamespace(id="IC_ACCEPTED", body=delivery_event()),
                 SimpleNamespace(id="IC_READY", body=ready),
                 SimpleNamespace(id="IC_CONFLICT", body=conflict),
+                SimpleNamespace(id="IC_CONFLICT_DUPLICATE", body=conflict),
                 SimpleNamespace(id="IC_FAILED", body=failed),
             )
             return (BridgeIssue(92, "Task", TASK_BODY, comments),)
@@ -329,3 +330,79 @@ def test_historical_ready_and_conflict_failed_are_consumed_without_reposting(tmp
     rebuilt = ReferenceJournal(cfg.runtime_root)
     assert rebuilt.is_comment_consumed("IC_ACCEPTED")
     assert rebuilt.is_comment_consumed("IC_CONFLICT")
+
+
+def test_each_distinct_later_conflict_comment_gets_one_failed_outcome(tmp_path):
+    cfg = config(tmp_path)
+    put_source(cfg)
+
+    class StatefulCommentGitHub(FakeGitHub):
+        def __init__(self):
+            super().__init__()
+            self.comments = [SimpleNamespace(id="IC_ACCEPTED", body=delivery_event())]
+
+        def list_task_issues(self):
+            return (BridgeIssue(92, "Task", TASK_BODY, tuple(self.comments)),)
+
+        def post_reference_event(self, issue_number, body):
+            assert issue_number == 92
+            self.posted.append(body)
+            self.comments.append(SimpleNamespace(id=f"IC_OUTCOME_{len(self.posted)}", body=body))
+
+    gh = StatefulCommentGitHub()
+    ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root)).run_once()
+    gh.comments.append(SimpleNamespace(
+        id="IC_CONFLICT_FILE",
+        body=delivery_event().replace("DRIVE_FILE_ID = file123", "DRIVE_FILE_ID = file999"),
+    ))
+    ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root)).run_once()
+    gh.comments.append(SimpleNamespace(
+        id="IC_CONFLICT_FOLDER",
+        body=delivery_event().replace("DRIVE_FOLDER_ID = folder123", "DRIVE_FOLDER_ID = folder999"),
+    ))
+    ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root)).run_once()
+
+    assert len(gh.posted) == 3
+    assert "STATE = REFERENCE_READY" in gh.posted[0]
+    assert all("ERROR_CODE = REFERENCE_DELIVERY_ID_CONFLICT" in body for body in gh.posted[1:])
+
+
+def test_conflict_post_crash_reconciles_exact_source_with_intervening_duplicate(tmp_path, monkeypatch):
+    cfg = config(tmp_path)
+    put_source(cfg)
+
+    class StatefulCommentGitHub(FakeGitHub):
+        def __init__(self):
+            super().__init__()
+            self.comments = [SimpleNamespace(id="IC_ACCEPTED", body=delivery_event())]
+
+        def list_task_issues(self):
+            return (BridgeIssue(92, "Task", TASK_BODY, tuple(self.comments)),)
+
+        def post_reference_event(self, issue_number, body):
+            assert issue_number == 92
+            self.posted.append(body)
+            self.comments.append(SimpleNamespace(id=f"IC_OUTCOME_{len(self.posted)}", body=body))
+
+    gh = StatefulCommentGitHub()
+    ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root)).run_once()
+    conflict = delivery_event().replace("DRIVE_FILE_ID = file123", "DRIVE_FILE_ID = file999")
+    gh.comments.extend((
+        SimpleNamespace(id="IC_CONFLICT_A", body=conflict),
+        SimpleNamespace(id="IC_CONFLICT_DUPLICATE", body=conflict),
+    ))
+    journal = ReferenceJournal(cfg.runtime_root)
+    real_mark = journal.mark_comment_consumed
+
+    def crash_after_post(comment_id):
+        if comment_id == "IC_CONFLICT_A":
+            raise RuntimeError("simulated crash")
+        real_mark(comment_id)
+
+    monkeypatch.setattr(journal, "mark_comment_consumed", crash_after_post)
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        ReferenceBridge(cfg, gh, journal).run_once()
+    assert len(gh.posted) == 2
+
+    ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root)).run_once()
+    assert len(gh.posted) == 2

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -32,10 +33,22 @@ def _require_safe_delivery_id(delivery_id: str) -> None:
         raise JournalConflict("REFERENCE_DELIVERY_ID_CONFLICT")
 
 
+def _fsync_directory(path: Path) -> None:
+    try:
+        directory_fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    except OSError:
+        return
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
 class ReferenceJournal:
     def __init__(self, runtime_root: Path):
         self.runtime_root = Path(runtime_root)
         self.receipts_root = self.runtime_root / "receipts"
+        self.consumed_comments_root = self.runtime_root / "consumed-comments"
         self._by_delivery: dict[str, DeliveryReceipt] = {}
         self._by_task: dict[str, DeliveryReceipt] = {}
         self._rebuild()
@@ -67,6 +80,45 @@ class ReferenceJournal:
 
     def lookup_task(self, task_id: str) -> DeliveryReceipt | None:
         return self._by_task.get(task_id)
+
+    def _comment_marker(self, comment_id: str) -> Path:
+        if not isinstance(comment_id, str) or not comment_id:
+            raise JournalConflict("REFERENCE_COMMENT_ID_INVALID")
+        return self.consumed_comments_root / f"{sha256(comment_id.encode('utf-8')).hexdigest()}.json"
+
+    def is_comment_consumed(self, comment_id: str) -> bool:
+        marker = self._comment_marker(comment_id)
+        if not marker.exists():
+            return False
+        try:
+            raw = json.loads(marker.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise JournalConflict("REFERENCE_COMMENT_JOURNAL_INVALID") from exc
+        if raw != {"comment_id": comment_id}:
+            raise JournalConflict("REFERENCE_COMMENT_JOURNAL_INVALID")
+        return True
+
+    def mark_comment_consumed(self, comment_id: str) -> None:
+        marker = self._comment_marker(comment_id)
+        if self.is_comment_consumed(comment_id):
+            return
+        comments_root_existed = self.consumed_comments_root.exists()
+        self.consumed_comments_root.mkdir(parents=True, exist_ok=True)
+        if not comments_root_existed:
+            _fsync_directory(self.runtime_root)
+        tmp = marker.with_suffix(".tmp")
+        try:
+            with tmp.open("w", encoding="utf-8") as handle:
+                handle.write(json.dumps({"comment_id": comment_id}, sort_keys=True) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(tmp, marker)
+            _fsync_directory(self.consumed_comments_root)
+        finally:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     def append(self, receipt: DeliveryReceipt) -> DeliveryReceipt:
         _require_safe_delivery_id(receipt.delivery_id)

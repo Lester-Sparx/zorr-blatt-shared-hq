@@ -8,8 +8,12 @@ class BridgeGitHubError(RuntimeError):
     def __init__(self, code: str): self.code=code; super().__init__(code)
 
 @dataclass(frozen=True)
+class BridgeComment:
+    id:str; body:str
+
+@dataclass(frozen=True)
 class BridgeIssue:
-    number:int; title:str; body:str; comments:tuple[str,...]
+    number:int; title:str; body:str; comments:tuple[BridgeComment,...]
 
 class BridgeGitHubCLI:
     def __init__(self, repository:str, runner:Callable[...,Any]=subprocess.run): self.repository=repository; self.runner=runner
@@ -32,7 +36,7 @@ class BridgeGitHubCLI:
                 number=int(row['number']); title=str(row['title']); body=row['body']; cr=row.get('comments',[])
                 if not isinstance(body,str) or not isinstance(cr,list): raise ValueError
                 parse_task(body)
-                comments=tuple(str(x['body']) for x in cr if isinstance(x,dict) and isinstance(x.get('body'),str))
+                comments=tuple(BridgeComment(str(x['id']), x['body']) for x in cr if isinstance(x,dict) and isinstance(x.get('id'),str) and isinstance(x.get('body'),str))
             except TaskContractError: continue
             except Exception as exc: raise BridgeGitHubError('BRIDGE_GH_OUTPUT_INVALID') from exc
             out.append(BridgeIssue(number,title,body,comments))

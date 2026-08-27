@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 from pathlib import Path
+from types import SimpleNamespace
 import pytest
 
 from zb_reference_bridge.bridge import ReferenceBridge
@@ -255,3 +256,76 @@ def test_missing_drive_source_times_out_after_bounded_retry(tmp_path):
     assert second.rejected == 1
     assert "ERROR_CODE = REFERENCE_DRIVE_FOLDER_TIMEOUT" in gh.posted[-1]
     assert not (cfg.inbox_root / "ZB-REF-001").exists()
+
+
+def test_accepted_and_conflicting_comments_converge_across_polls_and_restart(tmp_path):
+    cfg = config(tmp_path)
+    put_source(cfg)
+    different = b"\x89PNG\r\n\x1a\nDIFFERENT"
+    conflict = delivery_event(digest=sha256(different).hexdigest(), size=len(different))
+
+    class StableCommentGitHub(FakeGitHub):
+        def list_task_issues(self):
+            comments = (
+                SimpleNamespace(id="IC_ACCEPTED", body=delivery_event()),
+                SimpleNamespace(id="IC_ACCEPTED_DUPLICATE", body=delivery_event()),
+                SimpleNamespace(id="IC_CONFLICT", body=conflict),
+                SimpleNamespace(id="IC_CONFLICT_DUPLICATE", body=conflict),
+                *(SimpleNamespace(id=f"IC_OUTCOME_{i}", body=body) for i, body in enumerate(self.posted)),
+            )
+            return (BridgeIssue(92, "Task", TASK_BODY, comments),)
+
+    gh = StableCommentGitHub()
+    first = ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root)).run_once()
+    assert first.accepted == 1
+    assert first.rejected == 2
+    assert ["STATE = REFERENCE_READY" in body for body in gh.posted] == [True, False]
+    assert "STATE = REFERENCE_FAILED" in gh.posted[1]
+
+    before = tuple(gh.posted)
+    ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root)).run_once()
+    ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root)).run_once()
+    assert tuple(gh.posted) == before
+    assert (cfg.inbox_root / "ZB-REF-001" / "source.png").read_bytes() == PNG
+
+
+def test_historical_ready_and_conflict_failed_are_consumed_without_reposting(tmp_path):
+    cfg, _, legacy_bridge = make_bridge(tmp_path, (delivery_event(),))
+    put_source(cfg)
+    legacy_bridge.run_once()
+    different = b"\x89PNG\r\n\x1a\nDIFFERENT"
+    conflict = delivery_event(digest=sha256(different).hexdigest(), size=len(different))
+    ready = "\n".join((
+        "ZB_REFERENCE_EVENT_V1",
+        "TASK_ID = ZB-REF-001",
+        "DELIVERY_ID = DELIV-001",
+        "STATE = REFERENCE_READY",
+        f"SOURCE_SHA256 = {sha256(PNG).hexdigest()}",
+        "ERROR_CODE = NONE",
+    ))
+    failed = "\n".join((
+        "ZB_REFERENCE_EVENT_V1",
+        "TASK_ID = ZB-REF-001",
+        "DELIVERY_ID = DELIV-001",
+        "STATE = REFERENCE_FAILED",
+        "SOURCE_SHA256 = NONE",
+        "ERROR_CODE = REFERENCE_DELIVERY_ID_CONFLICT",
+    ))
+
+    class HistoricalGitHub(FakeGitHub):
+        def list_task_issues(self):
+            comments = (
+                SimpleNamespace(id="IC_ACCEPTED", body=delivery_event()),
+                SimpleNamespace(id="IC_READY", body=ready),
+                SimpleNamespace(id="IC_CONFLICT", body=conflict),
+                SimpleNamespace(id="IC_FAILED", body=failed),
+            )
+            return (BridgeIssue(92, "Task", TASK_BODY, comments),)
+
+    gh = HistoricalGitHub()
+    bridge = ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root))
+    bridge.run_once()
+    assert gh.posted == []
+    rebuilt = ReferenceJournal(cfg.runtime_root)
+    assert rebuilt.is_comment_consumed("IC_ACCEPTED")
+    assert rebuilt.is_comment_consumed("IC_CONFLICT")

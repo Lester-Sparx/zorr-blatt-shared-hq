@@ -52,8 +52,22 @@ def _delivery_metadata_sha256(delivery: ReferenceDelivery) -> str:
     return sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def _reference_event_state(comments: tuple[str, ...], task_id: str, delivery_id: str) -> str | None:
-    state = None
+def _comment_body(comment) -> str:
+    return comment.body if hasattr(comment, "body") else comment
+
+
+def _comment_id(comment) -> str | None:
+    value = getattr(comment, "id", None)
+    return value if isinstance(value, str) and value else None
+
+
+def _has_reference_event(
+    comments: list[str],
+    task_id: str,
+    delivery_id: str,
+    state: str,
+    error_code: str | None = None,
+) -> bool:
     for body in comments:
         if not isinstance(body, str):
             continue
@@ -73,10 +87,9 @@ def _reference_event_state(comments: tuple[str, ...], task_id: str, delivery_id:
                 break
             fields[key] = value
         if fields.get("TASK_ID") == task_id and fields.get("DELIVERY_ID") == delivery_id:
-            candidate = fields.get("STATE")
-            if candidate in {"REFERENCE_READY", "REFERENCE_FAILED"}:
-                state = candidate
-    return state
+            if fields.get("STATE") == state and (error_code is None or fields.get("ERROR_CODE") == error_code):
+                return True
+    return False
 
 
 class ReferenceBridge:
@@ -117,10 +130,13 @@ class ReferenceBridge:
         if path is not None:
             quarantine_delivery(self.config, delivery, path, error_code)
 
-    def _post_failed(self, issue_number: int, task_id: str, delivery: ReferenceDelivery, code: str) -> None:
-        self.github.post_reference_event(issue_number, format_reference_failed(task_id, delivery.delivery_id, code))
+    def _post_failed(self, issue_number: int, task_id: str, delivery: ReferenceDelivery, code: str, observed_comments: list[str] | None = None) -> None:
+        body = format_reference_failed(task_id, delivery.delivery_id, code)
+        self.github.post_reference_event(issue_number, body)
+        if observed_comments is not None:
+            observed_comments.append(body)
 
-    def _reject(self, issue_number: int, task_id: str, delivery: ReferenceDelivery, code: str, *, persist: bool = True, quarantine: bool = True) -> None:
+    def _reject(self, issue_number: int, task_id: str, delivery: ReferenceDelivery, code: str, *, comment_id: str | None = None, observed_comments: list[str] | None = None, persist: bool = True, quarantine: bool = True) -> None:
         self._clear_wait(delivery.delivery_id)
         if quarantine:
             self._quarantine_if_possible(delivery, code)
@@ -135,13 +151,16 @@ class ReferenceBridge:
                 code,
                 _delivery_metadata_sha256(delivery),
             ))
-        self._post_failed(issue_number, task_id, delivery, code)
+        self._post_failed(issue_number, task_id, delivery, code, observed_comments)
+        if comment_id is not None:
+            self.journal.mark_comment_consumed(comment_id)
 
     def run_once(self) -> BridgeCycleSummary:
         issues = self.github.list_task_issues()
         waiting = accepted = rejected = skipped = 0
 
         for issue in issues:
+            comment_bodies = [_comment_body(comment) for comment in issue.comments]
             try:
                 task = parse_task(issue.body)
             except TaskContractError:
@@ -151,24 +170,27 @@ class ReferenceBridge:
                 skipped += 1
                 continue
 
-            deliveries: list[ReferenceDelivery] = []
+            deliveries: list[tuple[str | None, ReferenceDelivery]] = []
             malformed_delivery = False
             for comment in issue.comments:
+                body = _comment_body(comment)
                 try:
-                    delivery = parse_delivery_event(comment)
+                    delivery = parse_delivery_event(body)
                 except ReferenceContractError:
-                    if isinstance(comment, str) and comment.splitlines() and comment.splitlines()[0].strip() == "ZB_REFERENCE_DELIVERY_V1":
+                    if isinstance(body, str) and body.splitlines() and body.splitlines()[0].strip() == "ZB_REFERENCE_DELIVERY_V1":
                         malformed_delivery = True
                     continue
                 if delivery is not None:
-                    deliveries.append(delivery)
+                    deliveries.append((_comment_id(comment), delivery))
             if not deliveries:
                 skipped += 1
                 continue
 
-            terminal = latest_agent_terminal_state(issue.comments, task.task_id)
-            for delivery in deliveries:
-                event_state = _reference_event_state(issue.comments, task.task_id, delivery.delivery_id)
+            terminal = latest_agent_terminal_state(tuple(comment_bodies), task.task_id)
+            for comment_id, delivery in deliveries:
+                if comment_id is not None and self.journal.is_comment_consumed(comment_id):
+                    skipped += 1
+                    continue
                 binding = _delivery_metadata_sha256(delivery)
                 existing = self.journal.lookup_delivery(delivery.delivery_id)
 
@@ -182,48 +204,58 @@ class ReferenceBridge:
                         or existing.delivery_metadata_sha256 != binding
                     ):
                         self._quarantine_if_possible(delivery, "REFERENCE_DELIVERY_ID_CONFLICT")
-                        self._post_failed(issue.number, task.task_id, delivery, "REFERENCE_DELIVERY_ID_CONFLICT")
+                        if not _has_reference_event(comment_bodies, task.task_id, delivery.delivery_id, "REFERENCE_FAILED", "REFERENCE_DELIVERY_ID_CONFLICT"):
+                            self._post_failed(issue.number, task.task_id, delivery, "REFERENCE_DELIVERY_ID_CONFLICT", comment_bodies)
+                        if comment_id is not None:
+                            self.journal.mark_comment_consumed(comment_id)
                         rejected += 1
                         continue
                     if existing.state == "ACCEPTED":
-                        if event_state != "REFERENCE_READY":
-                            self.github.post_reference_event(issue.number, format_reference_ready(task.task_id, delivery.delivery_id, delivery.source_sha256))
+                        if not _has_reference_event(comment_bodies, task.task_id, delivery.delivery_id, "REFERENCE_READY"):
+                            body = format_reference_ready(task.task_id, delivery.delivery_id, delivery.source_sha256)
+                            self.github.post_reference_event(issue.number, body)
+                            comment_bodies.append(body)
                         else:
                             skipped += 1
+                        if comment_id is not None:
+                            self.journal.mark_comment_consumed(comment_id)
                         continue
                     if existing.state == "REJECTED":
-                        if event_state != "REFERENCE_FAILED":
-                            self._post_failed(issue.number, task.task_id, delivery, existing.error_code or "REFERENCE_PUBLISH_FAILED")
+                        error_code = existing.error_code or "REFERENCE_PUBLISH_FAILED"
+                        if not _has_reference_event(comment_bodies, task.task_id, delivery.delivery_id, "REFERENCE_FAILED", error_code):
+                            self._post_failed(issue.number, task.task_id, delivery, error_code, comment_bodies)
                         else:
                             skipped += 1
+                        if comment_id is not None:
+                            self.journal.mark_comment_consumed(comment_id)
                         continue
 
                 waiting_binding = self._waiting_binding.get(delivery.delivery_id)
                 if waiting_binding is not None and waiting_binding != binding:
-                    self._reject(issue.number, task.task_id, delivery, "REFERENCE_DELIVERY_ID_CONFLICT", quarantine=True)
+                    self._reject(issue.number, task.task_id, delivery, "REFERENCE_DELIVERY_ID_CONFLICT", comment_id=comment_id, observed_comments=comment_bodies, quarantine=True)
                     rejected += 1
                     continue
 
                 if delivery.task_id != task.task_id:
-                    self._reject(issue.number, task.task_id, delivery, "REFERENCE_TASK_ID_MISMATCH", quarantine=False)
+                    self._reject(issue.number, task.task_id, delivery, "REFERENCE_TASK_ID_MISMATCH", comment_id=comment_id, observed_comments=comment_bodies, quarantine=False)
                     rejected += 1
                     continue
 
                 task_receipt = self.journal.lookup_task(task.task_id)
                 if task_receipt is not None and task_receipt.state == "ACCEPTED" and task_receipt.source_sha256 != delivery.source_sha256:
-                    self._reject(issue.number, task.task_id, delivery, "REFERENCE_TASK_CONFLICT", quarantine=True)
+                    self._reject(issue.number, task.task_id, delivery, "REFERENCE_TASK_CONFLICT", comment_id=comment_id, observed_comments=comment_bodies, quarantine=True)
                     rejected += 1
                     continue
 
                 if terminal is not None:
-                    self._reject(issue.number, task.task_id, delivery, "REFERENCE_TASK_TERMINAL", quarantine=False)
+                    self._reject(issue.number, task.task_id, delivery, "REFERENCE_TASK_TERMINAL", comment_id=comment_id, observed_comments=comment_bodies, quarantine=False)
                     rejected += 1
                     continue
 
                 try:
                     source = validate_delivery_source(self.config, delivery)
                 except ReferenceValidationError as exc:
-                    self._reject(issue.number, task.task_id, delivery, exc.code, quarantine=True)
+                    self._reject(issue.number, task.task_id, delivery, exc.code, comment_id=comment_id, observed_comments=comment_bodies, quarantine=True)
                     rejected += 1
                     continue
                 if source is None:
@@ -231,7 +263,7 @@ class ReferenceBridge:
                     started = self._waiting_since.setdefault(delivery.delivery_id, now)
                     self._waiting_binding.setdefault(delivery.delivery_id, binding)
                     if now - started >= self.config.cloud_retry_timeout_seconds:
-                        self._reject(issue.number, task.task_id, delivery, "REFERENCE_DRIVE_FOLDER_TIMEOUT", quarantine=False)
+                        self._reject(issue.number, task.task_id, delivery, "REFERENCE_DRIVE_FOLDER_TIMEOUT", comment_id=comment_id, observed_comments=comment_bodies, quarantine=False)
                         rejected += 1
                     else:
                         waiting += 1
@@ -240,7 +272,7 @@ class ReferenceBridge:
                 try:
                     publish_reference(self.config, delivery, source)
                 except PublishError as exc:
-                    self._reject(issue.number, task.task_id, delivery, exc.code, quarantine=True)
+                    self._reject(issue.number, task.task_id, delivery, exc.code, comment_id=comment_id, observed_comments=comment_bodies, quarantine=True)
                     rejected += 1
                     continue
                 self._clear_wait(delivery.delivery_id)
@@ -257,10 +289,16 @@ class ReferenceBridge:
                     ))
                 except JournalConflict as exc:
                     self._quarantine_if_possible(delivery, exc.code)
-                    self._post_failed(issue.number, task.task_id, delivery, exc.code)
+                    self._post_failed(issue.number, task.task_id, delivery, exc.code, comment_bodies)
+                    if comment_id is not None:
+                        self.journal.mark_comment_consumed(comment_id)
                     rejected += 1
                     continue
                 accepted += 1
-                self.github.post_reference_event(issue.number, format_reference_ready(task.task_id, delivery.delivery_id, delivery.source_sha256))
+                body = format_reference_ready(task.task_id, delivery.delivery_id, delivery.source_sha256)
+                self.github.post_reference_event(issue.number, body)
+                comment_bodies.append(body)
+                if comment_id is not None:
+                    self.journal.mark_comment_consumed(comment_id)
 
         return BridgeCycleSummary(len(issues), waiting, accepted, rejected, skipped)

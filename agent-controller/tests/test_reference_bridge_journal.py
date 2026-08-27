@@ -57,3 +57,10 @@ def test_unsafe_delivery_id_never_escapes_receipts_root(tmp_path):
         j.append(bad)
     assert exc.value.code == "REFERENCE_DELIVERY_ID_CONFLICT"
     assert not (tmp_path / "escape.json").exists()
+
+
+def test_consumed_comment_identity_survives_restart(tmp_path):
+    journal = ReferenceJournal(tmp_path)
+    assert not journal.is_comment_consumed("IC_kwDOA1")
+    journal.mark_comment_consumed("IC_kwDOA1")
+    assert ReferenceJournal(tmp_path).is_comment_consumed("IC_kwDOA1")

@@ -24,24 +24,32 @@ Core laws:
 - `REFERENCE ARRIVAL != TASK AUTHORITY`
 - `FILE PRESENT != FILE TRUSTED`
 - `DRIVE IS TRANSPORT, NOT AUTHORITY`
-- `UNKNOWN TASK_ID -> QUARANTINE / STOP`
+- `DELIVERY EVENT != AGENT EXECUTION EVENT`
+- `UNKNOWN / INVALID TASK -> NO PUBLISH`
 - `HASH MISMATCH -> QUARANTINE / STOP`
 - `DUPLICATE CONFLICT -> QUARANTINE / STOP`
 - `VALIDATED REFERENCE -> ATOMIC LOCAL PUBLISH`
-- `REFERENCE_EVENT != AGENT_EVENT`
+- `UPLOAD_COMPLETE != LOCAL_REFERENCE_READY`
 
 ## 2. Selected v1 approach
 
-Selected transport:
+Selected architecture:
 
-`OWNER/CHAT -> Google Drive drop -> Google Drive Desktop sync -> local Reference Bridge validator -> ZB_AGENT_INBOX -> existing Controller Daemon`
+`OWNER/CHAT -> JINGO -> Google Drive drop -> Google Drive Desktop sync -> local Reference Bridge validator -> ZB_AGENT_INBOX -> existing Controller Daemon`
+
+The control/evidence plane and data plane are deliberately split:
+
+- **GitHub task issue** = task authority and durable delivery metadata/event plane;
+- **Google Drive** = image-byte transport only;
+- **owner-PC Reference Bridge** = local validator and atomic publisher;
+- **existing Controller Daemon** = unchanged task execution authority.
 
 Rejected for v1:
 
-1. GitHub issue attachments as primary transport — more brittle attachment discovery/auth/download behavior and unnecessary coupling to attachment URLs.
-2. Local manual companion/drop UI — still requires owner-PC interaction and does not remove the manual relay.
+1. GitHub issue attachments as primary byte transport — more brittle attachment discovery/auth/download coupling.
+2. Local manual companion/drop UI — retains owner-PC file handling and defeats the main goal.
 
-Google Drive Desktop is an OWNER-approved free dependency for Reference Bridge v1. Approval of this dependency does not itself authorize installation or implementation.
+Google Drive Desktop is an OWNER-approved free dependency for v1. Dependency approval does not by itself authorize installation or implementation.
 
 ## 3. Existing compatibility and non-modification rule
 
@@ -53,10 +61,10 @@ Controller Daemon v1 exact `9e2ccfbaca88a95eac2e119e5eac720f9074dd35` already su
 
 Therefore Reference Bridge v1 MUST NOT require Controller Daemon code changes.
 
-Current local reference contract already enforces:
+The current local reference contract already enforces:
 
 - exactly one supported image per task directory;
-- extensions: `.png`, `.jpg`, `.jpeg`, `.webp`;
+- `.png`, `.jpg`, `.jpeg`, `.webp`;
 - magic-byte validation;
 - non-empty content;
 - maximum size 20 MiB.
@@ -65,92 +73,100 @@ Reference Bridge v1 MUST preserve this contract rather than expand it.
 
 ## 4. Authority model
 
-The GitHub task issue containing `ZB_AGENT_TASK_V0` remains task authority.
+The GitHub issue body containing valid `ZB_AGENT_TASK_V0` remains task authority.
 
-Google Drive is transport only.
+A `ZB_REFERENCE_DELIVERY_V1` comment on that same valid task issue is a **transport binding instruction** only. It binds expected bytes to the already-authorized task but cannot create, activate, execute, approve, QC-pass, canonize, or mutate the task.
 
-`manifest.json` and `READY.json` are transport metadata only. They cannot create, activate, approve, canonize, or mutate a task.
+Google Drive is data transport only. Drive folder names, file names, file IDs, uploader identity, and file presence never create authority by themselves.
 
-The bridge may publish a local reference only when the delivery points to an existing valid task whose `TASK_ID` and issue number match the package metadata.
+The bridge MUST NOT write or modify `ZB_AGENT_EVENT_V0` comments.
 
-The bridge MUST NOT infer authority from filename, Drive folder name, upload account, or mere file presence.
-
-The bridge MUST NOT write or modify `ZB_AGENT_EVENT_V0` execution-state comments.
+The bridge MUST NOT publish any file unless it can cross-check the delivery event against a valid task issue and exact `TASK_ID`.
 
 ## 5. V1 task/reference contract
 
 V1 supports exactly one image reference per `TASK_ID`.
 
-Multi-reference tasks are explicitly out of scope and require a separate future design gate.
+Multi-reference tasks are out of scope and require a future design gate.
 
 Destination is derived only from validated `TASK_ID`:
 
 `D:\BLATT2\ZB_AGENT_INBOX\<TASK_ID>\source.<ext>`
 
-No filesystem destination from transport metadata is trusted.
+No filesystem destination from Drive or GitHub metadata is trusted.
 
 Task IDs MUST satisfy the existing Controller path-boundary contract: uppercase letters, digits, underscore, hyphen only.
 
-## 6. Delivery package
+## 6. Drive delivery package
 
-Each delivery is one Drive folder named by a unique `DELIVERY_ID`.
+Each delivery uses one unique `DELIVERY_ID` and one private Drive folder named exactly by that ID.
 
-Required members:
+The Drive folder contains exactly one image file:
 
-- exactly one `source.<png|jpg|jpeg|webp>`;
-- `manifest.json`;
-- `READY.json` uploaded last.
+`source.<png|jpg|jpeg|webp>`
 
-`READY.json` is a commit marker indicating the sender has finished constructing the delivery package. The bridge MUST ignore incomplete delivery folders until `READY.json` exists.
+There is **no Drive-side `manifest.json` or `READY.json` in v1**.
 
-### 6.1 `manifest.json` minimum schema
+Reason: the connected producer surface reliably supports creating Drive folders and uploading existing file references, but does not reliably create arbitrary raw JSON files. The commit marker and manifest are therefore represented as a durable GitHub delivery event posted only after the source upload succeeds.
 
-```json
-{
-  "schemaVersion": "zb-reference-bridge-v1",
-  "taskId": "ZB-...",
-  "githubIssueNumber": 123,
-  "deliveryId": "...",
-  "sourceFileName": "source.png",
-  "sizeBytes": 12345,
-  "sha256": "64-lowercase-hex",
-  "mimeType": "image/png",
-  "createdAtUtc": "2026-08-27T00:00:00Z",
-  "sourceStatus": "OWNER_PROVIDED_REFERENCE",
-  "transport": "GOOGLE_DRIVE"
-}
+This keeps the architecture executable with the available connected surfaces and makes GitHub the durable metadata plane while Drive remains the byte plane.
+
+## 7. Producer commit marker — `ZB_REFERENCE_DELIVERY_V1`
+
+After the source image upload to the exact Drive delivery folder succeeds, JINGO posts one delivery event comment on the existing task issue.
+
+Minimum canonical format:
+
+```text
+ZB_REFERENCE_DELIVERY_V1
+TASK_ID = <task id>
+DELIVERY_ID = <delivery id>
+DRIVE_FOLDER_ID = <google drive folder id>
+DRIVE_FILE_ID = <google drive file id>
+SOURCE_FILE_NAME = source.<ext>
+SIZE_BYTES = <integer>
+SOURCE_SHA256 = <64 lowercase hex>
+MIME_TYPE = <supported image mime>
+SOURCE_STATUS = OWNER_PROVIDED_REFERENCE
+TRANSPORT = GOOGLE_DRIVE
 ```
 
 Required constraints:
 
-- schema version exact match;
-- `taskId` valid and exact;
-- `githubIssueNumber` positive integer;
-- `deliveryId` non-empty and unique by sender contract;
-- `sourceFileName` must identify the sole image file and contain no path traversal;
-- `sizeBytes` exact byte count;
-- `sha256` exact SHA256 of the source bytes;
-- `mimeType` must agree with supported extension and magic bytes;
-- `sourceStatus` exact `OWNER_PROVIDED_REFERENCE` for v1;
-- `transport` exact `GOOGLE_DRIVE`.
+- comment lives on the exact valid task issue;
+- `TASK_ID` exact match with task body;
+- `DELIVERY_ID` non-empty and unique by producer contract;
+- Drive folder/file IDs non-empty provider identifiers;
+- source filename is basename only and must match the sole local synced image;
+- size is exact byte count;
+- SHA256 is exact source-byte hash;
+- MIME agrees with extension/magic bytes;
+- source status exact `OWNER_PROVIDED_REFERENCE` for v1;
+- transport exact `GOOGLE_DRIVE`.
 
-`createdAtUtc` is provenance metadata only; local wall-clock ordering must not override identity checks.
+Posting this comment is the producer-side commit marker.
 
-### 6.2 `READY.json`
+The local bridge MUST ignore Drive folders that have no corresponding valid `ZB_REFERENCE_DELIVERY_V1` event on a valid task issue.
 
-`READY.json` MUST include at minimum:
+## 8. Producer-side behavior
 
-```json
-{
-  "schemaVersion": "zb-reference-ready-v1",
-  "deliveryId": "...",
-  "manifestSha256": "64-lowercase-hex"
-}
-```
+For one reference delivery JINGO MUST:
 
-The bridge MUST hash the actual `manifest.json` bytes and require an exact match before validating the source.
+1. Ensure an existing valid GitHub task issue exists with `REFERENCE = LOCAL_INBOX`.
+2. Obtain the exact source image bytes from the owner-provided attachment/file reference.
+3. Validate extension/magic/non-empty/max 20 MiB before upload.
+4. Compute exact size, MIME, and SHA256.
+5. Generate unique `DELIVERY_ID`.
+6. Create the exact private Drive folder `<DELIVERY_ID>` under the pinned drop root.
+7. Upload exactly one source image into that folder as `source.<ext>`.
+8. Capture provider folder ID and file ID from successful Drive operations.
+9. Only after upload success, post `ZB_REFERENCE_DELIVERY_V1` with exact metadata.
+10. Never claim local readiness from Drive upload success alone.
+11. Wait for durable `ZB_REFERENCE_EVENT_V1 / REFERENCE_READY` before saying the owner-PC bridge accepted the reference.
 
-## 7. Local Reference Bridge process
+If exact source bytes cannot be obtained and hashed by the producer, automatic delivery MUST fail closed rather than post guessed metadata.
+
+## 9. Local Reference Bridge process
 
 Reference Bridge runs as a process independent from Controller Daemon v1.
 
@@ -179,108 +195,126 @@ Quarantine root:
 
 `D:\BLATT2\ZB_REFERENCE_QUARANTINE\<DELIVERY_ID>\`
 
-The bridge configuration MUST pin:
+Bridge configuration MUST pin:
 
-- Drive synced drop root;
 - GitHub repository identity;
+- Drive drop folder ID for provenance;
+- exact local Google Drive synced drop root;
 - inbox root;
 - runtime root;
 - quarantine root;
 - polling interval;
-- maximum source bytes = 20 MiB;
-- allowed extensions/MIME mappings.
+- max source bytes = 20 MiB;
+- allowed extension/MIME/magic mappings.
 
-No credentials or tokens may be stored in delivery manifests, receipts, health, or logs.
+No credentials or tokens may be stored in events, receipts, health, or logs.
 
-## 8. Validation sequence
+## 10. Discovery model
 
-For each delivery folder with `READY.json`, the bridge MUST execute this order and fail closed:
+The bridge uses GitHub as the discovery/metadata plane, not blind Drive folder scanning.
 
-1. Read and validate `READY.json` schema.
-2. Read `manifest.json` only after commit marker exists.
-3. Verify `manifestSha256` against actual manifest bytes.
-4. Validate manifest schema and all required fields.
+Each poll:
+
+1. list/inspect eligible valid task issues;
+2. parse valid `ZB_REFERENCE_DELIVERY_V1` comments;
+3. identify delivery events not yet accepted/rejected in the local journal;
+4. derive expected local Drive folder path from pinned synced root + validated `DELIVERY_ID`;
+5. wait until the expected local folder/file is fully readable;
+6. validate and publish.
+
+A random/unreferenced Drive folder is ignored and MUST NOT create GitHub state.
+
+## 11. Validation sequence
+
+For each unprocessed valid delivery event, execute this order and fail closed:
+
+1. Parse the parent issue as valid `ZB_AGENT_TASK_V0`.
+2. Require task `REFERENCE = LOCAL_INBOX`.
+3. Validate event schema and required fields.
+4. Require event task ID == issue task ID.
 5. Validate `TASK_ID` path boundary.
-6. Resolve the exact GitHub issue referenced by `githubIssueNumber`.
-7. Parse the issue body as an existing valid `ZB_AGENT_TASK_V0`.
-8. Require issue task ID == manifest task ID.
-9. Require task reference contract to be compatible with `LOCAL_INBOX`.
-10. Require exactly one supported source image in the package.
-11. Ensure source filename == manifest filename.
-12. Read actual source bytes completely.
-13. Require non-empty and <= 20 MiB.
-14. Require byte length == `sizeBytes`.
-15. Require SHA256 == manifest SHA256.
-16. Require extension, declared MIME, and magic bytes to agree.
-17. Apply duplicate/replay/conflict rules.
-18. Copy validated source to same-volume local staging under `D:`.
-19. Re-hash staged bytes and require identical SHA256.
-20. Atomically publish the completed task directory into final inbox.
-21. Persist accepted receipt/journal state.
-22. Post durable `ZB_REFERENCE_EVENT_V1 / REFERENCE_READY` on the task issue.
+6. Validate `DELIVERY_ID` against a safe identifier grammar defined by implementation plan; it cannot contain path separators or traversal.
+7. Derive local delivery folder only as `<PINNED_DRIVE_SYNC_ROOT>\<DELIVERY_ID>`.
+8. Wait until exact delivery folder exists and is fully locally readable.
+9. Require exactly one supported image in that folder and no additional source candidates.
+10. Require local source basename == event `SOURCE_FILE_NAME`.
+11. Read source bytes completely.
+12. Require non-empty and <= 20 MiB.
+13. Require byte length == event `SIZE_BYTES`.
+14. Require SHA256 == event `SOURCE_SHA256`.
+15. Require extension, event MIME, and magic bytes to agree.
+16. Apply duplicate/replay/terminal/conflict rules.
+17. Copy validated source to same-volume local staging under `D:`.
+18. Re-hash staged bytes and require identical SHA256.
+19. Atomically publish completed task directory into final inbox.
+20. Persist accepted receipt/journal state.
+21. Post durable `ZB_REFERENCE_EVENT_V1 / REFERENCE_READY` on the task issue.
 
 No final inbox path may be created or overwritten before all validation steps pass.
 
-## 9. Partial sync and cloud-placeholder handling
+## 12. Partial sync and cloud-placeholder handling
 
-Google Drive Desktop may expose a folder before all bytes are locally readable.
+Google Drive Desktop may expose folder metadata before all image bytes are locally available.
 
 Bridge behavior:
 
-- no `READY.json` -> ignore as incomplete;
-- `READY.json` present but manifest/source not yet locally readable -> transient retry, not failure;
-- Drive/cloud read errors that may resolve -> bounded retry/backoff, no publish;
-- hash mismatch after a complete readable file -> quarantine/failure;
-- bridge MUST never publish from a partial or placeholder stream.
+- valid delivery event exists but local folder absent -> waiting/retry, no failure;
+- local folder exists but source not fully readable -> transient retry, no publish;
+- cloud/placeholder read errors that may resolve -> bounded retry/backoff;
+- complete readable file with wrong size/hash/magic -> hard failure/quarantine;
+- bridge MUST never publish from a partial stream.
 
-The exact implementation may use file stability checks or complete-read semantics, but source bytes MUST be fully readable and hash-verifiable before acceptance.
+The implementation may use complete-read semantics and/or file stability checks, but hash verification of fully readable bytes is mandatory.
 
-## 10. Atomic publish
+## 13. Atomic publish
 
 Validated content MUST first be staged on the same `D:` volume as the inbox.
 
-The staging directory is private to Reference Bridge and must not be visible as a valid Controller task inbox.
+The staging directory is private to Reference Bridge and must not appear as a Controller task inbox.
 
 After validation and staged re-hash:
 
 - if final `ZB_AGENT_INBOX\<TASK_ID>` does not exist, atomically rename staged directory to final task directory;
-- if final directory already contains the exact same accepted source SHA, treat as idempotent accepted replay and do not overwrite;
-- if final directory exists with conflicting bytes or unexpected files, quarantine the incoming delivery and fail closed;
-- bridge MUST never delete or overwrite an already accepted conflicting inbox reference automatically.
+- if final directory already contains the exact same accepted source SHA, treat as idempotent accepted replay;
+- if final directory exists with conflicting bytes or unexpected files, quarantine incoming delivery and fail closed;
+- bridge MUST never automatically delete or overwrite an accepted conflicting inbox reference.
 
-## 11. Journal, receipts, duplicates, replay
+## 14. Journal, receipts, duplicates, replay, terminal tasks
 
-Persistent acceptance identity is the tuple:
+Persistent delivery identity:
 
-`deliveryId + taskId + sha256`
+`deliveryId + taskId + sourceSha256`
 
-The journal MUST survive bridge restarts.
+Journal MUST survive bridge restarts.
 
 Required behavior:
 
-- exact already-accepted package appears again -> idempotent skip;
-- same `deliveryId` with changed manifest/source/hash -> `REFERENCE_DELIVERY_ID_CONFLICT`;
+- exact already-accepted delivery event/package reappears -> idempotent skip;
+- same `DELIVERY_ID` with changed task/hash/file metadata -> `REFERENCE_DELIVERY_ID_CONFLICT`;
 - same task ID with a different source SHA after acceptance -> `REFERENCE_TASK_CONFLICT`;
-- same source SHA under a new delivery ID for the same task may be treated as idempotent duplicate after exact task/issue validation;
-- unknown task/issue -> quarantine;
-- late package for a task already terminal in execution state must not overwrite existing inbox. It is rejected or quarantined as `REFERENCE_TASK_TERMINAL`.
+- same source SHA under a new delivery ID for same task may be idempotent after exact issue/task validation;
+- delivery for task already terminal in `ZB_AGENT_EVENT_V0` (`FAILED` or `RESULT_READY`) MUST NOT overwrite or create a new reference and is rejected as `REFERENCE_TASK_TERMINAL`;
+- historical receipts are append-only evidence and never rewritten by later deliveries.
 
-Historical receipts are append-only evidence. A later delivery cannot rewrite prior receipt identity.
+## 15. Quarantine and failure semantics
 
-## 12. Quarantine and failure codes
+Hard validation failure after a valid task/delivery binding is known:
 
-On a hard validation failure, the delivery is moved/copied into quarantine where practical and a narrow durable bridge failure event is posted.
+- preserve/copy relevant local delivery bytes into quarantine where practical;
+- persist a local failure receipt;
+- post narrow `ZB_REFERENCE_EVENT_V1 / REFERENCE_FAILED` on the same valid task issue.
+
+If the bridge cannot establish a valid task issue and exact task identity, it MUST NOT post a task-scoped reference event to an arbitrary issue. Such malformed/untrusted material is ignored or recorded locally only.
 
 Minimum error-code vocabulary:
 
-- `REFERENCE_READY_INVALID`
-- `REFERENCE_MANIFEST_INVALID`
-- `REFERENCE_MANIFEST_HASH_MISMATCH`
-- `REFERENCE_TASK_ID_INVALID`
-- `REFERENCE_TASK_NOT_FOUND`
+- `REFERENCE_DELIVERY_EVENT_INVALID`
 - `REFERENCE_TASK_CONTRACT_INVALID`
 - `REFERENCE_TASK_ID_MISMATCH`
+- `REFERENCE_TASK_ID_INVALID`
+- `REFERENCE_DELIVERY_ID_INVALID`
 - `REFERENCE_TASK_TERMINAL`
+- `REFERENCE_DRIVE_FOLDER_TIMEOUT`
 - `REFERENCE_SOURCE_COUNT_INVALID`
 - `REFERENCE_EXTENSION_INVALID`
 - `REFERENCE_MAGIC_INVALID`
@@ -295,15 +329,15 @@ Minimum error-code vocabulary:
 - `REFERENCE_STAGING_HASH_MISMATCH`
 - `REFERENCE_PUBLISH_FAILED`
 
-Transient cloud-read failures MUST NOT be misreported as permanent validation failures until the configured bounded retry policy is exhausted.
+Transient Drive read failures MUST NOT be reported as permanent until bounded retry policy is exhausted.
 
-## 13. Durable GitHub bridge events
+## 16. Durable Reference Bridge result events
 
-Reference Bridge posts a separate schema:
+Reference Bridge posts separate transport-result schema:
 
 `ZB_REFERENCE_EVENT_V1`
 
-### Success event
+Success:
 
 ```text
 ZB_REFERENCE_EVENT_V1
@@ -316,39 +350,42 @@ TRANSPORT = GOOGLE_DRIVE
 
 `REFERENCE_READY` is allowed only after successful atomic local publish.
 
-### Failure event
+Failure:
 
 ```text
 ZB_REFERENCE_EVENT_V1
-TASK_ID = <task id or NONE if unverifiable>
-DELIVERY_ID = <delivery id or NONE>
+TASK_ID = <task id>
+DELIVERY_ID = <delivery id>
 STATE = REFERENCE_FAILED
 ERROR_CODE = <narrow code>
 TRANSPORT = GOOGLE_DRIVE
 ```
 
-These events describe reference transport only.
+These events describe transport only.
 
 They MUST NOT create or imply `RUNNING`, `RESULT_READY`, `QC_PASS`, `OWNER_APPROVED`, or canon state.
 
-## 14. Security boundaries
+If posting `REFERENCE_READY` fails after successful local publish, the bridge must retain local receipt state and retry the event without rolling back or duplicating the published inbox.
 
-- Google Drive drop folder is private; no public sharing is required.
-- Exact Drive folder ID is pinned in producer-side configuration where applicable.
-- Exact local synced root is pinned in bridge configuration.
-- Destination paths derive only from validated `TASK_ID`.
-- Manifest filenames cannot contain `..`, absolute paths, drive letters, alternate separators used to escape the package directory, or arbitrary destination paths.
-- Symlink/reparse-point escapes from transport/staging roots must be rejected.
-- Bridge must not execute delivered files.
-- Bridge only reads supported image bytes and JSON metadata.
-- Secrets must never be emitted to GitHub comments or logs.
-- Google Drive account compromise is treated as untrusted transport input; validation still applies and task authority remains GitHub.
+## 17. Security boundaries
 
-## 15. Process lifecycle and deployment
+- Drive drop folder is private; no public sharing required.
+- Exact Drive folder ID is pinned on producer side and in bridge config for provenance.
+- Exact local synced root is pinned in bridge config.
+- Destination derives only from validated `TASK_ID`.
+- Delivery folder path derives only from validated `DELIVERY_ID` under pinned root.
+- Source file name must be basename only; no `..`, absolute path, drive letter, separator, or alternate traversal form.
+- Symlink/reparse-point escapes from Drive/staging roots must be rejected.
+- Bridge never executes delivered files.
+- Bridge reads only supported image bytes and GitHub metadata.
+- Secrets never appear in GitHub comments/logs/receipts.
+- Compromised Drive contents remain untrusted; task authority and expected SHA come from the valid task issue + delivery event.
 
-Reference Bridge v1 may have its own Windows Task Scheduler deployment tooling, but it remains a separate scheduled task/process from `ZB Controller Daemon v1`.
+## 18. Process lifecycle and deployment
 
-Required management actions:
+Reference Bridge v1 may have its own Windows Task Scheduler tooling, separate from `ZB Controller Daemon v1`.
+
+Required actions:
 
 - install;
 - start;
@@ -360,98 +397,83 @@ Required management actions:
 - uninstall;
 - non-mutating preflight.
 
-Normal operation must not require administrator privileges if Windows current-user Task Scheduler allows the approved contract.
+Normal v1 installation should not require administrator privileges if current-user Task Scheduler supports the contract.
 
-Bridge startup/preflight MUST fail closed when required local roots, config, GitHub access, or Drive synced root are invalid.
+Bridge startup/preflight MUST fail closed when config, GitHub access, Drive synced root, runtime root, or inbox root is invalid.
 
-Bridge failure must not stop or mutate Controller Daemon v1.
+Bridge failure must not stop, restart, reconfigure, or mutate Controller Daemon v1.
 
-## 16. Health and logs
+## 19. Health and logs
 
-Bridge runtime status MUST expose at least:
+Bridge status MUST expose at least:
 
 - schema/version;
-- process PID;
+- PID;
 - instance ID;
 - state: `STARTING | HEALTHY | DEGRADED | FATAL | STOPPING`;
 - last heartbeat UTC;
 - pinned config SHA256;
-- Drive root reachability;
-- last scan time;
+- Drive synced root reachability;
+- GitHub reachability/auth preflight state;
+- last poll time;
 - accepted delivery count;
-- quarantined delivery count;
+- quarantined/rejected delivery count;
 - last error code if any.
 
-Logs must be bounded/rotated and must not contain secrets or image bytes.
+Logs must be bounded/rotated and contain no secrets or image bytes.
 
-## 17. Exactly-once and restart behavior
+## 20. Restart safety and convergence
 
 Reference Bridge must be restart-safe.
 
-A crash between staging and publish must not create a partial final inbox.
+A crash before atomic publish cannot create a partial final inbox.
 
 A crash after atomic publish but before receipt/event write must be recoverable by comparing:
 
 - final inbox source SHA;
+- delivery event metadata;
 - journal/receipt state;
-- GitHub reference events.
+- existing `ZB_REFERENCE_EVENT_V1` comments.
 
-Recovery must converge to one accepted local reference without duplicate overwrite or fabricated agent execution state.
+Recovery must converge to one accepted local reference without overwrite, duplicate task execution state, or fabricated authority.
 
-## 18. Interaction with Controller Daemon
+## 21. Interaction with Controller Daemon
 
 No direct IPC is required for v1.
 
-The integration boundary is the validated final inbox directory.
+Integration boundary is the validated final inbox directory.
 
 Expected flow:
 
-`task ASSIGNED -> Controller may emit WAITING_REFERENCE -> bridge publishes validated reference -> bridge emits REFERENCE_READY -> Controller next poll sees local reference -> existing execution path continues`.
+`task ASSIGNED -> Controller may emit WAITING_REFERENCE -> JINGO uploads Drive source -> JINGO posts DELIVERY event -> bridge sync/validate/publish -> bridge posts REFERENCE_READY -> Controller next poll sees local reference -> existing execution path continues`.
 
-Controller may consume a valid reference regardless of whether the bridge event comment is momentarily delayed, because local atomic publish is the data-plane event. GitHub bridge event is durable observability, not a second execution gate.
+Controller may consume the valid local reference even if the bridge success comment is temporarily delayed, because atomic local publish is the data-plane event. The bridge comment is durable observability, not a second execution gate.
 
-Reference Bridge MUST NOT attempt to acquire or bypass the Controller global execution lock because it does not execute tasks.
+Reference Bridge MUST NOT acquire or bypass the Controller global execution lock because it does not execute tasks.
 
-## 19. Producer-side behavior
-
-Producer/JINGO flow for one reference delivery:
-
-1. Ensure a valid GitHub task issue exists.
-2. Compute source bytes, extension, size, MIME, and SHA256.
-3. Generate unique `DELIVERY_ID`.
-4. Create delivery folder in the pinned private Drive drop folder.
-5. Upload source image.
-6. Upload exact `manifest.json`.
-7. Compute manifest SHA256.
-8. Upload `READY.json` last.
-9. Do not claim local readiness from cloud upload alone.
-10. Wait for durable `ZB_REFERENCE_EVENT_V1 / REFERENCE_READY` before saying the local bridge accepted the reference.
-
-`UPLOAD_COMPLETE != LOCAL_REFERENCE_READY`.
-
-## 20. V1 scope
+## 22. V1 scope
 
 ### In scope
 
 - Google Drive Desktop dependency;
-- private Drive drop folder;
-- one image per task;
-- manifest + READY commit marker;
-- local validator daemon/process;
-- SHA256 integrity;
-- extension/MIME/magic/size validation;
+- private Drive drop root;
+- one Drive folder + one image per delivery;
+- `ZB_REFERENCE_DELIVERY_V1` GitHub manifest/commit marker;
+- local validator process;
+- SHA256/size/extension/MIME/magic validation;
 - GitHub task cross-check;
 - staging + atomic publish;
 - persistent journal/receipts;
-- duplicate/replay/conflict handling;
+- duplicate/replay/terminal/conflict handling;
 - quarantine;
-- `ZB_REFERENCE_EVENT_V1` comments;
+- `ZB_REFERENCE_EVENT_V1` result comments;
 - Windows install/status/uninstall tooling;
 - preflight/health/logging;
 - disposable owner-PC end-to-end smoke.
 
 ### Out of scope
 
+- Drive-side raw JSON manifest/READY files;
 - multi-reference tasks;
 - video/audio/reference bundles;
 - folder asset bundles;
@@ -466,81 +488,86 @@ Producer/JINGO flow for one reference delivery:
 - public Drive sharing;
 - generic arbitrary PC file transport.
 
-## 21. Testing requirements
+## 23. Testing requirements
 
-Implementation must be TDD and include unit/integration coverage for at least:
+Implementation must use TDD and cover at least:
 
-- valid PNG/JPEG/WebP delivery;
-- READY absent -> ignored;
-- manifest hash mismatch;
-- invalid JSON/schema;
-- task not found;
-- task ID mismatch;
+- valid PNG/JPEG/WebP delivery event + synced source;
+- delivery event absent -> Drive folder ignored;
+- malformed delivery event;
+- event task ID mismatch;
 - invalid task ID/path traversal;
+- invalid delivery ID/path traversal;
+- task `REFERENCE` incompatible;
+- local Drive folder missing -> retry/no publish;
+- unreadable cloud placeholder -> retry/no premature failure;
 - extra image files;
 - unsupported extension;
 - magic/MIME mismatch;
 - zero bytes;
 - >20 MiB;
 - size mismatch;
-- source hash mismatch;
-- transient unreadable cloud placeholder -> retry/no failure;
+- source SHA mismatch;
 - duplicate exact package -> idempotent;
 - delivery ID conflict;
 - task conflicting second image;
+- terminal task delivery rejected;
 - final destination conflict;
 - staged re-hash mismatch;
 - crash before publish;
 - crash after publish before receipt;
 - restart recovery;
 - quarantine behavior;
-- GitHub reference event formatting;
-- GitHub event failure does not roll back valid local publish;
+- GitHub delivery-event parser;
+- GitHub reference-result event formatting;
+- GitHub success-event post failure does not roll back valid local publish;
 - health/status fail-closed parsing;
 - no modification of Controller/SALVADOR production files.
 
-## 22. Owner-PC disposable end-to-end acceptance smoke
+## 24. Owner-PC disposable end-to-end acceptance smoke
 
 No Reference Bridge production activation is allowed before independent QC and owner-PC live smoke.
 
 Smoke sequence:
 
-1. Google Drive Desktop installed and authenticated on owner-PC.
-2. Private pinned Drive drop folder is confirmed syncing to an exact local path.
-3. Bridge candidate is installed in disposable test mode while Controller Daemon v1 remains unchanged.
-4. Create one disposable `ZB_AGENT_TASK_V0` that is eligible to wait for a reference.
-5. Confirm Controller can show `WAITING_REFERENCE` with no local inbox image.
-6. From the producer side, upload one package: source -> manifest -> READY last.
-7. No owner manual file copy is permitted.
-8. Confirm Bridge detects the synced package, validates bytes/task/hash, atomically publishes one local image, and posts `REFERENCE_READY`.
-9. Confirm exact source SHA256 in Drive manifest == staged SHA == final inbox SHA.
-10. Confirm existing Controller independently observes the new inbox reference on its next poll and advances according to its unchanged semantics.
-11. Test one hard-fail package such as hash mismatch and confirm quarantine + `REFERENCE_FAILED`, with no inbox overwrite.
-12. Uninstall disposable bridge if production activation has not yet been authorized.
+1. Install/authenticate Google Drive Desktop on owner-PC under explicit installation gate.
+2. Create/confirm private pinned Drive drop folder and exact local synced path.
+3. Install Reference Bridge candidate in disposable test mode while production Controller Daemon remains unchanged.
+4. Create one disposable valid `ZB_AGENT_TASK_V0` with `REFERENCE = LOCAL_INBOX`.
+5. Confirm Controller can report `WAITING_REFERENCE` with no local reference.
+6. Producer uploads one owner-provided image to Drive under one new `DELIVERY_ID` folder.
+7. Producer posts `ZB_REFERENCE_DELIVERY_V1` only after upload success.
+8. No owner manual file copy is allowed.
+9. Confirm bridge detects event, waits for sync, validates bytes/task/hash, atomically publishes one local image, and posts `REFERENCE_READY`.
+10. Confirm source SHA in delivery event == locally synced source SHA == staged SHA == final inbox SHA.
+11. Confirm existing Controller independently sees final inbox reference on next poll and advances using unchanged semantics.
+12. Create one hard-fail delivery with wrong expected hash; confirm no inbox overwrite, local quarantine/failure receipt, and `REFERENCE_FAILED` on the valid task issue.
+13. Uninstall disposable bridge unless OWNER production activation is separately authorized.
 
-PASS requires proof of zero manual file copy and no Controller/SALVADOR mutation.
+PASS requires zero manual file copy and zero Controller/SALVADOR production mutation.
 
-## 23. Acceptance criteria for Reference Bridge v1 implementation
+## 25. Acceptance criteria for implementation
 
-Implementation may advance to OWNER production activation decision only when all are true:
+Reference Bridge may advance to OWNER production activation decision only when all are true:
 
-- formal implementation plan approved;
+- approved implementation plan;
 - isolated LESTER TDD implementation complete;
 - all tests pass on exact candidate HEAD;
 - independent DUNCAN QC PASS;
 - no Controller Daemon production code diff;
 - no SALVADOR profile/model/workflow/prompt/denoise/dimensions diff;
-- owner-PC Drive sync path verified;
+- owner-PC Drive Desktop installed/authenticated under explicit gate;
+- exact local Drive sync root verified;
 - valid end-to-end delivery succeeds without manual copy;
-- invalid/hash-mismatch delivery quarantines fail-closed;
+- invalid/hash-mismatch delivery fails closed/quarantines;
 - final inbox publish is atomic;
-- bridge event authority remains separate from agent execution authority;
+- bridge transport events remain separate from agent execution authority;
 - production activation explicitly authorized by OWNER.
 
-## 24. Required next gates
+## 26. Required next gates
 
 1. OWNER reviews and approves this written spec.
-2. Write implementation plan with `superpowers:writing-plans`.
+2. Write implementation plan using `superpowers:writing-plans`.
 3. OWNER explicitly authorizes implementation.
 4. LESTER implements under TDD in isolation.
 5. DUNCAN performs independent QC on exact HEAD.

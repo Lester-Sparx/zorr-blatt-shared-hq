@@ -83,7 +83,7 @@ Reasoning:
 - current-user Task Scheduler avoids service-account credential duplication;
 - native service privileges add no v1 product value;
 - the scheduled task can enforce one scheduled instance and restart after process failure;
-- the controller itself can still enforce a process lock, so correctness does not depend only on Task Scheduler.
+- the controller itself enforces a process lock, so correctness does not depend only on Task Scheduler.
 
 The scheduled task is deployment infrastructure. The Python daemon owns controller-cycle health semantics. GitHub remains the durable task-state source of truth.
 
@@ -118,29 +118,31 @@ The daemon does not interpret artistic intent, modify task bodies, create produc
 
 The existing `--once` interface remains valid for tests and explicit maintenance when no other controller instance owns the lock.
 
-v1 adds an explicit daemon mode:
+v1 adds an explicit production daemon mode:
 
 ```text
 python -m zb_local_controller --daemon --config <path>
 ```
 
-`--once` and `--daemon` are mutually exclusive.
+`--once`, `--daemon`, and `--daemon-preflight` are mutually exclusive.
 
-The production scheduled task always uses `--daemon`. Existing no-flag behavior may remain for backward compatibility, but it is not the production deployment contract for v1.
+The existing no-flag continuous behavior remains as a legacy compatibility mode and must acquire the same global execution lock as `--once` and `--daemon`. It is not used by the production scheduled task.
 
-A non-mutating preflight mode is allowed and recommended for deployment:
+The production scheduled task always uses `--daemon`.
+
+v1 requires a non-mutating preflight mode:
 
 ```text
 python -m zb_local_controller --daemon-preflight --config <path>
 ```
 
-Preflight may validate configuration, writable runtime paths, Python/runtime compatibility, and GitHub authentication. It must not discover/submit/poll agent tasks and must not require a running ComfyUI instance.
+Preflight validates configuration, writable runtime paths, Python/runtime compatibility, and GitHub authentication. It must not discover, submit, or poll agent tasks and must not require a running ComfyUI instance.
 
 ## 7. Global Single-Instance Law
 
 A daemon alone is insufficient protection because an operator could accidentally launch `--once` while the daemon is already running. Therefore v1 introduces one **controller instance lock** shared by all real controller execution modes.
 
-Lock root:
+Lock root comes from `daemonRuntimeRoot` and defaults to:
 
 ```text
 D:\BLATT2\ZB_AGENT_RUNTIME\controller-daemon\
@@ -155,27 +157,35 @@ controller.lock
 Rules:
 
 - daemon acquires an exclusive OS-backed lock before any GitHub task processing;
-- `--once` and any legacy continuous controller execution acquire the same lock;
+- `--once` and legacy continuous controller execution acquire the same lock;
 - preflight/status operations do not acquire the execution lock;
 - a second controller process must fail before task discovery or backend submission;
-- lock contention must produce an explicit machine-readable error such as `CONTROLLER_INSTANCE_BUSY`;
+- lock contention produces machine-readable `CONTROLLER_INSTANCE_BUSY`;
 - stale file presence alone is not proof of a live lock; correctness comes from the OS lock, not file existence;
 - process exit releases the lock automatically;
 - no force-delete of a live lock is permitted.
 
-Implementation should use standard-library Windows file locking or an equivalent OS-backed primitive. No new third-party lock dependency is required for v1.
+The implementation uses only Python standard-library OS locking: `msvcrt.locking(..., LK_NBLCK, ...)` on Windows. A POSIX `fcntl.flock(..., LOCK_EX | LOCK_NB)` adapter is permitted only to preserve equivalent unit-test/development semantics outside Windows; Windows `msvcrt` behavior is the production authority. No third-party lock dependency is allowed in v1.
 
-## 8. Daemon Health Model
+## 8. Daemon Configuration and Health Model
+
+`ControllerConfig` gains exactly one daemon path setting in v1:
+
+```text
+daemonRuntimeRoot
+```
+
+Default:
+
+```text
+D:\BLATT2\ZB_AGENT_RUNTIME\controller-daemon
+```
+
+No daemon log-size or scheduler-restart tuning is exposed as production config in v1; those values are locked below so deployments do not silently drift.
 
 Daemon health is **local operational evidence**, not production canon and not agent task state.
 
-Runtime root:
-
-```text
-D:\BLATT2\ZB_AGENT_RUNTIME\controller-daemon\
-```
-
-Files:
+Files under `daemonRuntimeRoot`:
 
 ```text
 health.json
@@ -233,11 +243,11 @@ Required properties:
 - ERROR/exception trace for fatal unexpected failure;
 - bounded disk usage.
 
-Recommended default bound for v1:
+Locked v1 bounds:
 
 ```text
-2 MiB per log file
-5 backup files
+maxBytes = 2097152
+backupCount = 5
 ```
 
 Logs must not print GitHub credentials, full config contents, image bytes, or secret environment variables.
@@ -260,7 +270,7 @@ Behavior:
 - write `FATAL` when possible;
 - do not process tasks;
 - exit non-zero;
-- scheduled-task restart policy may retry according to its bounded settings.
+- scheduled-task restart policy retries according to the locked bounded settings.
 
 ### Recoverable operational failure
 
@@ -284,7 +294,7 @@ Behavior:
 - write `FATAL` when possible;
 - release process lock by process termination;
 - exit non-zero;
-- Task Scheduler restarts the daemon according to bounded restart policy.
+- Task Scheduler restarts the daemon according to the locked restart policy.
 
 Backend/task failures already handled by the existing `Controller` remain task-level outcomes and must not automatically kill the daemon.
 
@@ -306,24 +316,19 @@ Required deployment properties:
 - working directory: exact deployed `agent-controller` directory;
 - multiple instance policy: ignore/reject new scheduled instance;
 - start when available: enabled;
-- restart on process failure: enabled with bounded count/interval;
+- restart on process failure: enabled;
+- restart interval: exactly 1 minute;
+- restart count: exactly 5;
 - execution time limit: disabled for the long-running daemon;
 - do not stop merely because the machine switches to battery power;
 - task may stop at user logoff and will start again on the next logon;
 - installation must not require storing the user's plaintext Windows password.
 
-Recommended restart setting for v1:
-
-```text
-restart interval = 1 minute
-restart count = 5
-```
-
-If Windows policy prevents current-user task creation without elevation, installation must fail explicitly; it must not silently fall back to an elevated/system service.
+If Windows policy prevents current-user task creation without elevation, installation fails explicitly; it must not silently fall back to an elevated/system service.
 
 ## 12. Deployment Operations
 
-Repository-owned Windows deployment tooling lives under a focused directory such as:
+Repository-owned Windows deployment tooling lives under:
 
 ```text
 agent-controller/deploy/windows/
@@ -345,10 +350,10 @@ Install rules:
 - resolve and record exact Python executable;
 - require absolute production config path;
 - require absolute working directory;
-- run daemon preflight before replacing a known-good registration;
+- run `--daemon-preflight` before replacing a known-good registration;
 - create/update the scheduled task deterministically;
 - start the task after successful install unless explicitly suppressed for QC;
-- repeated install with identical inputs must converge to the same task definition.
+- repeated install with identical inputs converges to the same task definition.
 
 Uninstall rules:
 
@@ -360,9 +365,9 @@ Uninstall rules:
 
 ## 13. Status Contract
 
-The status operation must combine Task Scheduler state with local health evidence. It must never call `Controller.run_once()`.
+The status operation combines Task Scheduler state with local health evidence. It must never call `Controller.run_once()`.
 
-Machine-readable output should include at least:
+Machine-readable output includes at least:
 
 ```text
 ZB_CONTROLLER_DAEMON_STATUS_V1
@@ -462,14 +467,14 @@ Do not turn `controller.py` into a daemon/deployment monolith.
 
 ### CLI
 
-- `--once` and `--daemon` are mutually exclusive;
-- all task-processing modes share the same execution lock;
+- `--once`, `--daemon`, and `--daemon-preflight` are mutually exclusive;
+- all task-processing modes, including legacy no-flag continuous mode, share the same execution lock;
 - preflight does not discover or submit tasks;
 - existing `--once` behavior remains regression-tested when no daemon owns the lock.
 
 ### Deployment tooling
 
-At minimum, automated tests must verify generated/declared task settings and command quoting without requiring a real Windows scheduler. Real registration is verified only in owner-PC live smoke.
+Automated tests verify declared task settings and command quoting without requiring a real Windows scheduler. Real registration is verified only in owner-PC live smoke.
 
 Full existing controller/SALVADOR test suite must remain green.
 
@@ -492,7 +497,7 @@ DUNCAN PASS authorizes owner-PC live smoke only, not production activation.
 
 ## 20. Owner-PC Live Smoke
 
-Live smoke is disposable and must use the exact DUNCAN-approved implementation HEAD.
+Live smoke is disposable and uses the exact DUNCAN-approved implementation HEAD.
 
 Required checks:
 
@@ -524,7 +529,7 @@ Controller Daemon v1 passes only if all are true:
 7. Logs are bounded and secret-safe.
 8. Transient operational failures retry without state fabrication.
 9. Fatal startup/auth/config failure fails closed.
-10. Unexpected process failure is restarted by Task Scheduler under bounded policy.
+10. Unexpected process failure is restarted by Task Scheduler under the exact bounded policy.
 11. Owner can status/start/stop/restart/enable/disable/uninstall without modifying production task truth.
 12. Existing controller/SALVADOR tests pass with no semantic regression.
 13. DUNCAN independently passes the exact implementation HEAD.

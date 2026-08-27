@@ -79,3 +79,67 @@ def test_default_registry_keeps_disposable_smoke_independent_of_empty_canon_mode
     assert smoke.workflow_path.name == "salvador-production-image-edit.json"
     assert isinstance(canon, CanonReferenceEditBackend)
     assert canon.model_name == ""
+
+import json
+import pytest
+from zb_local_controller.config import load_config
+from zb_local_controller.instance_lock import ControllerInstanceLock
+
+
+def daemon_config(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"daemonRuntimeRoot": str(tmp_path / "runtime")}), encoding="utf-8")
+    return path
+
+
+def test_daemon_and_once_are_mutually_exclusive():
+    with pytest.raises(SystemExit):
+        main(["--daemon", "--once"])
+
+
+def test_daemon_requires_explicit_config():
+    assert main(["--daemon"], github_factory=NoIssuesGitHub, backend_registry_factory=registry) == 2
+
+
+def test_preflight_mode_does_not_discover_tasks(tmp_path):
+    path = daemon_config(tmp_path)
+
+    class PreflightGitHub(NoIssuesGitHub):
+        def ensure_authenticated(self):
+            pass
+        def list_candidate_issues(self):
+            raise AssertionError("must not list tasks")
+
+    assert main(["--daemon-preflight", "--config", str(path)], github_factory=PreflightGitHub, backend_registry_factory=registry) == 0
+
+
+def test_once_is_rejected_before_github_discovery_when_lock_owned(tmp_path):
+    path = daemon_config(tmp_path)
+    cfg = load_config(path)
+    calls = {"list": 0}
+
+    class CountingGitHub(NoIssuesGitHub):
+        def list_candidate_issues(self):
+            calls["list"] += 1
+            return []
+
+    with ControllerInstanceLock(cfg.daemon_runtime_root):
+        code = main(["--once", "--config", str(path)], github_factory=CountingGitHub, backend_registry_factory=registry)
+    assert code == 3
+    assert calls["list"] == 0
+
+
+def test_legacy_mode_is_rejected_before_run_forever_when_lock_owned(tmp_path, monkeypatch):
+    path = daemon_config(tmp_path)
+    cfg = load_config(path)
+
+    class MustNotRunController:
+        def __init__(self, *args, **kwargs):
+            pass
+        def run_forever(self):
+            raise AssertionError("run_forever must not run while lock is owned")
+
+    monkeypatch.setattr(cli_module, "Controller", MustNotRunController)
+    with ControllerInstanceLock(cfg.daemon_runtime_root):
+        code = main(["--config", str(path)], github_factory=NoIssuesGitHub, backend_registry_factory=registry)
+    assert code == 3

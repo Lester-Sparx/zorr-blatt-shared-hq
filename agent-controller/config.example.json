@@ -12,5 +12,6 @@
   "canonModelName": "",
   "canonDenoise": 0.35,
   "canonMaxLongSide": 768,
-  "canonNegativePrompt": "redesign, changed pose, changed composition, extra limbs, text, watermark"
+  "canonNegativePrompt": "redesign, changed pose, changed composition, extra limbs, text, watermark",
+  "daemonRuntimeRoot": "D:\\BLATT2\\ZB_AGENT_RUNTIME\\controller-daemon"
 }

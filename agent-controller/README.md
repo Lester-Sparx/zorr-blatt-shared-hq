@@ -59,3 +59,44 @@ Operator flow:
 The task text cannot choose a filesystem path or checkpoint filename. Chat attachment -> Windows inbox transport is not part of SALVADOR v1.
 
 `PRODUCTION_ACTIVATION = NO` until the separately owned QC/live-smoke/owner activation gates are completed.
+
+## ZB Controller Daemon v1 operations
+
+Daemon v1 is a lifecycle/deployment layer around the accepted controller. It does not change controller task-state truth or SALVADOR production settings.
+
+Preflight is non-mutating and does not discover/process tasks or require ComfyUI:
+
+```powershell
+python -m zb_local_controller --daemon-preflight --config 'D:\BLATT2\ZB_AGENT_CONFIG\salvador-canon-reference-edit.json'
+```
+
+Manual foreground daemon execution for maintenance:
+
+```powershell
+python -m zb_local_controller --daemon --config 'D:\BLATT2\ZB_AGENT_CONFIG\salvador-canon-reference-edit.json'
+```
+
+Install the current-user scheduled task after the separate QC/live-smoke gate authorizes owner-PC deployment:
+
+```powershell
+.\deploy\windows\ZbControllerDaemon.ps1 -Action Install -ConfigPath 'D:\BLATT2\ZB_AGENT_CONFIG\salvador-canon-reference-edit.json' -WorkingDirectory 'D:\BLATT2\zb-local-agent-controller\agent-controller'
+```
+
+Read scheduler + local health evidence without controller processing:
+
+```powershell
+.\deploy\windows\ZbControllerDaemon.ps1 -Action Status -ConfigPath 'D:\BLATT2\ZB_AGENT_CONFIG\salvador-canon-reference-edit.json'
+```
+
+`--once` remains maintenance/testing-only once the daemon is active. It uses the same OS-backed controller lock and returns `CONTROLLER_INSTANCE_BUSY` while the daemon owns that lock.
+
+Daemon v1 explicitly does **not**:
+
+- start, stop, install, update, or otherwise manage ComfyUI;
+- move ChatGPT attachments or implement any Reference Bridge / Google Drive transport;
+- create GitHub agent tasks;
+- change the SALVADOR model/profile/workflow/prompt/denoise/dimensions;
+- integrate Babylon;
+- mutate canon or activate production.
+
+Owner-PC Task Scheduler registration and live daemon smoke are a later gate after DUNCAN independent QC; they are not part of implementation verification.

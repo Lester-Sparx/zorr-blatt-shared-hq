@@ -137,7 +137,7 @@ class ReferenceBridge:
                 existing = self.journal.lookup_delivery(delivery.delivery_id)
 
                 if existing is not None:
-                    if existing.task_id != task.task_id or existing.source_sha256 != delivery.source_sha256:
+                    if existing.task_id != task.task_id or existing.task_id != delivery.task_id or existing.source_sha256 != delivery.source_sha256:
                         self._quarantine_if_possible(delivery, "REFERENCE_DELIVERY_ID_CONFLICT")
                         self._post_failed(issue.number, task.task_id, delivery, "REFERENCE_DELIVERY_ID_CONFLICT")
                         rejected += 1

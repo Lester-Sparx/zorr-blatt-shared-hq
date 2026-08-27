@@ -194,3 +194,15 @@ def test_conflicting_replay_same_delivery_id_is_failed_and_quarantined(tmp_path)
     assert "ERROR_CODE = REFERENCE_DELIVERY_ID_CONFLICT" in gh.posted[-1]
     assert (cfg.quarantine_root / "DELIV-001" / "source.png").read_bytes() == different
     assert (cfg.inbox_root / "ZB-REF-001" / "source.png").read_bytes() == PNG
+
+
+def test_conflicting_replay_same_delivery_id_changed_task_id_is_failed(tmp_path):
+    cfg, gh, bridge = make_bridge(tmp_path, (delivery_event(),))
+    put_source(cfg)
+    bridge.run_once()
+    gh.comments = [delivery_event(task_id="ZB-OTHER")]
+    gh.posted.clear()
+    summary = bridge.run_once()
+    assert summary.rejected == 1
+    assert "ERROR_CODE = REFERENCE_DELIVERY_ID_CONFLICT" in gh.posted[-1]
+    assert (cfg.inbox_root / "ZB-REF-001" / "source.png").read_bytes() == PNG

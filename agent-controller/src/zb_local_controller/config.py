@@ -27,6 +27,7 @@ class ControllerConfig:
     canon_denoise: float = 0.35
     canon_max_long_side: int = 768
     canon_negative_prompt: str = "redesign, changed pose, changed composition, extra limbs, text, watermark"
+    daemon_runtime_root: Path = Path(r"D:\BLATT2\ZB_AGENT_RUNTIME\controller-daemon")
 
 
 def load_config(path: Path) -> ControllerConfig:
@@ -38,7 +39,7 @@ def load_config(path: Path) -> ControllerConfig:
         "repository", "inboxRoot", "resultRoot", "comfyuiUrl", "workflowPath",
         "pollIntervalSeconds", "maxExecutionSeconds", "comfyuiInputRoot",
         "canonReferenceWorkflowPath", "canonPromptPath", "canonModelName",
-        "canonDenoise", "canonMaxLongSide", "canonNegativePrompt",
+        "canonDenoise", "canonMaxLongSide", "canonNegativePrompt", "daemonRuntimeRoot",
     }
     if set(raw) - allowed:
         raise ConfigurationError("CONFIG_UNKNOWN_KEY")
@@ -58,6 +59,7 @@ def load_config(path: Path) -> ControllerConfig:
             canon_denoise=float(raw.get("canonDenoise", ControllerConfig.canon_denoise)),
             canon_max_long_side=int(raw.get("canonMaxLongSide", ControllerConfig.canon_max_long_side)),
             canon_negative_prompt=str(raw.get("canonNegativePrompt", ControllerConfig.canon_negative_prompt)),
+            daemon_runtime_root=Path(raw.get("daemonRuntimeRoot", str(ControllerConfig.daemon_runtime_root))),
         )
     except (TypeError, ValueError) as exc:
         raise ConfigurationError("CONFIG_INVALID") from exc

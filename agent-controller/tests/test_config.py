@@ -38,3 +38,16 @@ def test_rejects_out_of_policy_canon_settings(tmp_path, payload):
     with pytest.raises(ConfigurationError) as exc:
         load_config(path)
     assert exc.value.code == "CONFIG_INVALID"
+
+from pathlib import Path
+
+
+def test_loads_daemon_runtime_root(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"daemonRuntimeRoot": r"D:\BLATT2\RUNTIME\daemon"}), encoding="utf-8")
+    assert load_config(path).daemon_runtime_root == Path(r"D:\BLATT2\RUNTIME\daemon")
+
+
+def test_default_daemon_runtime_root_is_locked():
+    from zb_local_controller.config import ControllerConfig
+    assert ControllerConfig().daemon_runtime_root == Path(r"D:\BLATT2\ZB_AGENT_RUNTIME\controller-daemon")

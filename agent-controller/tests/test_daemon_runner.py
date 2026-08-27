@@ -84,6 +84,20 @@ def test_healthy_cycle_then_graceful_stop():
     assert sleeps == [15.0]
 
 
+def test_keyboard_interrupt_during_poll_sleep_writes_stopping_and_returns_zero():
+    health = FakeHealth()
+
+    def interrupted_sleep(_seconds):
+        raise KeyboardInterrupt()
+
+    controller = SequenceController([RunSummary(1, 0, 0, 1)])
+    code = DaemonRunner(controller, health, logger(), 15.0, interrupted_sleep).run()
+
+    assert code == 0
+    assert health.writes[0][0] == "HEALTHY"
+    assert health.writes[-1][0] == "STOPPING"
+
+
 def test_transient_github_error_degrades_and_retries():
     health = FakeHealth()
     sleeps = []

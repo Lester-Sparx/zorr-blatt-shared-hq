@@ -36,3 +36,21 @@ def test_no_service_or_elevation_fallback():
     assert "new-service" not in source
     assert "nssm" not in source
     assert "-password" not in source
+
+
+def test_status_rejects_wrong_health_schema_version():
+    source = text()
+    assert '$ExpectedHealthSchema = "zb-controller-daemon-v1"' in source
+    assert '$health.schemaVersion -ne $ExpectedHealthSchema' in source
+
+
+def test_status_rejects_health_state_outside_allowed_enum():
+    source = text()
+    assert '$AllowedHealthStates' in source
+    assert '$AllowedHealthStates -notcontains $healthState' in source
+
+
+def test_status_requires_valid_heartbeat_for_live_health():
+    source = text()
+    assert 'HEALTH_HEARTBEAT_INVALID' in source
+    assert '$null -eq $health.heartbeatAtUtc' in source

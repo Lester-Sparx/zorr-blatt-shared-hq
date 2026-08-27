@@ -9,6 +9,12 @@ class ControllerInstanceBusy(RuntimeError):
         super().__init__(self.code)
 
 
+class ControllerRuntimeUnwritable(RuntimeError):
+    def __init__(self):
+        self.code = "DAEMON_RUNTIME_UNWRITABLE"
+        super().__init__(self.code)
+
+
 if os.name == "nt":
     import msvcrt
 
@@ -36,8 +42,11 @@ class ControllerInstanceLock:
         self._handle = None
 
     def acquire(self):
-        self.runtime_root.mkdir(parents=True, exist_ok=True)
-        handle = self.path.open("a+b")
+        try:
+            self.runtime_root.mkdir(parents=True, exist_ok=True)
+            handle = self.path.open("a+b")
+        except OSError as exc:
+            raise ControllerRuntimeUnwritable() from exc
         handle.seek(0, os.SEEK_END)
         if handle.tell() == 0:
             handle.write(b"\0")

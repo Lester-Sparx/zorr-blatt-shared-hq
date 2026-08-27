@@ -81,4 +81,9 @@ class DaemonRunner:
                 self.logger.exception("controller daemon fatal: %s", code)
                 self.health.write("FATAL", last_error_code=code)
                 return 1
-            self.sleep_fn(self.poll_interval_seconds)
+            try:
+                self.sleep_fn(self.poll_interval_seconds)
+            except KeyboardInterrupt:
+                self.logger.info("controller daemon stopping")
+                self.health.write("STOPPING")
+                return 0

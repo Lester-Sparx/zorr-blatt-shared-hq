@@ -143,3 +143,15 @@ def test_legacy_mode_is_rejected_before_run_forever_when_lock_owned(tmp_path, mo
     with ControllerInstanceLock(cfg.daemon_runtime_root):
         code = main(["--config", str(path)], github_factory=NoIssuesGitHub, backend_registry_factory=registry)
     assert code == 3
+
+
+def test_invalid_daemon_runtime_root_fails_closed_with_stable_code(tmp_path, capsys):
+    blocker = tmp_path / "not-a-directory"
+    blocker.write_text("x", encoding="utf-8")
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"daemonRuntimeRoot": str(blocker / "runtime")}), encoding="utf-8")
+
+    code = main(["--once", "--config", str(path)], github_factory=NoIssuesGitHub, backend_registry_factory=registry)
+
+    assert code == 2
+    assert "DAEMON_RUNTIME_UNWRITABLE" in capsys.readouterr().err

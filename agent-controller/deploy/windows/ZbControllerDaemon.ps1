@@ -12,6 +12,8 @@ $ErrorActionPreference = "Stop"
 $TaskName = "ZB Controller Daemon v1"
 $DefaultRuntimeRoot = "D:\BLATT2\ZB_AGENT_RUNTIME\controller-daemon"
 $DefaultPollIntervalSeconds = 15.0
+$ExpectedHealthSchema = "zb-controller-daemon-v1"
+$AllowedHealthStates = @("STARTING","HEALTHY","DEGRADED","FATAL","STOPPING","MISSING","STALE")
 
 function Resolve-ExistingFile([string]$PathValue, [string]$Code) {
     if ([string]::IsNullOrWhiteSpace($PathValue)) { throw $Code }
@@ -99,8 +101,10 @@ function Write-DaemonStatus([string]$PathValue) {
     if (Test-Path -LiteralPath $healthPath -PathType Leaf) {
         try {
             $health = Get-Content -LiteralPath $healthPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ([string]$health.schemaVersion -ne $ExpectedHealthSchema) { throw "HEALTH_SCHEMA_INVALID" }
             $healthState = [string]$health.state
-            if ([string]::IsNullOrWhiteSpace($healthState)) { $healthState = "MISSING" }
+            if ([string]::IsNullOrWhiteSpace($healthState) -or $AllowedHealthStates -notcontains $healthState) { throw "HEALTH_STATE_INVALID" }
+            if ($null -eq $health.heartbeatAtUtc -or [string]::IsNullOrWhiteSpace([string]$health.heartbeatAtUtc)) { throw "HEALTH_HEARTBEAT_INVALID" }
             if ($null -ne $health.pid) {
                 $pidValue = [string][int]$health.pid
                 $process = Get-Process -Id ([int]$health.pid) -ErrorAction SilentlyContinue

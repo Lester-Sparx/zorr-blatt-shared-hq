@@ -14,7 +14,7 @@ from .controller import Controller
 from .daemon_health import DaemonHealthWriter, configure_daemon_logger
 from .daemon_runner import DaemonPreflightError, DaemonRunner, run_daemon_preflight
 from .github_cli import GitHubCLI, GitHubConfigurationError
-from .instance_lock import ControllerInstanceBusy, ControllerInstanceLock
+from .instance_lock import ControllerInstanceBusy, ControllerInstanceLock, ControllerRuntimeUnwritable
 
 
 def _default_backend_registry(config: ControllerConfig):
@@ -111,7 +111,7 @@ def main(
     except ControllerInstanceBusy:
         print("CONTROLLER_INSTANCE_BUSY", file=sys.stderr)
         return 3
-    except (ConfigurationError, GitHubConfigurationError, DaemonPreflightError) as exc:
+    except (ConfigurationError, GitHubConfigurationError, DaemonPreflightError, ControllerRuntimeUnwritable) as exc:
         code = getattr(exc, "code", exc.__class__.__name__)
         print(f"CONFIGURATION_ERROR {code}", file=sys.stderr)
         return 2

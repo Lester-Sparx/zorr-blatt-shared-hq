@@ -26,3 +26,15 @@ def test_stale_file_bytes_without_os_lock_do_not_block(tmp_path):
     (tmp_path / "controller.lock").write_bytes(b"stale")
     with ControllerInstanceLock(tmp_path):
         pass
+
+
+def test_invalid_runtime_root_is_stably_classified(tmp_path):
+    blocker = tmp_path / "not-a-directory"
+    blocker.write_text("x", encoding="utf-8")
+    lock = ControllerInstanceLock(blocker / "runtime")
+
+    with pytest.raises(Exception) as exc:
+        lock.acquire()
+
+    assert getattr(exc.value, "code", None) == "DAEMON_RUNTIME_UNWRITABLE"
+    assert not isinstance(exc.value, ControllerInstanceBusy)

@@ -206,3 +206,52 @@ def test_conflicting_replay_same_delivery_id_changed_task_id_is_failed(tmp_path)
     assert summary.rejected == 1
     assert "ERROR_CODE = REFERENCE_DELIVERY_ID_CONFLICT" in gh.posted[-1]
     assert (cfg.inbox_root / "ZB-REF-001" / "source.png").read_bytes() == PNG
+
+
+@pytest.mark.parametrize("old,new", [
+    ("DRIVE_FOLDER_ID = folder123", "DRIVE_FOLDER_ID = folder999"),
+    ("DRIVE_FILE_ID = file123", "DRIVE_FILE_ID = file999"),
+    ("SOURCE_FILE_NAME = source.png", "SOURCE_FILE_NAME = alternate.png"),
+    (f"SIZE_BYTES = {len(PNG)}", f"SIZE_BYTES = {len(PNG)+1}"),
+    ("MIME_TYPE = image/png", "MIME_TYPE = image/jpeg"),
+])
+def test_conflicting_replay_same_delivery_id_changed_file_metadata_is_failed(tmp_path, old, new):
+    cfg, gh, bridge = make_bridge(tmp_path, (delivery_event(),))
+    put_source(cfg)
+    bridge.run_once()
+    gh.comments = [delivery_event().replace(old, new)]
+    gh.posted.clear()
+    summary = bridge.run_once()
+    assert summary.rejected == 1
+    assert "ERROR_CODE = REFERENCE_DELIVERY_ID_CONFLICT" in gh.posted[-1]
+    assert (cfg.inbox_root / "ZB-REF-001" / "source.png").read_bytes() == PNG
+
+
+def test_unsafe_delivery_id_is_ignored_before_any_receipt_or_task_event(tmp_path):
+    cfg, gh, bridge = make_bridge(tmp_path, (delivery_event(task_id="ZB-OTHER", delivery_id="../escape"),))
+    summary = bridge.run_once()
+    assert summary.skipped == 1
+    assert not gh.posted
+    assert not (cfg.runtime_root / "escape.json").exists()
+    assert not (cfg.runtime_root / "receipts").exists()
+
+
+class FakeClock:
+    def __init__(self): self.value = 1000.0
+    def __call__(self): return self.value
+    def advance(self, seconds): self.value += seconds
+
+
+def test_missing_drive_source_times_out_after_bounded_retry(tmp_path):
+    from dataclasses import replace
+    cfg, gh, _ = make_bridge(tmp_path, (delivery_event(),))
+    cfg = replace(cfg, cloud_retry_timeout_seconds=5.0)
+    clock = FakeClock()
+    bridge = ReferenceBridge(cfg, gh, ReferenceJournal(cfg.runtime_root), clock=clock)
+    first = bridge.run_once()
+    assert first.waiting == 1 and first.rejected == 0
+    clock.advance(5.1)
+    second = bridge.run_once()
+    assert second.rejected == 1
+    assert "ERROR_CODE = REFERENCE_DRIVE_FOLDER_TIMEOUT" in gh.posted[-1]
+    assert not (cfg.inbox_root / "ZB-REF-001").exists()

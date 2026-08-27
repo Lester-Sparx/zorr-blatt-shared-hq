@@ -4,6 +4,9 @@ from dataclasses import asdict, dataclass
 import json
 import os
 from pathlib import Path
+import re
+
+_DELIVERY_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 
 
 class JournalConflict(RuntimeError):
@@ -21,6 +24,12 @@ class DeliveryReceipt:
     issue_number: int
     created_at_utc: str
     error_code: str | None = None
+    delivery_metadata_sha256: str | None = None
+
+
+def _require_safe_delivery_id(delivery_id: str) -> None:
+    if not isinstance(delivery_id, str) or not _DELIVERY_ID_RE.fullmatch(delivery_id):
+        raise JournalConflict("REFERENCE_DELIVERY_ID_CONFLICT")
 
 
 class ReferenceJournal:
@@ -38,7 +47,10 @@ class ReferenceJournal:
             try:
                 raw = json.loads(path.read_text(encoding="utf-8"))
                 receipt = DeliveryReceipt(**raw)
+                _require_safe_delivery_id(receipt.delivery_id)
             except Exception as exc:
+                if isinstance(exc, JournalConflict):
+                    raise
                 raise JournalConflict("REFERENCE_DELIVERY_ID_CONFLICT") from exc
             existing = self._by_delivery.get(receipt.delivery_id)
             if existing is not None and existing != receipt:
@@ -57,6 +69,7 @@ class ReferenceJournal:
         return self._by_task.get(task_id)
 
     def append(self, receipt: DeliveryReceipt) -> DeliveryReceipt:
+        _require_safe_delivery_id(receipt.delivery_id)
         existing = self._by_delivery.get(receipt.delivery_id)
         if existing is not None:
             if existing == receipt:

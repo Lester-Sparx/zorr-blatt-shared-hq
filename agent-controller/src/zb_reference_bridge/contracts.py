@@ -19,6 +19,7 @@ _DELIVERY_KEYS = (
     "TRANSPORT",
 )
 _TASK_ID_RE = re.compile(r"^[A-Z0-9_-]+$")
+_DELIVERY_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 _SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -75,6 +76,8 @@ def parse_delivery_event(body: str) -> ReferenceDelivery | None:
     try:
         fields = _parse_exact_fields(lines[1:], _DELIVERY_KEYS)
         if not _TASK_ID_RE.fullmatch(fields["TASK_ID"]):
+            raise ReferenceContractError()
+        if not _DELIVERY_ID_RE.fullmatch(fields["DELIVERY_ID"]):
             raise ReferenceContractError()
         size_bytes = int(fields["SIZE_BYTES"])
         if size_bytes < 0:

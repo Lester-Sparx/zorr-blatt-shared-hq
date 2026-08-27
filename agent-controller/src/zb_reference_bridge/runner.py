@@ -19,6 +19,10 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+def _volume_id(path: Path) -> int:
+    return int(Path(path).stat().st_dev)
+
+
 def _probe_writable_dir(path: Path, code: str, *, must_exist: bool = False) -> None:
     root = Path(path)
     try:
@@ -43,6 +47,8 @@ def run_preflight(config: BridgeConfig, github, *, health=None) -> None:
         _probe_writable_dir(config.drive_sync_root, "REFERENCE_BRIDGE_DRIVE_ROOT_UNAVAILABLE", must_exist=True)
         _probe_writable_dir(config.inbox_root, "REFERENCE_BRIDGE_INBOX_UNWRITABLE")
         _probe_writable_dir(config.runtime_root, "REFERENCE_BRIDGE_RUNTIME_UNWRITABLE")
+        if _volume_id(config.runtime_root) != _volume_id(config.inbox_root):
+            raise BridgePreflightError("REFERENCE_BRIDGE_VOLUME_MISMATCH")
         _probe_writable_dir(config.quarantine_root, "REFERENCE_BRIDGE_QUARANTINE_UNWRITABLE")
     except BridgePreflightError as exc:
         if health is not None:

@@ -94,3 +94,12 @@ def test_unrecoverable_preflight_failure_can_be_written_fatal(tmp_path: Path):
         run_preflight(config, FakeGitHub(), health=health)
     assert exc.value.code == "REFERENCE_BRIDGE_DRIVE_ROOT_UNAVAILABLE"
     assert health.writes[-1][0] == "FATAL"
+
+
+def test_preflight_rejects_runtime_and_inbox_on_different_volumes(tmp_path: Path, monkeypatch):
+    import zb_reference_bridge.runner as runner
+    config = cfg(tmp_path)
+    monkeypatch.setattr(runner, "_volume_id", lambda path: 1 if Path(path) == config.runtime_root else 2)
+    with pytest.raises(BridgePreflightError) as exc:
+        run_preflight(config, FakeGitHub())
+    assert exc.value.code == "REFERENCE_BRIDGE_VOLUME_MISMATCH"

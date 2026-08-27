@@ -48,3 +48,12 @@ def test_existing_identical_receipt_is_not_rewritten(tmp_path, monkeypatch):
     j=ReferenceJournal(tmp_path); r=receipt(); j.append(r)
     monkeypatch.setattr("zb_reference_bridge.journal.os.replace", lambda *a: (_ for _ in ()).throw(AssertionError("rewrite")))
     assert j.append(r)==r
+
+
+def test_unsafe_delivery_id_never_escapes_receipts_root(tmp_path):
+    j = ReferenceJournal(tmp_path)
+    bad = receipt(delivery_id="../escape")
+    with pytest.raises(JournalConflict) as exc:
+        j.append(bad)
+    assert exc.value.code == "REFERENCE_DELIVERY_ID_CONFLICT"
+    assert not (tmp_path / "escape.json").exists()

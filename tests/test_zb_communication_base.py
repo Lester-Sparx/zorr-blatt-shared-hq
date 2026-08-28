@@ -156,7 +156,8 @@ class RecordingPort:
         self.console_comments = list(existing_console or [])
         self.created: list[str] = []
         self.console_created: list[str] = []
-        self.next_id = 10000
+        used_ids = [comment.get("id") for comment in self.comments + self.console_comments if isinstance(comment.get("id"), int)]
+        self.next_id = max(used_ids, default=9999) + 1
 
     def create_tracker_comment(self, body: str) -> int:
         comment_id = self.next_id; self.next_id += 1

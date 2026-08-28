@@ -18,5 +18,18 @@ hashes and lock evidence. It must not store or drive mechanics, timing, camera,
 set, animation, weapon, contact, plate or rendering values.
 
 The current gate is only `GITHUB_SHARED_HQ`. `G2` and `VOICE_TO_SHOT` remain
-blocked. A QC PASS never creates a LOCK. LOCK requires separate authenticated
-OWNER action after bound Duncan QC PASS and Django architecture ACCEPTED.
+blocked. A QC PASS never creates a LOCK. LOCK requires a separate legal OWNER
+logical-role transition after bound Duncan QC PASS and Django architecture
+ACCEPTED.
+
+## Single-account authority migration R01
+
+For this Shared HQ adapter, the former role-specific GitHub-login model is
+superseded. `Lester-Sparx` is the approved GitHub transport identity. LESTER,
+DUNCAN, DJANGO, JINGO and OWNER are logical protocol roles; GitHub actor proves
+transport provenance only and never proves a logical role.
+
+Role authority requires the protected-base validator to confirm the legal
+transition order, exact base/revision CAS and exact task/candidate/artifact/evidence
+bindings. Historical records using `builderGitHubLogin`, `reviewerGitHubLogin` or
+`ownerGitHubLogin` remain immutable historical provenance and are not rewritten.

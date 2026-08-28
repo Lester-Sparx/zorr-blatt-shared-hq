@@ -2,19 +2,20 @@
 
 Trusted only when enforced by GitHub:
 
-- authenticated `github.actor` from GitHub Actions context;
+- authenticated `github.actor` from GitHub Actions context as transport provenance only;
 - protected `main` commit;
 - required checks on the latest PR head;
 - immutable release asset verified by SHA256;
 - pinned Control Tower v1 artifact hash;
-- separate authenticated OWNER authorization.
+- separate protocol-authorized OWNER transition.
 
 Persistence boundary:
 
 ```text
 protected-main BASE validator
 + untrusted PR HEAD data
-+ authenticated github.actor
++ approved authenticated transport actor
++ logical role required by the legal transition
 + GitHub base/head commit SHA
 → recompute exact allowed transition
 → compare proposed state and append-only records
@@ -23,8 +24,10 @@ protected-main BASE validator
 
 `pull_request_target` executes only the validator from protected BASE. PR code is
 never executed by this workflow. Direct JSON claims such as `status=LOCKED` or
-`reviewerGitHubLogin=...` have no authority without an exact actor-bound
-transition and canonical evidence record.
+`reviewerGitHubLogin=...` or `logicalRole=...` have no authority without an exact
+transport-bound, state-legal transition and canonical evidence record. A single
+transport account does not prove independent human/account review; separation is
+enforced at the protocol, transition-order, CAS and evidence-binding layers.
 
 Untrusted:
 

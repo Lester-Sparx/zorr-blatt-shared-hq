@@ -70,47 +70,52 @@ class OwnerLockPersistenceE2ETest(unittest.TestCase):
             self.dashboard(head, state, task)
             self.assertEqual(validate_transition(base, head, actor="Lester-Sparx", base_sha="1" * 40, head_sha=artifact_commit), "ARTIFACT_REGISTERED")
 
-            # DUNCAN QC PASS transition.
+            single_transport = {
+                "approvedTransportActors": ["Lester-Sparx"],
+                "logicalRoles": ["OWNER", "LESTER", "DUNCAN", "DJANGO", "JINGO"],
+            }
+
+            # DUNCAN QC PASS logical-role transition through the approved transport.
             self.next_copy(head, base)
             self.next_copy(base, head)
             state = self.read(head, "hq/state/HQ_STATE.json")
             task = self.read(head, "hq/tasks/GITHUB_SHARED_HQ.json")
-            task, qc = submit_review(task, actor="Duncan-Sparx-ZB", kind="QC", result="PASS", report=review_report("QC", "PASS"), roles=ROLES)
+            task, qc = submit_review(task, actor="Lester-Sparx", logical_role="DUNCAN", kind="QC", result="PASS", report=review_report("QC", "PASS"), roles=single_transport)
             task["expectedMainCommit"] = "3" * 40
             state.update({
                 "mainCommit": "3" * 40,
                 "lastTransition": {
-                    "kind": "QC_RECORDED", "actorGitHubLogin": "Duncan-Sparx-ZB",
+                    "kind": "QC_RECORDED", "actorGitHubLogin": "Lester-Sparx",
                     "taskRevision": 1, "candidateCommit": artifact_commit,
                     "artifactSha256": ARTIFACT_SHA, "previousRevision": 1,
                 },
             })
-            self.write(head, "hq/reviews/qc/GITHUB_SHARED_HQ/r01/Duncan-Sparx-ZB.json", qc)
+            self.write(head, "hq/reviews/qc/GITHUB_SHARED_HQ/r01/Lester-Sparx.json", qc)
             self.write(head, "hq/state/HQ_STATE.json", state)
             self.write(head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
             self.dashboard(head, state, task)
-            self.assertEqual(validate_transition(base, head, actor="Duncan-Sparx-ZB", base_sha="3" * 40, head_sha="4" * 40), "QC_RECORDED")
+            self.assertEqual(validate_transition(base, head, actor="Lester-Sparx", base_sha="3" * 40, head_sha="4" * 40), "QC_RECORDED")
 
             # DJANGO architecture acceptance transition.
             self.next_copy(head, base)
             self.next_copy(base, head)
             state = self.read(head, "hq/state/HQ_STATE.json")
             task = self.read(head, "hq/tasks/GITHUB_SHARED_HQ.json")
-            task, architecture = submit_review(task, actor="Django-Sparx-ZB", kind="ARCHITECTURE", result="ACCEPTED", report=review_report("ARCHITECTURE", "ACCEPTED"), roles=ROLES)
+            task, architecture = submit_review(task, actor="Lester-Sparx", logical_role="DJANGO", kind="ARCHITECTURE", result="ACCEPTED", report=review_report("ARCHITECTURE", "ACCEPTED"), roles=single_transport)
             task["expectedMainCommit"] = "5" * 40
             state.update({
                 "mainCommit": "5" * 40,
                 "lastTransition": {
-                    "kind": "ARCHITECTURE_RECORDED", "actorGitHubLogin": "Django-Sparx-ZB",
+                    "kind": "ARCHITECTURE_RECORDED", "actorGitHubLogin": "Lester-Sparx",
                     "taskRevision": 1, "candidateCommit": artifact_commit,
                     "artifactSha256": ARTIFACT_SHA, "previousRevision": 1,
                 },
             })
-            self.write(head, "hq/reviews/architecture/GITHUB_SHARED_HQ/r01/Django-Sparx-ZB.json", architecture)
+            self.write(head, "hq/reviews/architecture/GITHUB_SHARED_HQ/r01/Lester-Sparx.json", architecture)
             self.write(head, "hq/state/HQ_STATE.json", state)
             self.write(head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
             self.dashboard(head, state, task)
-            self.assertEqual(validate_transition(base, head, actor="Django-Sparx-ZB", base_sha="5" * 40, head_sha="6" * 40), "ARCHITECTURE_RECORDED")
+            self.assertEqual(validate_transition(base, head, actor="Lester-Sparx", base_sha="5" * 40, head_sha="6" * 40), "ARCHITECTURE_RECORDED")
 
             # Authenticated OWNER lock transition and repository validation.
             self.next_copy(head, base)
@@ -120,14 +125,14 @@ class OwnerLockPersistenceE2ETest(unittest.TestCase):
             lock_base_state = copy.deepcopy(state)
             lock_base_state["mainCommit"] = "7" * 40
             task, lock = create_owner_lock(
-                lock_base_state, task, qc, architecture, actor="Sparx-Owner-ZB",
-                timestamp="2026-08-25T00:00:00Z", roles=ROLES,
+                lock_base_state, task, qc, architecture, actor="Lester-Sparx",
+                timestamp="2026-08-25T00:00:00Z", roles=single_transport,
             )
             task["expectedMainCommit"] = "7" * 40
             state.update({
                 "mainCommit": "7" * 40,
                 "lastTransition": {
-                    "kind": "OWNER_LOCKED", "actorGitHubLogin": "Sparx-Owner-ZB",
+                    "kind": "OWNER_LOCKED", "actorGitHubLogin": "Lester-Sparx",
                     "taskRevision": 1, "candidateCommit": artifact_commit,
                     "artifactSha256": ARTIFACT_SHA, "previousRevision": 1,
                 },
@@ -137,7 +142,7 @@ class OwnerLockPersistenceE2ETest(unittest.TestCase):
             self.write(head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
             self.dashboard(head, state, task)
             self.assertEqual(task["lockRecord"], record_sha256(lock))
-            self.assertEqual(validate_transition(base, head, actor="Sparx-Owner-ZB", base_sha="7" * 40, head_sha="8" * 40), "OWNER_LOCKED")
+            self.assertEqual(validate_transition(base, head, actor="Lester-Sparx", base_sha="7" * 40, head_sha="8" * 40), "OWNER_LOCKED")
             validate_repository(head)
 
 

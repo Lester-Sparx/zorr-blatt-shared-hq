@@ -8,6 +8,9 @@
     "sha256": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
     "releaseTag": {"type": "string", "minLength": 1},
     "sourceCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
-    "builderGitHubLogin": {"type": "string", "minLength": 1}, "immutable": {"const": true}
+    "builderGitHubLogin": {"type": "string", "minLength": 1},
+    "transportActor": {"type": "string", "minLength": 1},
+    "logicalRole": {"const": "LESTER"},
+    "immutable": {"const": true}
   }
 }

@@ -10,6 +10,8 @@
     "qcReportSha256": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
     "architectureReportSha256": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
     "ownerGitHubLogin": {"type": "string", "minLength": 1},
+    "transportActor": {"type": "string", "minLength": 1},
+    "logicalRole": {"const": "OWNER"},
     "ownerDecisionTimestamp": {"type": "string", "minLength": 1},
     "baseMainCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
   }

@@ -51,16 +51,27 @@ def record_sha256(record: Mapping[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest().upper()
 
 
-def role_registry(path: Path = ROLES_PATH) -> dict[str, str]:
-    roles = load_json(path)  # JSON is valid YAML and avoids an unpinned YAML parser.
-    required = {"OWNER", "LESTER", "DUNCAN", "DJANGO"}
-    if set(roles) != required:
+def role_registry(path: Path = ROLES_PATH) -> dict[str, Any]:
+    registry = load_json(path)  # JSON is valid YAML and avoids an unpinned YAML parser.
+    if set(registry) != {"approvedTransportActors", "logicalRoles"}:
         raise HQError("ROLE REGISTRY KEYS INVALID")
-    if any(not isinstance(login, str) or not login for login in roles.values()):
-        raise HQError("ROLE LOGIN INVALID")
-    if len(set(roles.values())) != len(roles):
-        raise HQError("ONE GITHUB IDENTITY CANNOT HOLD MULTIPLE ENFORCEMENT ROLES")
-    return roles
+    transports = registry["approvedTransportActors"]
+    roles = registry["logicalRoles"]
+    if not isinstance(transports, list) or not transports or len(set(transports)) != len(transports):
+        raise HQError("APPROVED TRANSPORT REGISTRY INVALID")
+    if any(not isinstance(login, str) or not login for login in transports):
+        raise HQError("APPROVED TRANSPORT REGISTRY INVALID")
+    required = {"OWNER", "LESTER", "DUNCAN", "DJANGO", "JINGO"}
+    if not isinstance(roles, list) or set(roles) != required or len(roles) != len(required):
+        raise HQError("LOGICAL ROLE REGISTRY INVALID")
+    return {"approvedTransportActors": tuple(transports), "logicalRoles": frozenset(roles)}
+
+
+def _normalized_registry(roles: Mapping[str, Any]) -> tuple[set[str], set[str]]:
+    if set(roles) == {"approvedTransportActors", "logicalRoles"}:
+        return set(roles["approvedTransportActors"]), set(roles["logicalRoles"])
+    # Compatibility for tests and historical callers supplying the superseded mapping.
+    return set(roles.values()), set(roles)
 
 
 def authenticated_actor(env: Mapping[str, str] | None = None) -> str:
@@ -75,9 +86,16 @@ def authenticated_actor(env: Mapping[str, str] | None = None) -> str:
     return actor
 
 
-def require_role(actor: str, role: str, roles: Mapping[str, str]) -> None:
-    if roles.get(role) != actor:
-        raise HQError(f"AUTHENTICATED {role} IDENTITY REQUIRED")
+def require_role(actor: str, role: str, roles: Mapping[str, Any]) -> None:
+    if set(roles) != {"approvedTransportActors", "logicalRoles"}:
+        if roles.get(role) != actor:
+            raise HQError(f"AUTHENTICATED {role} IDENTITY REQUIRED")
+        return
+    transports, logical_roles = _normalized_registry(roles)
+    if actor not in transports:
+        raise HQError("APPROVED GITHUB TRANSPORT REQUIRED")
+    if role not in logical_roles:
+        raise HQError(f"AUTHORIZED {role} LOGICAL ROLE REQUIRED")
 
 
 def verify_control_tower_artifact(path: Path) -> str:
@@ -123,8 +141,6 @@ def register_artifact(
     roles: Mapping[str, str] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     registry = role_registry() if roles is None else dict(roles)
-    if len(set(registry.values())) != 4:
-        raise HQError("ROLE SEPARATION FAIL")
     require_role(actor, "LESTER", registry)
     assert_cas(state, task, expected_revision, expected_main, current_main)
     if not COMMIT_RE.fullmatch(candidate_commit) or not release_tag:
@@ -150,7 +166,8 @@ def register_artifact(
     manifest = {
         "taskId": new_task["taskId"], "revision": revision, "sha256": digest,
         "releaseTag": release_tag, "sourceCommit": candidate_commit,
-        "builderGitHubLogin": actor, "immutable": True,
+        "builderGitHubLogin": actor, "transportActor": actor, "logicalRole": "LESTER",
+        "immutable": True,
     }
     return new_state, new_task, manifest
 
@@ -158,6 +175,7 @@ def register_artifact(
 def submit_review(
     task: Mapping[str, Any], *, actor: str, kind: str, result: str,
     report: Mapping[str, Any], roles: Mapping[str, str] | None = None,
+    logical_role: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     registry = role_registry() if roles is None else dict(roles)
     if task.get("status") not in {"ARTIFACT_REGISTERED", "QC_PASS", "QC_PARTIAL", "QC_FAIL"}:
@@ -170,14 +188,16 @@ def submit_review(
         raise HQError("INVALID REVIEW")
     if report.get("overallResult") != result:
         raise HQError("REVIEW RESULT/REPORT RESULT MISMATCH")
-    require_role(actor, required_role, registry)
-    if actor == task["builderGitHubLogin"]:
-        raise HQError("SELF REVIEW FORBIDDEN")
+    claimed_role = required_role if logical_role is None else logical_role
+    if claimed_role != required_role:
+        raise HQError(f"{required_role} LOGICAL ROLE REQUIRED")
+    require_role(actor, claimed_role, registry)
     embedded_report = copy.deepcopy(dict(report))
     review = {
         "kind": kind, "taskId": task["taskId"], "revision": task["revision"],
         "candidateCommit": task["candidateCommit"], "artifactSha256": task["artifactSha256"],
-        "reviewerGitHubLogin": actor, "result": result, "report": embedded_report,
+        "reviewerGitHubLogin": actor, "transportActor": actor, "logicalRole": claimed_role,
+        "result": result, "report": embedded_report,
         "reportSha256": record_sha256(embedded_report),
     }
     new_task = copy.deepcopy(task)
@@ -191,9 +211,12 @@ def submit_review(
 def create_owner_lock(
     state: Mapping[str, Any], task: Mapping[str, Any], qc: Mapping[str, Any], architecture: Mapping[str, Any],
     *, actor: str, timestamp: str, roles: Mapping[str, str] | None = None,
+    logical_role: str = "OWNER",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     registry = role_registry() if roles is None else dict(roles)
-    require_role(actor, "OWNER", registry)
+    if logical_role != "OWNER":
+        raise HQError("OWNER LOGICAL ROLE REQUIRED")
+    require_role(actor, logical_role, registry)
     assert_candidate_binding(task, qc)
     assert_candidate_binding(task, architecture)
     if qc["kind"] != "QC" or qc["result"] != "PASS":
@@ -202,13 +225,12 @@ def create_owner_lock(
         raise HQError("ARCHITECTURE ACCEPTANCE REQUIRED")
     if task.get("qcReview") != record_sha256(qc) or task.get("architectureReview") != record_sha256(architecture):
         raise HQError("TASK REVIEW POINTERS DO NOT MATCH EVIDENCE")
-    if len({task["builderGitHubLogin"], qc["reviewerGitHubLogin"], architecture["reviewerGitHubLogin"], actor}) != 4:
-        raise HQError("BUILDER/QC/ARCHITECTURE/OWNER IDENTITIES MUST BE DISTINCT")
     lock = {
         "taskId": task["taskId"], "revision": task["revision"],
         "artifactSha256": task["artifactSha256"], "candidateCommit": task["candidateCommit"],
         "qcReportSha256": qc["reportSha256"], "architectureReportSha256": architecture["reportSha256"],
-        "ownerGitHubLogin": actor, "ownerDecisionTimestamp": timestamp,
+        "ownerGitHubLogin": actor, "transportActor": actor, "logicalRole": logical_role,
+        "ownerDecisionTimestamp": timestamp,
         "baseMainCommit": state["mainCommit"],
     }
     new_task = copy.deepcopy(task)
@@ -302,10 +324,9 @@ def main() -> None:
         else:
             actor = authenticated_actor()
             roles = role_registry()
-            role = next((name for name, login in roles.items() if login == actor), None)
-            if role is None:
-                raise HQError("AUTHENTICATED ACTOR HAS NO ENFORCEMENT ROLE")
-            print(f"AUTHENTICATED GITHUB ACTOR {actor} · ROLE {role}")
+            if actor not in roles["approvedTransportActors"]:
+                raise HQError("APPROVED GITHUB TRANSPORT REQUIRED")
+            print(f"AUTHENTICATED GITHUB TRANSPORT {actor} · LOGICAL ROLE NOT DERIVED FROM ACTOR")
     except (HQError, OSError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1)

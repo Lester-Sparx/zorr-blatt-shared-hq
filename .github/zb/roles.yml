@@ -1,6 +1,4 @@
 {
-  "OWNER": "Sparx-Owner-ZB",
-  "LESTER": "Lester-Sparx",
-  "DUNCAN": "Duncan-Sparx-ZB",
-  "DJANGO": "Django-Sparx-ZB"
+  "approvedTransportActors": ["Lester-Sparx"],
+  "logicalRoles": ["OWNER", "LESTER", "DUNCAN", "DJANGO", "JINGO"]
 }

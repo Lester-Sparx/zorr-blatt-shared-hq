@@ -8,6 +8,8 @@
     "revision": {"type": "integer", "minimum": 1}, "candidateCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
     "artifactSha256": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
     "reviewerGitHubLogin": {"type": "string", "minLength": 1},
+    "transportActor": {"type": "string", "minLength": 1},
+    "logicalRole": {"enum": ["DUNCAN", "DJANGO"]},
     "result": {"enum": ["PASS", "PARTIAL", "FAIL", "ACCEPTED", "CHANGES_REQUIRED"]},
     "report": {
       "type": "object",

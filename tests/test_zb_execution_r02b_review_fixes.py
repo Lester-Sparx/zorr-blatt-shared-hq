@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from scripts import zb_communication_r02b as r02b
 from scripts.zb_communication_r02b import _parse_r02b_root
 from scripts.zb_communication_r02b_dispatch import prepare_r02b_dispatch_once
 from scripts.zb_execution_copilot import CopilotWorker
@@ -13,7 +14,6 @@ from scripts.zb_execution_workspace import Completed, WorkspaceError
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = "tests/fixtures/zb-execution-proof/result.txt"
 DESIGN_HEAD = "2bdf508e1f265bcf3ce56170cfa4ab08f04c2ec8"
 BASE_SHA = "d" * 40
 
@@ -110,7 +110,7 @@ class R02BReviewFixTests(unittest.TestCase):
     def test_replayed_r02b_request_never_unlocks_execution(self) -> None:
         root = _parse_r02b_root(root_body())
         event = {"comment": {"id": 1}}
-        body = request_body()
+        body = r02b._request_body(root, event)
         decision = prepare_r02b_dispatch_once(root, event, _ReplayPort(body))
         self.assertEqual(decision.state, "REQUEST_REPLAY_BLOCKED")
         self.assertIsNone(decision.request_body)

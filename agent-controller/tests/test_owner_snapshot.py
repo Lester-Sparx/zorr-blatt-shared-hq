@@ -64,3 +64,15 @@ def test_snapshot_is_stale_only_after_two_hour_boundary():
     snapshot = parse_owner_view_comments((VALID,), one_second_over)
     assert snapshot is not None
     assert snapshot.is_stale is True
+
+
+def test_agent_and_gate_rows_accept_owner_facing_stale_status():
+    now = datetime(2026, 8, 27, 1, 30, tzinfo=timezone.utc)
+    body = VALID.replace("AGENT = LESTER | WAITING", "AGENT = LESTER | STALE")
+    body = body.replace("GATE = DUNCAN_QC | WAITING", "GATE = DUNCAN_QC | STALE")
+
+    snapshot = parse_owner_view_comments((body,), now)
+
+    assert snapshot is not None
+    assert snapshot.agents["LESTER"].status == "STALE"
+    assert snapshot.gates["DUNCAN_QC"].status == "STALE"

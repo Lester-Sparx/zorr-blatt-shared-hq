@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import shutil
+from typing import Any
 
 
 class EvidenceError(RuntimeError):
@@ -26,6 +27,43 @@ def _safe_changed_file(path: str) -> str:
 def _write_bytes(path: Path, data: bytes) -> str:
     path.write_bytes(data)
     return _sha256_bytes(data)
+
+
+def verify_artifact_metadata(
+    metadata: dict[str, Any],
+    *,
+    expected_id: int,
+    expected_digest: str,
+    expected_run_id: int,
+) -> None:
+    if (
+        not isinstance(expected_id, int)
+        or isinstance(expected_id, bool)
+        or expected_id <= 0
+        or not isinstance(expected_run_id, int)
+        or isinstance(expected_run_id, bool)
+        or expected_run_id <= 0
+    ):
+        raise EvidenceError("ARTIFACT_BINDING_INVALID")
+    if (
+        not isinstance(expected_digest, str)
+        or len(expected_digest) != 64
+        or any(ch not in "0123456789abcdef" for ch in expected_digest)
+    ):
+        raise EvidenceError("ARTIFACT_DIGEST_INVALID")
+    if not isinstance(metadata, dict):
+        raise EvidenceError("ARTIFACT_METADATA_INVALID")
+    workflow_run = metadata.get("workflow_run")
+    if not isinstance(workflow_run, dict):
+        raise EvidenceError("ARTIFACT_METADATA_INVALID")
+    if metadata.get("id") != expected_id:
+        raise EvidenceError("ARTIFACT_ID_MISMATCH")
+    if metadata.get("expired") is not False:
+        raise EvidenceError("ARTIFACT_EXPIRED_OR_UNKNOWN")
+    if metadata.get("digest") != f"sha256:{expected_digest}":
+        raise EvidenceError("ARTIFACT_DIGEST_MISMATCH")
+    if workflow_run.get("id") != expected_run_id:
+        raise EvidenceError("ARTIFACT_WORKFLOW_RUN_MISMATCH")
 
 
 def build_evidence_bundle(

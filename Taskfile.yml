@@ -8,7 +8,7 @@ tasks:
 
   zb:exec:lester:implement-r02a:
     cmds:
-      - cmd: python -m scripts.zb_execution_cli execute --from-env
+      - cmd: python -m scripts.zb_execution_r02b_cli execute --from-env
         timeout: 30m
 
   zb:exec:duncan:qc-r01:

@@ -18,6 +18,17 @@ MARKER = "ZB_AGENT_MESSAGE_V1"
 API_ROOT = "https://api.github.com"
 TRACKER_ISSUE_URL = f"{API_ROOT}/repos/{REPOSITORY}/issues/{TRACKER_ISSUE}"
 
+EXPECTED_STAGES = (
+    ("JINGO", "LESTER", "ASSIGN"),
+    ("LESTER", "JINGO", "RETURN"),
+    ("JINGO", "DUNCAN", "QC_REQUEST"),
+    ("DUNCAN", "JINGO", "QC_VERDICT"),
+    ("JINGO", "DJANGO", "ARCH_REVIEW"),
+    ("DJANGO", "JINGO", "ARCH_VERDICT"),
+    ("JINGO", "JINGO", "CLOSE_REQUEST"),
+)
+_REPLAY_STATES = frozenset({"RECEIVED", "RUNNING", "RESULT", "BLOCKED"})
+
 _FIELDS = (
     "MESSAGE_ID",
     "EVENT_ID",
@@ -147,6 +158,147 @@ def write_and_verify(port: GitHubPort, body: str) -> int:
     if readback.get("issue_url") != TRACKER_ISSUE_URL:
         raise PersistenceError("comment container read-back mismatch")
     return comment_id
+
+
+def _parse_receipt_fields(body: Any) -> dict[str, str] | None:
+    if not isinstance(body, str):
+        return None
+    lines = body.splitlines()
+    if not lines or lines[0] != "ZB_AGENT_RECEIPT_V1":
+        return None
+    values: dict[str, str] = {}
+    for line in lines[1:]:
+        if not line or " = " not in line:
+            continue
+        name, value = line.split(" = ", 1)
+        if name in values:
+            return None
+        values[name] = value
+    return values
+
+
+def _is_replay(message: RootMessage, context: EventContext, port: GitHubPort) -> bool:
+    expected_source = str(context.comment_id)
+    for comment in port.list_tracker_comments():
+        fields = _parse_receipt_fields(comment.get("body"))
+        if not fields:
+            continue
+        if fields.get("MESSAGE_ID") != message.message_id:
+            continue
+        if fields.get("SOURCE_COMMENT_ID") != expected_source:
+            continue
+        if fields.get("STATE") in _REPLAY_STATES:
+            return True
+    return False
+
+
+def _receipt_body(
+    message: RootMessage,
+    context: EventContext,
+    *,
+    from_role: str,
+    to_role: str,
+    message_kind: str,
+    state: str,
+    result_code: str,
+    execution_id: str,
+) -> str:
+    return "\n".join(
+        [
+            "ZB_AGENT_RECEIPT_V1",
+            f"MESSAGE_ID = {message.message_id}",
+            f"CORRELATION_ID = {message.correlation_id}",
+            f"SOURCE_COMMENT_ID = {context.comment_id}",
+            f"TASK_ID = {message.task_id}",
+            f"TASK_REVISION = {message.task_revision}",
+            f"BASE_SHA = {message.base_sha}",
+            f"DESIGN_HEAD = {message.design_head}",
+            f"SOURCE_ACTOR = {context.actor}",
+            f"WORKFLOW_RUN_ID = {context.run_id}",
+            f"WORKFLOW_RUN_ATTEMPT = {context.run_attempt}",
+            f"LOGICAL_FROM_ROLE = {from_role}",
+            f"LOGICAL_TO_ROLE = {to_role}",
+            f"MESSAGE_KIND = {message_kind}",
+            f"STATE = {state}",
+            f"RESULT_CODE = {result_code}",
+            f"EXECUTION_ID = {execution_id}",
+            "PRODUCTION_ACTIVE = NO",
+        ]
+    )
+
+
+def _owner_view_body(message: RootMessage, context: EventContext) -> str:
+    return "\n".join(
+        [
+            "ZB_OWNER_VIEW_V0",
+            f"MESSAGE_ID = {message.message_id}",
+            f"CORRELATION_ID = {message.correlation_id}",
+            f"SOURCE_COMMENT_ID = {context.comment_id}",
+            f"TASK_ID = {message.task_id}",
+            f"TASK_REVISION = {message.task_revision}",
+            f"BASE_SHA = {message.base_sha}",
+            f"DESIGN_HEAD = {message.design_head}",
+            f"WORKFLOW_RUN_ID = {context.run_id}",
+            f"WORKFLOW_RUN_ATTEMPT = {context.run_attempt}",
+            "LAST_STAGE = JINGO -> JINGO / CLOSE_REQUEST",
+            "OWNER_GATE_REQUIRED = TRUE",
+            "OWNER_ACTION_REQUIRED = TRUE",
+            "PRODUCTION_ACTIVE = NO",
+        ]
+    )
+
+
+def run_base(message: RootMessage, context: EventContext, port: GitHubPort) -> str:
+    if _is_replay(message, context, port):
+        return "NOOP_REPLAY"
+
+    initial_stage = EXPECTED_STAGES[0]
+    write_and_verify(
+        port,
+        _receipt_body(
+            message,
+            context,
+            from_role=initial_stage[0],
+            to_role=initial_stage[1],
+            message_kind=initial_stage[2],
+            state="RECEIVED",
+            result_code="NONE",
+            execution_id="NONE",
+        ),
+    )
+
+    execution_id = f"github-actions:{context.run_id}:{context.run_attempt}"
+    write_and_verify(
+        port,
+        _receipt_body(
+            message,
+            context,
+            from_role=initial_stage[0],
+            to_role=initial_stage[1],
+            message_kind=initial_stage[2],
+            state="RUNNING",
+            result_code="NONE",
+            execution_id=execution_id,
+        ),
+    )
+
+    for from_role, to_role, message_kind in EXPECTED_STAGES:
+        write_and_verify(
+            port,
+            _receipt_body(
+                message,
+                context,
+                from_role=from_role,
+                to_role=to_role,
+                message_kind=message_kind,
+                state="RESULT",
+                result_code="PASS",
+                execution_id=execution_id,
+            ),
+        )
+
+    write_and_verify(port, _owner_view_body(message, context))
+    return "OWNER_GATE_REQUIRED"
 
 
 def _require_identifier(name: str, value: str) -> None:

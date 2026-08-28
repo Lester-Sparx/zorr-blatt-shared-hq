@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / ".github" / "workflows" / "zb-r03-lester-agent.md"
 COMPILE_WORKFLOW = ROOT / ".github" / "workflows" / "zb-r03-gh-aw-compile.yml"
+LOCK = ROOT / ".github" / "workflows" / "zb-r03-lester-agent.lock.yml"
 
 
 class R03GhAwSourceTests(unittest.TestCase):
@@ -78,30 +79,31 @@ class R03GhAwSourceTests(unittest.TestCase):
         ):
             self.assertIn(token, text)
 
-    def test_compile_workflow_will_be_sha_pinned(self):
+    def test_compile_workflow_is_sha_pinned_and_read_only(self):
         if not COMPILE_WORKFLOW.is_file():
             self.skipTest("compile workflow is added after source GREEN")
         text = COMPILE_WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("v0.86.2/linux-amd64", text)
         self.assertIn("b8fd100d1d56a77b842ad28375ff361215a5aa1277db6b9a05d70054cde7260e", text)
         self.assertIn("compile zb-r03-lester-agent --strict", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertNotIn("git push", text)
+        self.assertNotIn("sync-generated-lock:", text)
         self.assertNotIn("/latest/", text)
         self.assertNotIn("curl |", text)
         self.assertNotIn("curl -sL", text)
-
-    def test_generated_lock_sync_is_same_repo_owner_only_and_path_bounded(self):
-        if not COMPILE_WORKFLOW.is_file():
-            self.skipTest("compile workflow is added after source GREEN")
-        text = COMPILE_WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("sync-generated-lock:", text)
-        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", text)
-        self.assertIn("github.actor == 'Lester-Sparx'", text)
-        self.assertIn("contents: write", text)
-        self.assertIn("git diff --cached --name-only", text)
-        self.assertIn(".github/workflows/zb-r03-lester-agent.lock.yml", text)
-        self.assertIn("R03_LOCK_SYNC_SCOPE_VIOLATION", text)
         self.assertNotIn("pull_request_target:", text)
         self.assertNotIn("secrets: inherit", text)
+
+    def test_compiled_lock_is_installed_and_has_exact_compiler_metadata(self):
+        if not LOCK.is_file():
+            self.fail("R03_GH_AW_LOCK_MISSING")
+        first = LOCK.read_text(encoding="utf-8").splitlines()[0]
+        self.assertIn('"compiler_version":"v0.86.2"', first)
+        self.assertIn('"strict":true', first)
+        self.assertIn('"agent_id":"copilot"', first)
+        self.assertIn('"agent_model":"auto"', first)
 
 
 if __name__ == "__main__":

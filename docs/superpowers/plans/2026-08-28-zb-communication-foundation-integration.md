@@ -27,7 +27,7 @@
 - Create: `agent-controller/foundation-integration-provenance.json`
 - Create: `agent-controller/tests/test_foundation_integration_provenance.py`
 
-- [ ] Write a RED test requiring a strict provenance document with exactly these component identities: daemon source HEAD `9e2ccf...`, bridge source HEAD `cea94c...`, bridge base `9e2ccf...`, approved Communication spec HEAD `9c9f0e...`, and the fresh execution base-main SHA captured when implementation starts.
+- [ ] Write a RED test requiring a strict provenance document with exactly these component identities: daemon source HEAD `9e2ccfbaca88a95eac2e119e5eac720f9074dd35`, bridge source HEAD `cea94c518e6f5f3e58b084d58a28be9e8d2fa205`, bridge base `9e2ccfbaca88a95eac2e119e5eac720f9074dd35`, approved Communication spec HEAD `9c9f0ebbf2bd5d5dc5b21578718f1ef356e278f9`, and the fresh execution base-main SHA captured when implementation starts.
 - [ ] Require the provenance document to state `pr103Mutation=false`, `issue102ProofCopied=false`, `productionActivation=false`, `canonChange=false`, `ownerLock=false`.
 - [ ] Run `cd agent-controller && python -m pytest tests/test_foundation_integration_provenance.py -q` and confirm RED because the manifest does not yet exist.
 - [ ] Add the minimal JSON manifest satisfying the test. The execution-base SHA is the fresh protected-main SHA, never copied from this planning document if `main` moved.
@@ -42,8 +42,8 @@
 
 - [ ] Port the daemon lock tests from the validated daemon source and add a regression proving a second processing instance fails closed while the first holds the lock.
 - [ ] Run `python -m pytest tests/test_instance_lock.py -q` and confirm RED.
-- [ ] Reconstruct `instance_lock.py` from the exact validated daemon source, adapting only imports/path defaults required by current `main`.
-- [ ] Add a byte/semantic provenance assertion in the test or review note identifying every adaptation from source HEAD `9e2ccf...`.
+- [ ] Reconstruct `instance_lock.py` from exact validated daemon source HEAD `9e2ccfbaca88a95eac2e119e5eac720f9074dd35`, adapting only imports/path defaults required by current `main`.
+- [ ] Add a byte/semantic provenance assertion in the test or review record identifying every adaptation from source HEAD `9e2ccfbaca88a95eac2e119e5eac720f9074dd35`.
 - [ ] Run the targeted test and confirm GREEN.
 - [ ] Run current `tests/test_controller.py` and `tests/test_cli.py` unchanged to prove no task-processing behavior changed yet.
 - [ ] Commit: `feat: restore validated controller instance lock`.
@@ -59,7 +59,7 @@
 - [ ] Port RED tests for schema/versioned health, PID/instance identity, heartbeat freshness, fatal/degraded states, and bounded lifecycle behavior.
 - [ ] Add explicit tests that health state never fabricates GitHub task state and that a healthy daemon does not imply ComfyUI/SALVADOR availability.
 - [ ] Run both test files and confirm RED.
-- [ ] Reconstruct `daemon_health.py` and `daemon_runner.py` from exact source HEAD `9e2ccf...` with no canon imports or model/profile behavior.
+- [ ] Reconstruct `daemon_health.py` and `daemon_runner.py` from exact source HEAD `9e2ccfbaca88a95eac2e119e5eac720f9074dd35` with no canon imports or model/profile behavior.
 - [ ] Run both targeted tests and confirm GREEN.
 - [ ] Commit: `feat: restore validated controller daemon lifecycle`.
 
@@ -89,7 +89,7 @@
 
 - [ ] Port RED tests for idempotent install/status/enable/disable/start/stop/uninstall behavior, current-user scheduling, restart policy, correct command line, and no admin-dependent hidden mutation.
 - [ ] Run `python -m pytest tests/test_windows_deploy.py -q` and confirm RED.
-- [ ] Restore the validated PowerShell script from daemon HEAD `9e2ccf...`; adjust only paths/options required by the narrowed current config.
+- [ ] Restore the validated PowerShell script from daemon HEAD `9e2ccfbaca88a95eac2e119e5eac720f9074dd35`; adjust only paths/options required by the narrowed current config.
 - [ ] Document that install/start is a later owner-PC gate and is not performed by this PR.
 - [ ] Run the targeted test GREEN.
 - [ ] Commit: `feat: restore controller daemon deployment tooling`.
@@ -104,11 +104,16 @@
 - Create: `agent-controller/src/zb_reference_bridge/journal.py`
 - Create: `agent-controller/src/zb_reference_bridge/local_delivery.py`
 - Create: `agent-controller/src/zb_reference_bridge/publisher.py`
-- Create: corresponding `agent-controller/tests/test_reference_bridge_contracts.py`, `test_reference_bridge_config.py`, `test_reference_bridge_lock.py`, `test_reference_bridge_journal.py`, `test_reference_bridge_local_delivery.py`, `test_reference_bridge_publisher.py`
+- Create: `agent-controller/tests/test_reference_bridge_contracts.py`
+- Create: `agent-controller/tests/test_reference_bridge_config.py`
+- Create: `agent-controller/tests/test_reference_bridge_lock.py`
+- Create: `agent-controller/tests/test_reference_bridge_journal.py`
+- Create: `agent-controller/tests/test_reference_bridge_local_delivery.py`
+- Create: `agent-controller/tests/test_reference_bridge_publisher.py`
 
-- [ ] Copy the bridge tests first from the exact `9e2ccf...cea94c...` range and add one regression that current `ZB_AGENT_TASK_V0` legality is not broadened by bridge integration.
+- [ ] Copy the bridge tests first from exact range `9e2ccfbaca88a95eac2e119e5eac720f9074dd35..cea94c518e6f5f3e58b084d58a28be9e8d2fa205` and add one regression that current `ZB_AGENT_TASK_V0` legality is not broadened by bridge integration.
 - [ ] Run these bridge tests and confirm RED because package files are absent.
-- [ ] Copy the pure bridge implementation files from exact bridge HEAD `cea94c...` byte-for-byte wherever they have no current-main dependency conflict.
+- [ ] Copy the pure bridge implementation files from exact bridge HEAD `cea94c518e6f5f3e58b084d58a28be9e8d2fa205` byte-for-byte wherever they have no current-main dependency conflict.
 - [ ] Where current `zb_local_controller.task_contract` is imported, preserve current task legality; do not import historical CANON task-kind changes merely to satisfy a test.
 - [ ] Run targeted tests GREEN.
 - [ ] Commit: `feat: integrate validated reference bridge primitives`.
@@ -130,7 +135,7 @@
 
 - [ ] Port RED tests first, preserving bridge laws: GitHub is task/evidence authority, Drive transports bytes only, cloud sync is not readiness, `REFERENCE_READY` requires validated atomic local publish, terminal SALVADOR task state stops stale delivery, and bridge never emits `ZB_AGENT_EVENT_V0`.
 - [ ] Run the targeted bridge suite and confirm RED.
-- [ ] Copy/adapt the exact validated implementation from `cea94c...`; preserve fail-closed read/parse behavior.
+- [ ] Copy/adapt exact validated implementation from `cea94c518e6f5f3e58b084d58a28be9e8d2fa205`; preserve fail-closed read/parse behavior.
 - [ ] Add a regression that bridge GitHub comments do not become `ZB_AGENT_MESSAGE_V1` and bridge never routes logical roles.
 - [ ] Run the bridge suite GREEN.
 - [ ] Commit: `feat: integrate validated reference bridge runtime`.
@@ -142,7 +147,7 @@
 - Create: `agent-controller/tests/test_reference_bridge_windows_deploy.py`
 - Modify: `agent-controller/README.md`
 
-- [ ] Port RED deployment tests from bridge HEAD `cea94c...`.
+- [ ] Port RED deployment tests from bridge HEAD `cea94c518e6f5f3e58b084d58a28be9e8d2fa205`.
 - [ ] Restore the exact deployment script where compatible; require current-user task behavior and explicit config path.
 - [ ] Document the existing truth gap: historical owner authorization exists, but physical production activation was not proven by the later durable record. Therefore this integration PR must report `PRODUCTION_ACTIVE = NO`.
 - [ ] Run targeted deployment tests GREEN.
@@ -152,7 +157,7 @@
 
 **Files:**
 - Verify all files changed by Tasks 1-8.
-- Verify unchanged: `.github/zb/roles.yml`, `hq/policy/control-tower-v1.lock.json`, `agent-controller/src/zb_local_controller/controller.py` unless a lock integration is strictly required and independently tested, `agent-controller/src/zb_local_controller/task_contract.py`, SALVADOR workflow/prompt/backend files.
+- Verify unchanged: `.github/zb/roles.yml`, `hq/policy/control-tower-v1.lock.json`, `agent-controller/src/zb_local_controller/controller.py`, `agent-controller/src/zb_local_controller/task_contract.py`, SALVADOR workflow/prompt/backend files.
 
 - [ ] Run `cd agent-controller && python -m pytest -q`; require zero failures.
 - [ ] Run root repository suite using the same command invoked by current `hq-validate`; require zero failures.
@@ -164,7 +169,7 @@
 ## Task 10: Open PR B and stop at independent DUNCAN QC
 
 - [ ] Fresh-read protected `main`; if it differs from the execution base used in Task 1, rebase/re-run the full verification before opening the PR.
-- [ ] Open a dedicated foundation-integration PR to `main`, explicitly listing daemon source HEAD `9e2ccf...`, bridge source HEAD `cea94c...`, execution base SHA, exact candidate HEAD, and excluded historical canon scope.
+- [ ] Open a dedicated foundation-integration PR to `main`, explicitly listing daemon source HEAD `9e2ccfbaca88a95eac2e119e5eac720f9074dd35`, bridge source HEAD `cea94c518e6f5f3e58b084d58a28be9e8d2fa205`, execution base SHA, exact candidate HEAD, and excluded historical canon scope.
 - [ ] Record required workflow/check run IDs and exact candidate HEAD.
 - [ ] DUNCAN independently verifies provenance, changed-file scope, full tests, current single-account authority, Control Tower integrity, daemon truth semantics, bridge truth semantics, and absence of activation.
 - [ ] Persist DUNCAN verdict with WRITE -> fresh READ-BACK -> MATCH.

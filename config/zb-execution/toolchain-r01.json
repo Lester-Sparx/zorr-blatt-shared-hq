@@ -1,0 +1,20 @@
+{
+  "actions_runner": {
+    "version": "2.334.0",
+    "windows_x64_sha256": "a0c896f3acf37841cc17f392a38111d39501e56f2990434567f027ee89cf8981"
+  },
+  "task": {
+    "version": "3.53.1",
+    "windows_amd64_sha256": "27c0cd248c12cba03d8958d954a3df981c900be885ec9ce5f6a3cdc4e9a19316"
+  },
+  "opencode": {
+    "version": "1.18.17",
+    "windows_x64_asset": "opencode-windows-x64.zip",
+    "windows_x64_sha256": "25fbb765761a5bbc5a9941ae4f2e2ac365558228221f781bf35c6e31135f4b1f"
+  },
+  "actions": {
+    "checkout_v4": "11d5960a326750d5838078e36cf38b85af677262",
+    "upload_artifact_v7": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+    "download_artifact_v8": "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
+  }
+}

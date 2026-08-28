@@ -20,6 +20,8 @@ class OrchestratorConfig:
     execution_timeout_seconds:float=900.0
     now_factory:object=lambda:datetime.now(timezone.utc)
     max_attempts:int=3
+    tracker_issue:int=106
+    ingress_epoch_comment_id:int|None=None
 @dataclass(frozen=True)
 class RouterResult:
     result_code:str

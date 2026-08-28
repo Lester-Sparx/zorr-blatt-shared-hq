@@ -62,6 +62,11 @@ def _candidate_matches(row, actor: str, marker: str, field: str, value: str) -> 
     return _extract_unique_field(body, field) == value
 
 
+def _comment_id(row) -> int | None:
+    value = getattr(row, "comment_id", getattr(row, "id", None))
+    return value if isinstance(value, int) and value > 0 else None
+
+
 def _resolve_source_comment(envelope, github, identity):
     marker, field, value = identity
     matches = [
@@ -73,13 +78,13 @@ def _resolve_source_comment(envelope, github, identity):
         raise SourceCommentResolutionError()
 
     candidate = matches[0]
-    comment_id = getattr(candidate, "comment_id", getattr(candidate, "id", None))
+    comment_id = _comment_id(candidate)
     candidate_body = getattr(candidate, "body", None)
-    if not isinstance(comment_id, int) or comment_id <= 0 or not isinstance(candidate_body, str):
+    if comment_id is None or not isinstance(candidate_body, str):
         raise SourceCommentResolutionError()
 
     exact = github.read_comment(comment_id)
-    exact_id = getattr(exact, "comment_id", getattr(exact, "id", None))
+    exact_id = _comment_id(exact)
     exact_body = getattr(exact, "body", None)
     exact_top_level = getattr(exact, "top_level", True)
     if (
@@ -96,10 +101,84 @@ def _resolve_source_comment(envelope, github, identity):
     return replace(envelope, comment_id=comment_id, comment_body=exact_body)
 
 
+def _processed_source_ids(rows) -> set[int]:
+    processed: set[int] = set()
+    for row in rows:
+        body = getattr(row, "body", None)
+        if not isinstance(body, str):
+            continue
+        lines = body.splitlines()
+        if not lines or lines[0] not in {"ZB_AGENT_RECEIPT_V1", "ZB106_WORK_COMMENT_EVENT_INGRESS_PROOF_V3"}:
+            continue
+        value = _extract_unique_field(body, "SOURCE_COMMENT_ID")
+        if value is not None and value.isdigit():
+            processed.add(int(value))
+    return processed
+
+
+def _bodyless_protocol_candidate(row, actor: str, epoch: int, processed_ids: set[int]) -> bool:
+    comment_id = _comment_id(row)
+    body = getattr(row, "body", None)
+    if comment_id is None or comment_id <= epoch or comment_id in processed_ids:
+        return False
+    if getattr(row, "actor", None) != actor or not isinstance(body, str):
+        return False
+    lines = body.splitlines()
+    return bool(lines) and lines[0] in {MESSAGE_MARKER, PROBE_MARKER}
+
+
+def _resolve_bodyless_source_comment(envelope, github, config):
+    _preflight_source_lookup(envelope, config)
+    epoch = getattr(config, "ingress_epoch_comment_id", None)
+    if not isinstance(epoch, int) or epoch < 0:
+        raise SourceCommentResolutionError()
+
+    rows = list(github.fetch_top_level_comments(envelope.pr_number))
+    processed = _processed_source_ids(rows)
+
+    tracker_issue = getattr(config, "tracker_issue", None)
+    if isinstance(tracker_issue, int) and tracker_issue > 0 and hasattr(github, "fetch_issue_comments"):
+        processed.update(_processed_source_ids(github.fetch_issue_comments(tracker_issue)))
+
+    matches = [
+        row
+        for row in rows
+        if _bodyless_protocol_candidate(row, envelope.authenticated_actor, epoch, processed)
+    ]
+    if len(matches) != 1:
+        raise SourceCommentResolutionError()
+
+    candidate = matches[0]
+    comment_id = _comment_id(candidate)
+    candidate_body = getattr(candidate, "body", None)
+    if comment_id is None or not isinstance(candidate_body, str):
+        raise SourceCommentResolutionError()
+
+    exact = github.read_comment(comment_id)
+    exact_id = _comment_id(exact)
+    exact_body = getattr(exact, "body", None)
+    exact_top_level = getattr(exact, "top_level", True)
+    if (
+        exact_id != comment_id
+        or getattr(exact, "actor", None) != envelope.authenticated_actor
+        or exact_top_level is not True
+        or exact_body != candidate_body
+    ):
+        raise SourceCommentResolutionError()
+
+    lines = exact_body.splitlines() if isinstance(exact_body, str) else []
+    if not lines or lines[0] not in {MESSAGE_MARKER, PROBE_MARKER}:
+        raise SourceCommentResolutionError()
+
+    return replace(envelope, comment_id=comment_id, comment_body=exact_body)
+
+
 def handle_webhook(envelope, github, executor, config):
     if envelope.comment_id is None:
         identity = _source_lookup_identity(envelope.comment_body)
         if identity is not None:
             _preflight_source_lookup(envelope, config)
             envelope = _resolve_source_comment(envelope, github, identity)
+        elif envelope.comment_body is None:
+            envelope = _resolve_bodyless_source_comment(envelope, github, config)
     return route_message(envelope, github, executor, config)

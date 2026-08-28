@@ -13,6 +13,12 @@ from scripts.zb_execution_worker import (
 )
 
 
+_PROOF_TASK_ID = "ZB_EXECUTION_PROOF_R01"
+_PROOF_TASK_REVISION = 2
+_PROOF_DESIGN_HEAD = "2bdf508e1f265bcf3ce56170cfa4ab08f04c2ec8"
+_PROOF_TARGET = "tests/fixtures/zb-execution-proof/result.txt"
+
+
 class CopilotWorker:
     def __init__(
         self,
@@ -41,20 +47,33 @@ class CopilotWorker:
 
     @staticmethod
     def _prompt(request: ExecutionRequest) -> str:
-        return "\n".join(
-            (
-                "ZORR BLATT bounded substantive edit.",
-                f"WORK_ID={request.task_id}",
-                f"REVISION={request.task_revision}",
-                f"BASE_SHA={request.base_sha}",
-                f"DESIGN_HEAD={request.design_head}",
-                f"ALLOWED_WRITE_SCOPE={';'.join(request.allowed_write_scope)}",
-                "Edit only an existing file inside ALLOWED_WRITE_SCOPE.",
-                "Do not create files.",
-                "Do not commit, push, merge, change repository settings, secrets, canon, or OWNER locks.",
-                "Leave the candidate edit uncommitted for trusted verification.",
+        lines = [
+            "ZORR BLATT bounded substantive edit.",
+            f"WORK_ID={request.task_id}",
+            f"REVISION={request.task_revision}",
+            f"BASE_SHA={request.base_sha}",
+            f"DESIGN_HEAD={request.design_head}",
+            f"ALLOWED_WRITE_SCOPE={';'.join(request.allowed_write_scope)}",
+            "Edit only an existing file inside ALLOWED_WRITE_SCOPE.",
+            "Do not create files.",
+            "Do not commit, push, merge, change repository settings, secrets, canon, or OWNER locks.",
+            "Leave the candidate edit uncommitted for trusted verification.",
+        ]
+        if (
+            request.task_id == _PROOF_TASK_ID
+            and request.task_revision == _PROOF_TASK_REVISION
+            and request.design_head == _PROOF_DESIGN_HEAD
+        ):
+            lines.extend(
+                (
+                    f"TARGET_FILE={_PROOF_TARGET}",
+                    "Change exactly one existing file: TARGET_FILE.",
+                    "The target starts with exactly: ZB_R02A_PROOF_TARGET_V1 followed by STATE = BEFORE.",
+                    "Replace exactly STATE = BEFORE with STATE = AFTER.",
+                    "Preserve ZB_R02A_PROOF_TARGET_V1 exactly and add no other content.",
+                )
             )
-        )
+        return "\n".join(lines)
 
     def _preflight_home(self, worktree: Path) -> None:
         try:

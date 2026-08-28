@@ -107,9 +107,18 @@ jobs:
           if ($actual -ne '27c0cd248c12cba03d8958d954a3df981c900be885ec9ce5f6a3cdc4e9a19316') { throw "TASK_SHA256_MISMATCH:$actual" }
           Expand-Archive -Path $archive -DestinationPath $target -Force
           Add-Content -Path $env:GITHUB_PATH -Value $target
-      - name: Install exact Copilot CLI
+      - name: Install hash-pinned native Copilot CLI
         shell: powershell
-        run: npm install --global @github/copilot@1.0.80
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'copilot-win32-x64.zip'
+          $target = Join-Path $env:RUNNER_TEMP 'zb-copilot-bin'
+          Invoke-WebRequest -Uri 'https://github.com/github/copilot-cli/releases/download/v1.0.80/copilot-win32-x64.zip' -OutFile $archive
+          $actual = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          if ($actual -ne 'e9ea2063913faa8a9f1cf374529c5fea075da0545a894d7469026166f854c541') { throw "COPILOT_SHA256_MISMATCH:$actual" }
+          Expand-Archive -Path $archive -DestinationPath $target -Force
+          $binary = Join-Path $target 'copilot.exe'
+          if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) { throw 'COPILOT_BINARY_MISSING' }
+          Add-Content -Path $env:GITHUB_PATH -Value $target
       - name: Verify exact hosted execution toolchain
         shell: powershell
         env:

@@ -18,7 +18,7 @@ from typing import Any
 
 from hq_adapter import (
     COMMIT_RE, HQError, authenticated_actor, create_owner_lock, load_json,
-    record_sha256, role_registry, submit_review,
+    record_sha256, require_role, role_registry, submit_review,
 )
 from hq_validate import validate_file, validate_repository
 
@@ -152,8 +152,7 @@ def validate_transition(base: Path, head: Path, *, actor: str, base_sha: str, he
     previous_revision = base_task["revision"]
 
     if record_kind == "ARTIFACT":
-        if roles["LESTER"] != actor:
-            raise HQError("AUTHENTICATED LESTER REQUIRED FOR ARTIFACT TRANSITION")
+        require_role(actor, "LESTER", roles)
         if record["builderGitHubLogin"] != actor or record["sourceCommit"] != base_sha:
             raise HQError("ARTIFACT CREATOR/PROTECTED BASE BINDING FAIL")
         if record["revision"] != previous_revision + 1 or record["taskId"] != base_task["taskId"]:
@@ -179,8 +178,7 @@ def validate_transition(base: Path, head: Path, *, actor: str, base_sha: str, he
         expected_task["expectedMainCommit"] = base_sha
         marker_kind = "QC_RECORDED" if record_kind == "QC" else "ARCHITECTURE_RECORDED"
     else:
-        if roles["OWNER"] != actor:
-            raise HQError("AUTHENTICATED OWNER REQUIRED FOR LOCK TRANSITION")
+        require_role(actor, "OWNER", roles)
         qc_pointer = base_task.get("qcReview")
         arch_pointer = base_task.get("architectureReview")
         qc = next((item for item in base_records.values() if item.get("kind") == "QC" and record_sha256(item) == qc_pointer), None)

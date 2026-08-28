@@ -170,7 +170,7 @@ class PersistenceBoundaryTest(unittest.TestCase):
         self.write(self.head, "hq/state/HQ_STATE.json", state)
         self.write(self.head, "hq/tasks/GITHUB_SHARED_HQ.json", task)
         self.dashboard(self.head, state, task)
-        with self.assertRaisesRegex(HQError, "LESTER"):
+        with self.assertRaisesRegex(HQError, "APPROVED GITHUB TRANSPORT"):
             validate_transition(self.base, self.head, actor="Sparx-Owner-ZB", base_sha=BASE_SHA, head_sha=HEAD_SHA)
 
         shutil.rmtree(self.head)

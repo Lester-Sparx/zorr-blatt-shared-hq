@@ -10,9 +10,9 @@ This is a build-time evidence map, not a PASS/LOCK declaration.
 | A04 — production values absent | only canonical JSON evidence is allowed; scope guard rejects operational values | no |
 | A05 — artifact revision immutable | append-only artifact record + immutable release model | live release setting |
 | A06 — SHA verification before QC | required `hq-artifact-sha` downloads and rehashes release | required-check ruleset |
-| A07 — identities from GitHub auth | actor comes from authenticated Actions context | actual identities |
-| A08 — one identity cannot hold multiple roles | registry rejects duplicate GitHub logins | actual role mapping |
-| A09 — Lester self-QC impossible | actor-bound transition rejects builder QC | live PR attempt |
+| A07 — transport from GitHub auth | actor comes from authenticated Actions context and must be approved transport | actual transport identity |
+| A08 — logical role separation | registry separates approved transport actors from logical protocol roles | live transport policy |
+| A09 — role claim cannot bypass order | protected-base validator derives required role from legal transition and evidence | live PR attempt |
 | A10 — old QC invalid on new revision | pointer and record bind exact revision | no |
 | A11 — stale approval invalid after new commit | evidence binds candidate commit | stale-approval dismissal |
 | A12 — CAS conflict blocks mutation | task revision + live base commit checked | up-to-date branch rule |

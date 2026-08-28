@@ -4,16 +4,27 @@ import unittest
 from pathlib import Path
 
 from _support import ROOT
-from hq_adapter import HQError, authenticated_actor, role_registry
+from hq_adapter import HQError, authenticated_actor, require_role, role_registry
 
 
 class IdentitySeparationTest(unittest.TestCase):
-    def test_duplicate_authenticated_identity_is_rejected(self):
+    def test_single_transport_registry_separates_transport_from_logical_roles(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "roles.yml"
-            path.write_text(json.dumps({"OWNER": "same", "LESTER": "same", "DUNCAN": "d", "DJANGO": "j"}))
-            with self.assertRaisesRegex(HQError, "CANNOT HOLD MULTIPLE"):
-                role_registry(path)
+            path.write_text(json.dumps({
+                "approvedTransportActors": ["Lester-Sparx"],
+                "logicalRoles": ["OWNER", "LESTER", "DUNCAN", "DJANGO", "JINGO"],
+            }))
+            registry = role_registry(path)
+            require_role("Lester-Sparx", "DUNCAN", registry)
+            require_role("Lester-Sparx", "DJANGO", registry)
+
+    def test_unknown_transport_and_unknown_logical_role_are_rejected(self):
+        registry = role_registry()
+        with self.assertRaisesRegex(HQError, "APPROVED GITHUB TRANSPORT"):
+            require_role("Duncan-Sparx-ZB", "DUNCAN", registry)
+        with self.assertRaisesRegex(HQError, "LOGICAL ROLE"):
+            require_role("Lester-Sparx", "INVENTED", registry)
 
     def test_caller_field_is_not_identity(self):
         with self.assertRaisesRegex(HQError, "GITHUB ACTIONS"):

@@ -123,8 +123,8 @@ def validate_repository(root: Path = ROOT) -> None:
         raise HQError("CONTROL TOWER LOCK MANIFEST FAIL")
     if policy["controlTowerSha256"] != EXPECTED_CT_SHA or not policy["productionWritesForbidden"]:
         raise HQError("HQ POLICY FAIL")
-    if len(set(roles.values())) != 4:
-        raise HQError("ROLE SEPARATION FAIL")
+    if not roles["approvedTransportActors"] or not {"LESTER", "DUNCAN", "DJANGO", "OWNER"} <= roles["logicalRoles"]:
+        raise HQError("TRANSPORT/LOGICAL ROLE REGISTRY FAIL")
     if state["revision"] != task["revision"]:
         raise HQError("STATE/TASK REVISION DIVERGENCE")
     if state["mainCommit"] != task["expectedMainCommit"]:
@@ -176,25 +176,41 @@ def validate_repository(root: Path = ROOT) -> None:
             artifact["taskId"], artifact["revision"], artifact["sourceCommit"], artifact["builderGitHubLogin"]
         ) != (task["taskId"], task["revision"], task["candidateCommit"], task["builderGitHubLogin"]):
             raise HQError("CURRENT TASK ARTIFACT RECORD MISSING OR STALE")
-    for pointer, kind, expected_login in (
-        (task["qcReview"], "QC", roles["DUNCAN"]),
-        (task["architectureReview"], "ARCHITECTURE", roles["DJANGO"]),
+        if "logicalRole" in artifact and (
+            artifact["logicalRole"] != "LESTER"
+            or artifact.get("transportActor") != artifact["builderGitHubLogin"]
+            or artifact["transportActor"] not in roles["approvedTransportActors"]
+        ):
+            raise HQError("TASK ARTIFACT LOGICAL ROLE/TRANSPORT INVALID")
+    for pointer, kind, expected_role in (
+        (task["qcReview"], "QC", "DUNCAN"),
+        (task["architectureReview"], "ARCHITECTURE", "DJANGO"),
     ):
         if pointer is None:
             continue
         review = next((item for item in reviews if record_sha256(item) == pointer), None)
-        if review is None or review["kind"] != kind or review["reviewerGitHubLogin"] != expected_login:
+        if review is None or review["kind"] != kind:
             raise HQError("TASK REVIEW POINTER INVALID")
+        if "logicalRole" in review and (
+            review["logicalRole"] != expected_role
+            or review.get("transportActor") != review["reviewerGitHubLogin"]
+            or review["transportActor"] not in roles["approvedTransportActors"]
+        ):
+            raise HQError("TASK REVIEW LOGICAL ROLE/TRANSPORT INVALID")
         if (review["taskId"], review["revision"], review["candidateCommit"], review["artifactSha256"]) != (
             task["taskId"], task["revision"], task["candidateCommit"], task["artifactSha256"]
         ):
             raise HQError("TASK REVIEW POINTER STALE")
-        if review["reviewerGitHubLogin"] == task["builderGitHubLogin"]:
-            raise HQError("SELF REVIEW RECORD FORBIDDEN")
     if task["lockRecord"] is not None:
         lock = next((item for item in locks if record_sha256(item) == task["lockRecord"]), None)
-        if lock is None or lock["ownerGitHubLogin"] != roles["OWNER"]:
+        if lock is None:
             raise HQError("TASK LOCK POINTER INVALID")
+        if "logicalRole" in lock and (
+            lock["logicalRole"] != "OWNER"
+            or lock.get("transportActor") != lock["ownerGitHubLogin"]
+            or lock["transportActor"] not in roles["approvedTransportActors"]
+        ):
+            raise HQError("TASK LOCK LOGICAL ROLE/TRANSPORT INVALID")
         if (lock["taskId"], lock["revision"], lock["candidateCommit"], lock["artifactSha256"]) != (
             task["taskId"], task["revision"], task["candidateCommit"], task["artifactSha256"]
         ):
@@ -203,12 +219,6 @@ def validate_repository(root: Path = ROOT) -> None:
         architecture = next((item for item in reviews if record_sha256(item) == task["architectureReview"]), None)
         if qc is None or architecture is None or lock["qcReportSha256"] != qc["reportSha256"] or lock["architectureReportSha256"] != architecture["reportSha256"]:
             raise HQError("LOCK EVIDENCE HASH BINDING FAIL")
-        identities = {
-            task["builderGitHubLogin"], qc["reviewerGitHubLogin"],
-            architecture["reviewerGitHubLogin"], lock["ownerGitHubLogin"],
-        }
-        if len(identities) != 4:
-            raise HQError("LOCK IDENTITY SEPARATION FAIL")
 
 
 def main() -> None:

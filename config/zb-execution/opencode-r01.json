@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "*": "deny",
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny"
+    },
+    "edit": {
+      "*": "allow"
+    },
+    "bash": {
+      "*": "deny",
+      "python -m unittest *": "allow",
+      "python3 -m unittest *": "allow",
+      "python scripts/hq_validate.py": "allow",
+      "python3 scripts/hq_validate.py": "allow",
+      "git status *": "allow",
+      "git diff *": "allow",
+      "git rev-parse *": "allow",
+      "git push *": "deny",
+      "git commit *": "deny",
+      "git merge *": "deny"
+    },
+    "external_directory": "deny",
+    "webfetch": "deny",
+    "websearch": "deny",
+    "task": "deny",
+    "question": "deny"
+  }
+}

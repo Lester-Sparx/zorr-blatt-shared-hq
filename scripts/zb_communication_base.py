@@ -1,0 +1,185 @@
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from typing import Any
+
+
+REPOSITORY = "Lester-Sparx/zorr-blatt-shared-hq"
+COMMUNICATION_PR = 111
+TRANSPORT_ACTOR = "Lester-Sparx"
+TASK_ID = "ZB_GITHUB_NATIVE_BASE_R01"
+TASK_REVISION = 1
+APPROVED_DESIGN_HEAD = "81c44232b72b4a98c8ad0ac2ea6a0a2876f988bc"
+MARKER = "ZB_AGENT_MESSAGE_V1"
+
+_FIELDS = (
+    "MESSAGE_ID",
+    "EVENT_ID",
+    "CORRELATION_ID",
+    "CAUSATION_MESSAGE_ID",
+    "TASK_ID",
+    "FROM_ROLE",
+    "TO_ROLE",
+    "MESSAGE_KIND",
+    "BASE_SHA",
+    "TASK_REVISION",
+    "DESIGN_HEAD",
+    "NO_AUTO_MERGE",
+)
+_SHA40 = re.compile(r"^[0-9a-f]{40}$")
+_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+
+
+class ProtocolError(ValueError):
+    pass
+
+
+@dataclass(frozen=True)
+class RootMessage:
+    message_id: str
+    event_id: str
+    correlation_id: str
+    causation_message_id: str
+    task_id: str
+    from_role: str
+    to_role: str
+    message_kind: str
+    base_sha: str
+    task_revision: int
+    design_head: str
+    no_auto_merge: bool
+
+
+@dataclass(frozen=True)
+class EventContext:
+    repository: str
+    issue_number: int
+    comment_id: int
+    actor: str
+    run_id: str
+    run_attempt: str
+    github_sha: str
+
+
+def _require_identifier(name: str, value: str) -> None:
+    if not _IDENTIFIER.fullmatch(value):
+        raise ProtocolError(f"invalid {name}")
+
+
+def parse_root_message(body: str) -> RootMessage:
+    if not isinstance(body, str):
+        raise ProtocolError("body must be text")
+
+    lines = body.splitlines()
+    if not lines or lines[0] != MARKER:
+        raise ProtocolError("invalid marker")
+
+    values: dict[str, str] = {}
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        if " = " not in line:
+            raise ProtocolError("invalid field syntax")
+        name, value = line.split(" = ", 1)
+        if name not in _FIELDS:
+            raise ProtocolError(f"unknown field: {name}")
+        if name in values:
+            raise ProtocolError(f"duplicate field: {name}")
+        if value == "":
+            raise ProtocolError(f"empty field: {name}")
+        values[name] = value
+
+    missing = [name for name in _FIELDS if name not in values]
+    if missing:
+        raise ProtocolError("missing field: " + ",".join(missing))
+    if len(values) != len(_FIELDS):
+        raise ProtocolError("invalid field count")
+
+    for name in ("MESSAGE_ID", "EVENT_ID", "CORRELATION_ID"):
+        _require_identifier(name, values[name])
+
+    if values["CAUSATION_MESSAGE_ID"] != "NONE":
+        raise ProtocolError("initial CAUSATION_MESSAGE_ID must be NONE")
+    if values["TASK_ID"] != TASK_ID:
+        raise ProtocolError("wrong TASK_ID")
+    if values["FROM_ROLE"] != "JINGO":
+        raise ProtocolError("wrong FROM_ROLE")
+    if values["TO_ROLE"] != "LESTER":
+        raise ProtocolError("wrong TO_ROLE")
+    if values["MESSAGE_KIND"] != "ASSIGN":
+        raise ProtocolError("wrong MESSAGE_KIND")
+    if not _SHA40.fullmatch(values["BASE_SHA"]):
+        raise ProtocolError("invalid BASE_SHA")
+    if values["DESIGN_HEAD"] != APPROVED_DESIGN_HEAD:
+        raise ProtocolError("wrong DESIGN_HEAD")
+    if values["NO_AUTO_MERGE"] != "TRUE":
+        raise ProtocolError("NO_AUTO_MERGE must be TRUE")
+
+    try:
+        task_revision = int(values["TASK_REVISION"])
+    except ValueError as exc:
+        raise ProtocolError("invalid TASK_REVISION") from exc
+    if task_revision != TASK_REVISION:
+        raise ProtocolError("wrong TASK_REVISION")
+
+    return RootMessage(
+        message_id=values["MESSAGE_ID"],
+        event_id=values["EVENT_ID"],
+        correlation_id=values["CORRELATION_ID"],
+        causation_message_id=values["CAUSATION_MESSAGE_ID"],
+        task_id=values["TASK_ID"],
+        from_role=values["FROM_ROLE"],
+        to_role=values["TO_ROLE"],
+        message_kind=values["MESSAGE_KIND"],
+        base_sha=values["BASE_SHA"],
+        task_revision=task_revision,
+        design_head=values["DESIGN_HEAD"],
+        no_auto_merge=True,
+    )
+
+
+def admit_event(
+    event: dict[str, Any],
+    *,
+    expected_base_sha: str,
+    run_id: str,
+    run_attempt: str,
+    github_sha: str,
+) -> tuple[RootMessage, EventContext]:
+    if event.get("action") != "created":
+        raise ProtocolError("event action must be created")
+
+    repository = event.get("repository") or {}
+    if repository.get("full_name") != REPOSITORY:
+        raise ProtocolError("wrong repository")
+
+    issue = event.get("issue") or {}
+    if issue.get("number") != COMMUNICATION_PR:
+        raise ProtocolError("wrong communication PR")
+    if not isinstance(issue.get("pull_request"), dict):
+        raise ProtocolError("source is not a pull request conversation")
+
+    comment = event.get("comment") or {}
+    user = comment.get("user") or {}
+    if user.get("login") != TRANSPORT_ACTOR:
+        raise ProtocolError("wrong transport actor")
+
+    comment_id = comment.get("id")
+    if not isinstance(comment_id, int) or isinstance(comment_id, bool) or comment_id <= 0:
+        raise ProtocolError("invalid source comment ID")
+
+    message = parse_root_message(comment.get("body"))
+    if message.base_sha != expected_base_sha:
+        raise ProtocolError("BASE_SHA does not match active base")
+
+    context = EventContext(
+        repository=REPOSITORY,
+        issue_number=COMMUNICATION_PR,
+        comment_id=comment_id,
+        actor=TRANSPORT_ACTOR,
+        run_id=str(run_id),
+        run_attempt=str(run_attempt),
+        github_sha=str(github_sha),
+    )
+    return message, context

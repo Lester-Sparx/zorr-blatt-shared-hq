@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 import unittest
 
+from scripts import zb_communication_base as r01
 from scripts.zb_communication_r02b import (
     CONSOLE_ISSUE_URL,
     STATE_WRITER,
@@ -22,8 +23,8 @@ R01_DESIGN_HEAD = "7bac0b6c10dda0448a8792dd3c97f8cec76bbb03"
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def body(*, revision: int, design_head: str) -> str:
-    return f"""ZB_AGENT_MESSAGE_V1
+def body(*, revision: int, design_head: str, marker: str = "ZB_AGENT_MESSAGE_R02B_V1") -> str:
+    return f"""{marker}
 MESSAGE_ID = zb-exec-r02b-msg-001
 EVENT_ID = zb-exec-r02b-evt-001
 CORRELATION_ID = zb-exec-r02b
@@ -39,12 +40,12 @@ NO_AUTO_MERGE = TRUE
 """
 
 
-def event(*, revision: int, design_head: str, private: bool = False, actor: str = "Lester-Sparx") -> dict:
+def event(*, revision: int, design_head: str, private: bool = False, actor: str = "Lester-Sparx", marker: str = "ZB_AGENT_MESSAGE_R02B_V1") -> dict:
     return {
         "action": "created",
         "repository": {"full_name": "Lester-Sparx/zorr-blatt-shared-hq", "private": private},
         "issue": {"number": 111, "pull_request": {"url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/pulls/111"}},
-        "comment": {"id": 9202, "body": body(revision=revision, design_head=design_head), "user": {"login": actor}},
+        "comment": {"id": 9202, "body": body(revision=revision, design_head=design_head, marker=marker), "user": {"login": actor}},
     }
 
 
@@ -133,19 +134,20 @@ class R02BDispatchTests(unittest.TestCase):
         self.assertEqual(second, first)
         self.assertEqual(len(port.comments), count)
 
-    def test_historical_r01_stays_blocked_on_public_repository(self) -> None:
-        evt = event(revision=1, design_head=R01_DESIGN_HEAD, private=False)
-        message = admitted(evt)
+    def test_historical_r01_stays_on_old_marker_and_public_block(self) -> None:
+        evt = event(revision=1, design_head=R01_DESIGN_HEAD, private=False, marker="ZB_AGENT_MESSAGE_V1")
+        message, _ = r01.admit_event(evt, expected_base_sha=BASE_SHA, run_id="601", run_attempt="1", github_sha=BASE_SHA)
         port = RecordingPort()
-        decision = prepare_substantive_dispatch(message, evt, port)
+        decision = r01.prepare_substantive_dispatch(message, evt, port)
         self.assertEqual(decision.state, "BLOCKED")
         self.assertIn("RUNNER_SECURITY_GATE_BLOCKED", port.comments[-1]["body"])
 
-    def test_r02b_wrong_revision_design_or_actor_fail_before_request(self) -> None:
+    def test_r02b_wrong_revision_design_actor_or_marker_fail_before_request(self) -> None:
         for evt in (
             event(revision=2, design_head=R01_DESIGN_HEAD),
             event(revision=3, design_head=R02B_DESIGN_HEAD),
             event(revision=2, design_head=R02B_DESIGN_HEAD, actor="foreign-user"),
+            event(revision=2, design_head=R02B_DESIGN_HEAD, marker="ZB_AGENT_MESSAGE_V1"),
         ):
             with self.subTest(evt=evt), self.assertRaises(ProtocolError):
                 admitted(evt)

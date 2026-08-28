@@ -37,6 +37,7 @@ jobs:
         if: github.event.repository.private == true
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          event_file: ${{ github.event_path }}
         shell: bash
         run: |
           mkdir -p .zb-exec/request
@@ -51,7 +52,7 @@ jobs:
               prepare_substantive_dispatch,
           )
 
-          event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
+          event = json.loads(Path(os.environ["event_file"]).read_text(encoding="utf-8"))
           message, _ = admit_event(
               event,
               expected_base_sha=os.environ["GITHUB_SHA"],
@@ -123,8 +124,8 @@ jobs:
         continue-on-error: true
         shell: powershell
         env:
-          ZB_EXECUTION_REQUEST_PATH: ${{ github.workspace }}/.zb-exec/request/request.txt
-          ZB_EXECUTION_RESULT_PATH: ${{ github.workspace }}/.zb-exec/lester/evidence/result.txt
+          zb_execution_request_path: ${{ github.workspace }}/.zb-exec/request/request.txt
+          zb_execution_result_path: ${{ github.workspace }}/.zb-exec/lester/evidence/result.txt
           ZB_EVIDENCE_DIR: ${{ github.workspace }}/.zb-exec/lester/evidence
           ZB_EXECUTION_ID: github-actions:${{ github.run_id }}:${{ github.run_attempt }}:lester_execute
           ZB_WORKFLOW_RUN_ID: ${{ github.run_id }}
@@ -213,9 +214,9 @@ jobs:
         continue-on-error: true
         shell: powershell
         env:
-          ZB_EXECUTION_REQUEST_PATH: ${{ github.workspace }}/.zb-exec/duncan/duncan-request.txt
+          zb_execution_request_path: ${{ github.workspace }}/.zb-exec/duncan/duncan-request.txt
           ZB_CANDIDATE_EVIDENCE_DIR: ${{ github.workspace }}/.zb-exec/duncan/candidate
-          ZB_QC_RESULT_PATH: ${{ github.workspace }}/.zb-exec/duncan/qc-result.txt
+          zb_qc_result_path: ${{ github.workspace }}/.zb-exec/duncan/qc-result.txt
           ZB_EXECUTION_ID: github-actions:${{ github.run_id }}:${{ github.run_attempt }}:duncan_qc
           ZB_WORKFLOW_RUN_ID: ${{ github.run_id }}
           ZB_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}

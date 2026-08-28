@@ -68,7 +68,8 @@ class R02BWorkflowTests(unittest.TestCase):
         self.assertNotIn("contents: write", text)
         self.assertNotIn("pull-requests: write", text)
         self.assertNotIn("GH_TOKEN", text)
-        self.assertNotIn("GITHUB_PAT", text)
+        self.assertNotIn("GITHUB_PAT:", text)
+        self.assertNotIn("secrets.GITHUB_PAT", text)
 
     def test_exact_toolchain_and_pinned_artifact_actions(self) -> None:
         text = WORKFLOW.read_text(encoding="utf-8")

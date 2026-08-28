@@ -43,7 +43,7 @@ class WorkspaceTests(unittest.TestCase):
             create_detached_worktree(root, base_sha, worktree, command)
             self.assertTrue(worktree.is_dir())
             self.assertEqual(git("rev-parse", "HEAD", cwd=worktree), base_sha)
-            self.assertEqual(git("symbolic-ref", "-q", "--short", "HEAD", cwd=worktree), "")
+            self.assertEqual(git("branch", "--show-current", cwd=worktree), "")
 
             remove_worktree(root, worktree, command)
             self.assertFalse(worktree.exists())

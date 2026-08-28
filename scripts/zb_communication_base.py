@@ -1,17 +1,22 @@
 from __future__ import annotations
 
+import json
 import re
+import urllib.request
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 
 REPOSITORY = "Lester-Sparx/zorr-blatt-shared-hq"
 COMMUNICATION_PR = 111
+TRACKER_ISSUE = 106
 TRANSPORT_ACTOR = "Lester-Sparx"
 TASK_ID = "ZB_GITHUB_NATIVE_BASE_R01"
 TASK_REVISION = 1
 APPROVED_DESIGN_HEAD = "81c44232b72b4a98c8ad0ac2ea6a0a2876f988bc"
 MARKER = "ZB_AGENT_MESSAGE_V1"
+API_ROOT = "https://api.github.com"
+TRACKER_ISSUE_URL = f"{API_ROOT}/repos/{REPOSITORY}/issues/{TRACKER_ISSUE}"
 
 _FIELDS = (
     "MESSAGE_ID",
@@ -32,6 +37,10 @@ _IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
 
 class ProtocolError(ValueError):
+    pass
+
+
+class PersistenceError(RuntimeError):
     pass
 
 
@@ -60,6 +69,84 @@ class EventContext:
     run_id: str
     run_attempt: str
     github_sha: str
+
+
+class GitHubPort(Protocol):
+    def create_tracker_comment(self, body: str) -> int: ...
+    def read_comment(self, comment_id: int) -> dict[str, Any]: ...
+    def list_tracker_comments(self) -> list[dict[str, Any]]: ...
+
+
+class GitHubApi:
+    def __init__(self, token: str, *, timeout_seconds: float = 10.0):
+        if not token:
+            raise PersistenceError("GITHUB_TOKEN is required")
+        self._token = token
+        self._timeout_seconds = timeout_seconds
+
+    def _request_json(self, url: str, *, method: str = "GET", payload: dict[str, Any] | None = None) -> Any:
+        data = None
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {self._token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "zorr-blatt-communication-base",
+        }
+        if payload is not None:
+            data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+        request = urllib.request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:
+                raw = response.read().decode("utf-8")
+        except Exception as exc:
+            raise PersistenceError(f"GitHub API {method} failed") from exc
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise PersistenceError("GitHub API returned invalid JSON") from exc
+
+    def create_tracker_comment(self, body: str) -> int:
+        result = self._request_json(
+            f"{TRACKER_ISSUE_URL}/comments",
+            method="POST",
+            payload={"body": body},
+        )
+        comment_id = result.get("id") if isinstance(result, dict) else None
+        if not isinstance(comment_id, int) or isinstance(comment_id, bool) or comment_id <= 0:
+            raise PersistenceError("GitHub API did not return a numeric comment ID")
+        return comment_id
+
+    def read_comment(self, comment_id: int) -> dict[str, Any]:
+        if not isinstance(comment_id, int) or isinstance(comment_id, bool) or comment_id <= 0:
+            raise PersistenceError("invalid comment ID")
+        result = self._request_json(f"{API_ROOT}/repos/{REPOSITORY}/issues/comments/{comment_id}")
+        if not isinstance(result, dict):
+            raise PersistenceError("GitHub comment read returned non-object")
+        return result
+
+    def list_tracker_comments(self) -> list[dict[str, Any]]:
+        comments: list[dict[str, Any]] = []
+        for page in range(1, 21):
+            result = self._request_json(f"{TRACKER_ISSUE_URL}/comments?per_page=100&page={page}")
+            if not isinstance(result, list) or not all(isinstance(item, dict) for item in result):
+                raise PersistenceError("GitHub tracker comment list returned invalid data")
+            comments.extend(result)
+            if len(result) < 100:
+                return comments
+        raise PersistenceError("tracker pagination exceeded safety bound")
+
+
+def write_and_verify(port: GitHubPort, body: str) -> int:
+    comment_id = port.create_tracker_comment(body)
+    readback = port.read_comment(comment_id)
+    if readback.get("id") != comment_id:
+        raise PersistenceError("comment ID read-back mismatch")
+    if readback.get("body") != body:
+        raise PersistenceError("comment body read-back mismatch")
+    if readback.get("issue_url") != TRACKER_ISSUE_URL:
+        raise PersistenceError("comment container read-back mismatch")
+    return comment_id
 
 
 def _require_identifier(name: str, value: str) -> None:

@@ -314,7 +314,17 @@ class EntrypointWorkflowTest(unittest.TestCase):
         text = WORKFLOW_PATH.read_text(encoding="utf-8")
         for needle in ("issue_comment:", "types: [created]", "contents: read", "issues: write", "pull-requests: read", "GITHUB_TOKEN: ${{ github.token }}", "python3 scripts/zb_communication_base.py"):
             self.assertIn(needle, text)
-        for needle in ("contents: write", "actions: write", "pull-requests: write", "workflow_dispatch", "schedule:", "secrets.", "PAT"):
+        for needle in (
+            "contents: write",
+            "actions: write",
+            "pull-requests: write",
+            "workflow_dispatch",
+            "schedule:",
+            "secrets.",
+            "GH_PAT",
+            "GITHUB_PAT",
+            "PERSONAL_ACCESS_TOKEN",
+        ):
             self.assertNotIn(needle, text)
 
 

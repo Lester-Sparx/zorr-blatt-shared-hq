@@ -6,6 +6,7 @@ import re
 
 REQUEST_MARKER = "ZB_EXECUTION_REQUEST_V1"
 RESULT_MARKER = "ZB_EXECUTION_RESULT_V1"
+EMPTY_LIST_SENTINEL = "NONE"
 
 REQUEST_FIELDS = (
     "EXECUTION_REQUEST_ID",
@@ -175,11 +176,21 @@ def _require_int(value: str) -> int:
         raise ExecutionContractError("INVALID_INT") from exc
 
 
-def _require_list(value: str) -> tuple[str, ...]:
+def _require_list(value: str, *, allow_empty: bool = False) -> tuple[str, ...]:
+    if allow_empty and value == EMPTY_LIST_SENTINEL:
+        return ()
     parts = tuple(part.strip() for part in value.split(";"))
     if not parts or any(not part or "\x00" in part or "\n" in part or "\r" in part for part in parts):
         raise ExecutionContractError("INVALID_LIST")
     return parts
+
+
+def _render_list(values: tuple[str, ...], *, allow_empty: bool = False) -> str:
+    if allow_empty and not values:
+        return EMPTY_LIST_SENTINEL
+    if not values:
+        raise ExecutionContractError("INVALID_LIST")
+    return ";".join(values)
 
 
 def _require_nonempty(value: str) -> str:
@@ -233,9 +244,9 @@ def render_execution_request(request: ExecutionRequest) -> str:
         "BASE_SHA": request.base_sha,
         "AUTHORITY_REF": request.authority_ref,
         "DESIGN_HEAD": request.design_head,
-        "SOURCE_REFS": ";".join(request.source_refs),
-        "EVIDENCE_INPUT_REFS": ";".join(request.evidence_input_refs),
-        "ALLOWED_WRITE_SCOPE": ";".join(request.allowed_write_scope),
+        "SOURCE_REFS": _render_list(request.source_refs),
+        "EVIDENCE_INPUT_REFS": _render_list(request.evidence_input_refs),
+        "ALLOWED_WRITE_SCOPE": _render_list(request.allowed_write_scope),
         "TIMEOUT_SECONDS": str(request.timeout_seconds),
         "NO_AUTO_MERGE": "TRUE" if request.no_auto_merge else "FALSE",
         "PRODUCTION_ACTIVE": "YES" if request.production_active else "NO",
@@ -268,9 +279,9 @@ def parse_execution_result(body: str) -> ExecutionResult:
         terminal_state=terminal_state,
         result_code=_require_identifier(values["RESULT_CODE"]),
         process_exit_code=_require_int(values["PROCESS_EXIT_CODE"]),
-        changed_files=_require_list(values["CHANGED_FILES"]),
-        test_evidence_refs=_require_list(values["TEST_EVIDENCE_REFS"]),
-        artifact_evidence_refs=_require_list(values["ARTIFACT_EVIDENCE_REFS"]),
+        changed_files=_require_list(values["CHANGED_FILES"], allow_empty=True),
+        test_evidence_refs=_require_list(values["TEST_EVIDENCE_REFS"], allow_empty=True),
+        artifact_evidence_refs=_require_list(values["ARTIFACT_EVIDENCE_REFS"], allow_empty=True),
         workflow_run_id=_require_identifier(values["WORKFLOW_RUN_ID"]),
         workflow_run_attempt=_require_positive_int(values["WORKFLOW_RUN_ATTEMPT"]),
         runner_provenance=_require_identifier(values["RUNNER_PROVENANCE"]),
@@ -298,9 +309,9 @@ def render_execution_result(result: ExecutionResult) -> str:
         "TERMINAL_STATE": result.terminal_state,
         "RESULT_CODE": result.result_code,
         "PROCESS_EXIT_CODE": str(result.process_exit_code),
-        "CHANGED_FILES": ";".join(result.changed_files),
-        "TEST_EVIDENCE_REFS": ";".join(result.test_evidence_refs),
-        "ARTIFACT_EVIDENCE_REFS": ";".join(result.artifact_evidence_refs),
+        "CHANGED_FILES": _render_list(result.changed_files, allow_empty=True),
+        "TEST_EVIDENCE_REFS": _render_list(result.test_evidence_refs, allow_empty=True),
+        "ARTIFACT_EVIDENCE_REFS": _render_list(result.artifact_evidence_refs, allow_empty=True),
         "WORKFLOW_RUN_ID": result.workflow_run_id,
         "WORKFLOW_RUN_ATTEMPT": str(result.workflow_run_attempt),
         "RUNNER_PROVENANCE": result.runner_provenance,

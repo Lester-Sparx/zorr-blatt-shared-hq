@@ -13,9 +13,12 @@ if str(SCRIPTS) not in sys.path:
 
 from zb_communication_base import (  # noqa: E402
     APPROVED_DESIGN_HEAD,
+    GitHubApi,
+    PersistenceError,
     ProtocolError,
     admit_event,
     parse_root_message,
+    write_and_verify,
 )
 
 
@@ -156,6 +159,57 @@ class RootParserAdmissionTest(unittest.TestCase):
                         run_attempt="1",
                         github_sha=BASE_SHA,
                     )
+
+
+class FakePort:
+    def __init__(self, readback: dict | None = None):
+        self.created: list[str] = []
+        self.readback = readback
+
+    def create_tracker_comment(self, body: str) -> int:
+        self.created.append(body)
+        return 9001
+
+    def read_comment(self, comment_id: int) -> dict:
+        if self.readback is not None:
+            return self.readback
+        return {
+            "id": comment_id,
+            "body": self.created[-1],
+            "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106",
+        }
+
+    def list_tracker_comments(self) -> list[dict]:
+        return []
+
+
+class PersistenceBoundaryTest(unittest.TestCase):
+    def test_write_and_verify_returns_remote_id_after_exact_match(self):
+        port = FakePort()
+        self.assertEqual(write_and_verify(port, "BODY"), 9001)
+        self.assertEqual(port.created, ["BODY"])
+
+    def test_write_and_verify_rejects_id_body_or_container_mismatch(self):
+        mismatches = [
+            {"id": 9002, "body": "BODY", "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106"},
+            {"id": 9001, "body": "OTHER", "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106"},
+            {"id": 9001, "body": "BODY", "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/999"},
+        ]
+        for readback in mismatches:
+            with self.subTest(readback=readback):
+                with self.assertRaises(PersistenceError):
+                    write_and_verify(FakePort(readback), "BODY")
+
+    def test_github_api_has_no_dangerous_mutation_surface(self):
+        for method in (
+            "merge_pull_request",
+            "update_file",
+            "update_issue",
+            "update_pull_request",
+            "dispatch_workflow",
+            "write_contents",
+        ):
+            self.assertFalse(hasattr(GitHubApi, method), method)
 
 
 if __name__ == "__main__":

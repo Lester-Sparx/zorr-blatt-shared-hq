@@ -13,11 +13,13 @@ if str(SCRIPTS) not in sys.path:
 
 from zb_communication_base import (  # noqa: E402
     APPROVED_DESIGN_HEAD,
+    EXPECTED_STAGES,
     GitHubApi,
     PersistenceError,
     ProtocolError,
     admit_event,
     parse_root_message,
+    run_base,
     write_and_verify,
 )
 
@@ -55,6 +57,16 @@ def valid_event(body: str = VALID_BODY) -> dict:
     }
 
 
+def admitted() -> tuple:
+    return admit_event(
+        valid_event(),
+        expected_base_sha=BASE_SHA,
+        run_id="12345",
+        run_attempt="2",
+        github_sha=BASE_SHA,
+    )
+
+
 class RootParserAdmissionTest(unittest.TestCase):
     def test_valid_root_message_and_event_are_admitted(self):
         message = parse_root_message(VALID_BODY)
@@ -64,13 +76,7 @@ class RootParserAdmissionTest(unittest.TestCase):
         self.assertEqual(message.design_head, APPROVED_DESIGN_HEAD)
         self.assertTrue(message.no_auto_merge)
 
-        admitted_message, context = admit_event(
-            valid_event(),
-            expected_base_sha=BASE_SHA,
-            run_id="12345",
-            run_attempt="2",
-            github_sha=BASE_SHA,
-        )
+        admitted_message, context = admitted()
         self.assertEqual(admitted_message, message)
         self.assertEqual(context.repository, "Lester-Sparx/zorr-blatt-shared-hq")
         self.assertEqual(context.issue_number, 111)
@@ -210,6 +216,101 @@ class PersistenceBoundaryTest(unittest.TestCase):
             "write_contents",
         ):
             self.assertFalse(hasattr(GitHubApi, method), method)
+
+
+class RecordingPort:
+    def __init__(self, existing: list[dict] | None = None):
+        self.comments = list(existing or [])
+        self.created: list[str] = []
+        self.next_id = 10000
+
+    def create_tracker_comment(self, body: str) -> int:
+        comment_id = self.next_id
+        self.next_id += 1
+        record = {
+            "id": comment_id,
+            "body": body,
+            "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106",
+        }
+        self.comments.append(record)
+        self.created.append(body)
+        return comment_id
+
+    def read_comment(self, comment_id: int) -> dict:
+        for comment in self.comments:
+            if comment.get("id") == comment_id:
+                return dict(comment)
+        raise AssertionError(f"missing comment {comment_id}")
+
+    def list_tracker_comments(self) -> list[dict]:
+        return [dict(comment) for comment in self.comments]
+
+
+class StateMachineTest(unittest.TestCase):
+    def test_happy_path_writes_exact_order_and_stops_at_owner_gate(self):
+        message, context = admitted()
+        port = RecordingPort()
+
+        self.assertEqual(run_base(message, context, port), "OWNER_GATE_REQUIRED")
+        self.assertEqual(len(port.created), 10)
+
+        self.assertTrue(port.created[0].startswith("ZB_AGENT_RECEIPT_V1\n"))
+        self.assertIn("STATE = RECEIVED", port.created[0])
+        self.assertIn("STATE = RUNNING", port.created[1])
+        self.assertIn("EXECUTION_ID = github-actions:12345:2", port.created[1])
+
+        result_bodies = port.created[2:9]
+        self.assertEqual(len(result_bodies), len(EXPECTED_STAGES))
+        for body, (from_role, to_role, kind) in zip(result_bodies, EXPECTED_STAGES):
+            with self.subTest(stage=(from_role, to_role, kind)):
+                self.assertIn("STATE = RESULT", body)
+                self.assertIn("RESULT_CODE = PASS", body)
+                self.assertIn(f"LOGICAL_FROM_ROLE = {from_role}", body)
+                self.assertIn(f"LOGICAL_TO_ROLE = {to_role}", body)
+                self.assertIn(f"MESSAGE_KIND = {kind}", body)
+                self.assertIn("EXECUTION_ID = github-actions:12345:2", body)
+
+        owner_view = port.created[-1]
+        self.assertTrue(owner_view.startswith("ZB_OWNER_VIEW_V0\n"))
+        self.assertIn("OWNER_GATE_REQUIRED = TRUE", owner_view)
+        self.assertIn("OWNER_ACTION_REQUIRED = TRUE", owner_view)
+        self.assertIn("PRODUCTION_ACTIVE = NO", owner_view)
+
+        combined = "\n".join(port.created)
+        self.assertNotIn("LOGICAL_TO_ROLE = OWNER", combined)
+        self.assertNotIn("MESSAGE_KIND = OWNER", combined)
+
+    def test_replay_is_noop_without_duplicate_writes(self):
+        message, context = admitted()
+        existing = [{
+            "id": 7001,
+            "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106",
+            "body": "\n".join([
+                "ZB_AGENT_RECEIPT_V1",
+                f"MESSAGE_ID = {message.message_id}",
+                f"SOURCE_COMMENT_ID = {context.comment_id}",
+                "STATE = RECEIVED",
+            ]),
+        }]
+        port = RecordingPort(existing)
+        self.assertEqual(run_base(message, context, port), "NOOP_REPLAY")
+        self.assertEqual(port.created, [])
+
+    def test_malformed_tracker_record_does_not_grant_replay(self):
+        message, context = admitted()
+        malformed = [{
+            "id": 7001,
+            "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106",
+            "body": "\n".join([
+                "ZB_AGENT_RECEIPT_V1",
+                f"MESSAGE_ID = {message.message_id}",
+                f"SOURCE_COMMENT_ID = {context.comment_id}",
+                "STATE = BANANA",
+            ]),
+        }]
+        port = RecordingPort(malformed)
+        self.assertEqual(run_base(message, context, port), "OWNER_GATE_REQUIRED")
+        self.assertEqual(len(port.created), 10)
 
 
 if __name__ == "__main__":

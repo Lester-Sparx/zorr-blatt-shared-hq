@@ -64,7 +64,7 @@ class OpenCodeWorkerTests(unittest.TestCase):
             config = Path(tmp) / "opencode-r01.json"
             config.write_text("{}\n", encoding="utf-8")
             fake = FakeCommand([
-                completed(("opencode", "--version"), stdout="1.18.17\n"),
+                completed(("opencode", "--version"), stdout="1.18.25\n"),
                 completed(("opencode", "run"), stdout='{"type":"step"}\n'),
             ])
             worker = OpenCodeWorker(command=fake, config_path=config)
@@ -98,7 +98,7 @@ class OpenCodeWorkerTests(unittest.TestCase):
             config = Path(tmp) / "policy.json"
             config.write_text("{}\n", encoding="utf-8")
             fake = FakeCommand([
-                completed(("opencode", "--version"), stdout="1.18.17\n"),
+                completed(("opencode", "--version"), stdout="1.18.25\n"),
                 completed(("opencode", "run")),
             ])
             old = {key: os.environ.get(key) for key in (
@@ -130,7 +130,7 @@ class OpenCodeWorkerTests(unittest.TestCase):
             worktree.mkdir()
             config = Path(tmp) / "policy.json"
             config.write_text("{}\n", encoding="utf-8")
-            fake = FakeCommand([completed(("opencode", "--version"), stdout="1.18.16\n")])
+            fake = FakeCommand([completed(("opencode", "--version"), stdout="1.18.24\n")])
             with self.assertRaisesRegex(WorkerError, "OPENCODE_VERSION_MISMATCH"):
                 OpenCodeWorker(command=fake, config_path=config).execute(
                     parse_execution_request(request_body()), worktree=worktree, timeout_seconds=30
@@ -163,7 +163,7 @@ class OpenCodeWorkerTests(unittest.TestCase):
             config = Path(tmp) / "policy.json"
             config.write_text("{}\n", encoding="utf-8")
             fake = FakeCommand([
-                completed(("opencode", "--version"), stdout="1.18.17\n"),
+                completed(("opencode", "--version"), stdout="1.18.25\n"),
                 completed(("opencode", "run"), code=7, stdout="{incomplete-json\n", stderr="worker failed\n"),
             ])
             outcome = OpenCodeWorker(command=fake, config_path=config).execute(
@@ -181,7 +181,7 @@ class OpenCodeWorkerTests(unittest.TestCase):
             def run(self, argv, *, cwd=None, timeout=None, env=None):
                 self.calls += 1
                 if self.calls == 1:
-                    return completed(tuple(argv), stdout="1.18.17\n")
+                    return completed(tuple(argv), stdout="1.18.25\n")
                 raise TimeoutError("timeout")
 
         with tempfile.TemporaryDirectory() as tmp:

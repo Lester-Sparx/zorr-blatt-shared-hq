@@ -80,3 +80,11 @@ approve changes, activate production, mutate canon, or create OWNER LOCK.
 `zb output` opens only a `result.png` whose PNG signature and SHA-256 match
 its parseable `result.json`. A local result never establishes production or
 canon approval by itself.
+
+## Communication Orchestrator v0 — initial four-role core
+
+The initial automated communication contour contains exactly four logical roles: `JINGO`, `LESTER`, `DUNCAN`, and `DJANGO`. `OWNER` is a human-only gate and is never auto-executed. SALVADOR, LYNCH, MAO, CHARLIE, and MEMORO remain outside this initial automated routing contour.
+
+The repository package `zb_communication_orchestrator` is transport-agnostic deterministic authority logic. The external ChatGPT Work adapter supplies the authenticated top-level GitHub comment event, connected GitHub reads/writes, and the real logical-role execution surface. The repository handler does not poll GitHub for communication messages, store a PAT, switch GitHub accounts, launch role subprocesses, merge PRs, activate production, mutate canon, or create OWNER LOCK.
+
+Live routing law is `ZB_AGENT_MESSAGE_V1 -> verified RECEIVED -> actual execution start -> verified RUNNING -> verified RESULT/BLOCKED/DEAD_LETTER -> verified owner view -> at most one next legal message`. Every authoritative write requires a remote comment ID plus fresh exact-ID read-back match before the transaction advances. The permanent Communication PR and real Work-webhook proof are separate downstream operational gates; this implementation does not create or activate them.

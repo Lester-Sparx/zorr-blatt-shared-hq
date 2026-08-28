@@ -1,0 +1,13 @@
+{
+  "schema": "ZB_FOUNDATION_INTEGRATION_PROVENANCE_V1",
+  "daemonSourceHead": "9e2ccfbaca88a95eac2e119e5eac720f9074dd35",
+  "referenceBridgeSourceHead": "cea94c518e6f5f3e58b084d58a28be9e8d2fa205",
+  "referenceBridgeBaseHead": "9e2ccfbaca88a95eac2e119e5eac720f9074dd35",
+  "approvedCommunicationSpecHead": "9c9f0ebbf2bd5d5dc5b21578718f1ef356e278f9",
+  "executionBaseMainSha": "0b9b77a9d82f45e7e1821dd6c9c26861a90cf688",
+  "pr103Mutation": false,
+  "issue102ProofCopied": false,
+  "productionActivation": false,
+  "canonChange": false,
+  "ownerLock": false
+}

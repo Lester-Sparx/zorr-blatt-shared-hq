@@ -65,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
     execution_id = _required_env(os.environ, "ZB_EXECUTION_ID")
     workflow_run_id = _required_env(os.environ, "ZB_WORKFLOW_RUN_ID")
     workflow_run_attempt = int(_required_env(os.environ, "ZB_WORKFLOW_RUN_ATTEMPT"))
+    runner_temp = Path(_required_env(os.environ, "RUNNER_TEMP")).resolve()
+    worktree_root = runner_temp / f"zb-r02b-{workflow_run_id}-{workflow_run_attempt}"
     runner_provenance = os.environ.get(
         "ZB_RUNNER_PROVENANCE",
         "github-actions:github-hosted:windows-2025",
@@ -83,6 +85,7 @@ def main(argv: list[str] | None = None) -> int:
         request_body,
         repo_root=workspace_root,
         job_root=evidence_dir.parent,
+        worktree_root=worktree_root,
         execution_id=execution_id,
         workflow_run_id=workflow_run_id,
         workflow_run_attempt=workflow_run_attempt,

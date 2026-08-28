@@ -64,7 +64,7 @@ class ProfileRegistryTests(unittest.TestCase):
         self.assertEqual(PROFILES["DUNCAN_QC_R01"].worker_backend, "deterministic-qc")
         self.assertEqual(PROFILES["DUNCAN_QC_R01"].max_timeout_seconds, 900)
         self.assertEqual(getattr(execution_profiles, "COPILOT_CLI_VERSION", None), "1.0.80")
-        self.assertEqual(getattr(execution_profiles, "COPILOT_MODEL", None), "gpt-5.3-codex")
+        self.assertEqual(getattr(execution_profiles, "COPILOT_MODEL", None), "auto")
 
     def test_resolve_profile_accepts_exact_authorized_request(self) -> None:
         profile = resolve_profile(parse_execution_request(request_body()))
@@ -163,7 +163,7 @@ class ToolchainPinTests(unittest.TestCase):
         self.assertEqual(TASK_VERSION, "3.53.1")
         self.assertEqual(OPENCODE_VERSION, "1.18.25")
         self.assertEqual(getattr(execution_profiles, "COPILOT_CLI_VERSION", None), "1.0.80")
-        self.assertEqual(getattr(execution_profiles, "COPILOT_MODEL", None), "gpt-5.3-codex")
+        self.assertEqual(getattr(execution_profiles, "COPILOT_MODEL", None), "auto")
         validate_toolchain_versions(task_version="3.53.1", opencode_version=None)
         validate_toolchain_versions(task_version="3.53.1", opencode_version="1.18.25")
         with self.assertRaisesRegex(ExecutionProfileError, "TASK_VERSION_MISMATCH"):

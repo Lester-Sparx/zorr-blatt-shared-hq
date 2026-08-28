@@ -4,7 +4,7 @@ import hashlib
 from pathlib import Path
 import unittest
 
-from scripts.zb_communication_base import (
+from scripts.zb_communication_r02b import (
     CONSOLE_ISSUE_URL,
     STATE_WRITER,
     TRACKER_ISSUE_URL,

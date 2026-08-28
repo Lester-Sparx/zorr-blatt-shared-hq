@@ -45,6 +45,12 @@ The repository includes `deploy/windows/ZbControllerDaemon.ps1` for current-user
 
 This integration does **not** install, start, enable, or otherwise activate the daemon on the OWNER workstation. Those are later explicit owner-PC operations. Repository integration or merge therefore means `PRODUCTION_ACTIVE = NO`; it does not authorize production activation, canon mutation, auto-merge, or OWNER LOCK.
 
+## Reference Bridge deployment tooling
+
+`zb_reference_bridge` is a sibling byte-transport process. GitHub task/evidence state remains authoritative; the Drive sync root is only a transport source, and a cloud-synced file is not `REFERENCE_READY` until validation and atomic local publication succeed. The bridge emits only `ZB_REFERENCE_EVENT_V1`; it does not emit `ZB_AGENT_EVENT_V0` or Communication-Orchestrator messages and does not route logical roles.
+
+The repository includes `deploy/windows/ZbReferenceBridge.ps1` for a separate current-user, non-elevated Task Scheduler entry. Installation, start, enablement, and physical owner-PC activation are **not** performed by this integration. Historical authorization is not proof that the physical bridge is active now, therefore `PRODUCTION_ACTIVE = NO` until a later explicit activation/proof gate.
+
 ## Read-only owner console
 
 Install the local `zb` PowerShell command once:

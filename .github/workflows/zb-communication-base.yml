@@ -1,0 +1,24 @@
+name: zb-communication-base
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  route:
+    if: >-
+      github.event.issue.number == 111 &&
+      github.event.comment.user.login == 'Lester-Sparx' &&
+      startsWith(github.event.comment.body, 'ZB_AGENT_MESSAGE_V1')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ZB communication base
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/zb_communication_base.py

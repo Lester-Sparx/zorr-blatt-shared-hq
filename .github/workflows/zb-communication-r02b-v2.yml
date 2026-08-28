@@ -77,6 +77,8 @@ jobs:
     needs: admit
     if: needs.admit.outputs.request_ready == 'true'
     runs-on: windows-2025
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
     permissions:
       actions: read
       contents: read
@@ -151,6 +153,8 @@ jobs:
       needs.admit.outputs.request_ready == 'true' &&
       needs.lester_execute.result == 'success'
     runs-on: windows-2025
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
     permissions:
       actions: read
       contents: read

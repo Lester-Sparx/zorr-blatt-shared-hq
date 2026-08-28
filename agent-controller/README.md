@@ -39,6 +39,12 @@ python -m zb_local_controller --once
 
 Task Scheduler installation and live ComfyUI/model setup are deliberately deferred until after mocked Tasks 1–6 are accepted.
 
+## Controller daemon deployment tooling
+
+The repository includes `deploy/windows/ZbControllerDaemon.ps1` for current-user Task Scheduler lifecycle operations (`Install`, `Status`, `Start`, `Stop`, `Restart`, `Enable`, `Disable`, `Uninstall`). The daemon uses `daemonRuntimeRoot`, one-instance locking, bounded health/status semantics, and `--daemon-preflight` before installation.
+
+This integration does **not** install, start, enable, or otherwise activate the daemon on the OWNER workstation. Those are later explicit owner-PC operations. Repository integration or merge therefore means `PRODUCTION_ACTIVE = NO`; it does not authorize production activation, canon mutation, auto-merge, or OWNER LOCK.
+
 ## Read-only owner console
 
 Install the local `zb` PowerShell command once:

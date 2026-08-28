@@ -137,7 +137,6 @@ class CopilotWorker:
             "--no-remote-export",
             "--disallow-temp-dir",
             "--output-format=json",
-            "--no-banner",
             "--no-color",
         ]
         try:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import re
 import unittest
 
 
@@ -48,6 +47,7 @@ class ExecutionWorkflowShapeTests(unittest.TestCase):
         self.assertNotIn("issues: write", lester)
         self.assertNotIn("issues: write", duncan)
         self.assertIn("issues: write", finalize)
+        self.assertIn("actions: read", finalize)
         self.assertNotIn("pull-requests: write", text)
         self.assertNotIn("contents: write", text)
 
@@ -73,6 +73,7 @@ class ExecutionWorkflowShapeTests(unittest.TestCase):
         self.assertIn("artifact-ids: ${{ needs.lester_execute.outputs.lester_artifact_id }}", text)
         self.assertIn("artifact-ids: ${{ needs.duncan_qc.outputs.duncan_artifact_id }}", text)
         self.assertIn("GATE = SUBSTANTIVE_EXECUTION", (ROOT / "scripts" / "zb_communication_base.py").read_text(encoding="utf-8"))
+        self.assertIn("1\\.18\\.25", text)
 
         for forbidden in (
             "pull_request_target:",
@@ -86,6 +87,24 @@ class ExecutionWorkflowShapeTests(unittest.TestCase):
             "github.event.comment.body }}",
         ):
             self.assertNotIn(forbidden, text)
+
+    def test_finalizer_fail_closes_on_exact_artifact_metadata(self) -> None:
+        text = WORKFLOW.read_text(encoding="utf-8")
+        finalize = job_section(text, "finalize", None)
+        self.assertIn("Verify immutable artifact metadata", finalize)
+        self.assertIn("verify_artifact_metadata", finalize)
+        self.assertIn("ARTIFACT_METADATA_GATE = PASS", finalize)
+        for name in (
+            "ZB_REQUEST_ARTIFACT_ID",
+            "ZB_REQUEST_ARTIFACT_DIGEST",
+            "ZB_LESTER_ARTIFACT_ID",
+            "ZB_LESTER_ARTIFACT_DIGEST",
+            "ZB_DUNCAN_ARTIFACT_ID",
+            "ZB_DUNCAN_ARTIFACT_DIGEST",
+        ):
+            self.assertIn(name, finalize)
+        self.assertIn("/actions/artifacts/", finalize)
+        self.assertIn("expected_run_id=run_id", finalize)
 
     def test_taskfile_uses_python_module_mode_not_script_path(self) -> None:
         text = TASKFILE.read_text(encoding="utf-8")

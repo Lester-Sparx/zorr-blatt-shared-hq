@@ -102,7 +102,9 @@ class OpenCodeWorkerTests(unittest.TestCase):
                 completed(("opencode", "run")),
             ])
             old = {key: os.environ.get(key) for key in (
-                "GITHUB_TOKEN", "GH_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "GITHUB_PAT"
+                "GITHUB_TOKEN", "GH_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "GITHUB_PAT",
+                "ACTIONS_RUNTIME_TOKEN", "ACTIONS_RESULTS_URL", "COPILOT_GITHUB_TOKEN", "COPILOT_PROVIDER_API_KEY",
+                "COPILOT_PROVIDER_BASE_URL", "COPILOT_ALLOW_ALL", "COPILOT_MODEL"
             )}
             try:
                 for key in old:

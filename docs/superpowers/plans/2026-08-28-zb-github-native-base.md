@@ -103,7 +103,7 @@ class EventContext:
     github_sha: str
 ```
 
-`parse_root_message()` must require exactly the eleven named fields above after the exact marker, reject duplicates/unknowns, require `TASK_ID = ZB_GITHUB_NATIVE_BASE_R01`, revision `1`, approved design HEAD, `JINGO -> LESTER / ASSIGN`, `CAUSATION_MESSAGE_ID = NONE`, 40-hex `BASE_SHA`, and `NO_AUTO_MERGE = TRUE`.
+`parse_root_message()` must require exactly the twelve named fields above after the exact marker, reject duplicates/unknowns, require `TASK_ID = ZB_GITHUB_NATIVE_BASE_R01`, revision `1`, approved design HEAD, `JINGO -> LESTER / ASSIGN`, `CAUSATION_MESSAGE_ID = NONE`, 40-hex `BASE_SHA`, and `NO_AUTO_MERGE = TRUE`.
 
 `admit_event()` must require repository `Lester-Sparx/zorr-blatt-shared-hq`, issue number `111`, event action `created`, a `pull_request` object on the issue payload, actor `Lester-Sparx`, and `message.base_sha == expected_base_sha`.
 

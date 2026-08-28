@@ -63,7 +63,7 @@ class R02BWorkflowTests(unittest.TestCase):
         self.assertNotIn("COPILOT_GITHUB_TOKEN", admit)
         self.assertNotIn("COPILOT_GITHUB_TOKEN", duncan)
         self.assertNotIn("COPILOT_GITHUB_TOKEN", finalize)
-        self.assertEqual(text.count("COPILOT_GITHUB_TOKEN"), 1)
+        self.assertEqual(text.count(secret_line), 1)
         self.assertNotIn("copilot-requests: write", text)
         self.assertNotIn("contents: write", text)
         self.assertNotIn("pull-requests: write", text)

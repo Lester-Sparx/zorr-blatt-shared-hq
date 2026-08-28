@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from scripts.zb_execution_profiles import (
+    COPILOT_CLI_VERSION,
     ExecutionProfile,
     ExecutionProfileError,
     PROFILES,
@@ -36,6 +37,7 @@ def run_implementation_preflight(
     task_version: str,
     task_inventory_json: str,
     opencode_version: str | None,
+    copilot_version: str | None = None,
 ) -> None:
     try:
         validate_toolchain_versions(task_version=task_version, opencode_version=opencode_version)
@@ -44,6 +46,11 @@ def run_implementation_preflight(
         raise _translate_profile_error(exc) from exc
     if profile.worker_backend == "opencode" and opencode_version is None:
         raise PreflightError("OPENCODE_VERSION_MISSING")
+    if profile.worker_backend == "copilot-cli":
+        if copilot_version is None:
+            raise PreflightError("COPILOT_VERSION_MISSING")
+        if copilot_version != COPILOT_CLI_VERSION:
+            raise PreflightError("COPILOT_VERSION_MISMATCH")
 
 
 def _static_policy() -> dict:
@@ -129,6 +136,7 @@ def run_activation_preflight(
         task_version=task_version,
         task_inventory_json=task_inventory_json,
         opencode_version=opencode_version,
+        copilot_version=None,
     )
     validate_effective_opencode_config(effective_config_json)
 
@@ -144,12 +152,14 @@ def main(argv: list[str] | None = None) -> int:
     task_version = os.environ.get("ZB_TASK_VERSION", "")
     inventory = os.environ.get("ZB_TASK_INVENTORY_JSON", "")
     opencode_version = os.environ.get("ZB_OPENCODE_VERSION")
+    copilot_version = os.environ.get("ZB_COPILOT_VERSION")
     if args.mode == "implementation":
         run_implementation_preflight(
             profile=profile,
             task_version=task_version,
             task_inventory_json=inventory,
             opencode_version=opencode_version,
+            copilot_version=copilot_version,
         )
         print("IMPLEMENTATION_PREFLIGHT = PASS")
         return 0

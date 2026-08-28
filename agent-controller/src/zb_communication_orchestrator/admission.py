@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from .contracts import CommunicationProtocolError, TARGET_REPOSITORY, parse_message
+from .contracts import CommunicationProtocolError, MESSAGE_MARKER, TARGET_REPOSITORY, parse_message
 
 class AdmissionError(RuntimeError):
     def __init__(self, code: str): self.code=code; super().__init__(code)
@@ -23,6 +23,8 @@ def admit_event(envelope: WebhookEnvelope, canonical_pr: int):
         raise AdmissionError("TRANSPORT_ACTOR_REJECTED")
     if envelope.event_type != "issue_comment.created" or envelope.top_level is not True:
         raise AdmissionError("MESSAGE_PROTOCOL_INVALID")
+    if not isinstance(envelope.comment_body, str) or not envelope.comment_body.startswith(MESSAGE_MARKER):
+        return None
     try:
         return parse_message(envelope.comment_body)
     except CommunicationProtocolError as exc:

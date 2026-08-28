@@ -22,3 +22,10 @@ def test_write_or_read_failure_has_stable_code():
         def read_comment(self,cid): raise KeyError(cid)
     with pytest.raises(PersistError) as e: persist_and_verify(R(),777,'BODY')
     assert e.value.code=='RECEIPT_READ_BACK_MISMATCH'
+
+def test_write_ack_lost_with_remote_id_reconciles_without_duplicate_write():
+    import zb_communication_orchestrator.persistence as p
+    class AmbiguousGH(GH):
+        def write_comment(self, pr, body):
+            self.next += 1; self.writes.append((pr, body)); self.comments[self.next] = RemoteComment(self.next, 'Lester-Sparx', body); raise p.CommentWriteAmbiguous(self.next)
+    gh=AmbiguousGH(); verified=persist_and_verify(gh,777,'BODY'); assert verified.comment_id==51; assert len(gh.writes)==1

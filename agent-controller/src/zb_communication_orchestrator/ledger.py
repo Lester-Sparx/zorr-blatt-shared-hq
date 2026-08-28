@@ -29,6 +29,14 @@ class CorrelationLedger:
                 except Exception: continue
                 if r.state in {'RESULT','BLOCKED','DEAD_LETTER'}: obj.terminal.add(r.message_id)
         return obj
+    def last_message(self, correlation_id):
+        for mid in reversed(self.order):
+            message=self.messages[mid][1]
+            if message.correlation_id==correlation_id:
+                return message
+        return None
+    def is_terminal(self, message_id):
+        return message_id in self.terminal
     def check(self,message):
         digest=message_body_digest(message)
         if message.message_id in self.messages:

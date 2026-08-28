@@ -4,6 +4,7 @@ import zb_local_controller.__main__ as cli_module
 from zb_local_controller.__main__ import main
 from zb_local_controller.controller import RunSummary
 from zb_local_controller.instance_lock import ControllerInstanceLock
+from zb_local_controller.github_cli import GitHubConfigurationError
 
 
 class NoIssuesGitHub:
@@ -68,3 +69,18 @@ def test_daemon_fails_closed_before_controller_when_lock_owned(tmp_path, monkeyp
     from zb_local_controller.config import load_config
     with ControllerInstanceLock(load_config(path).daemon_runtime_root):
         assert main(["--daemon", "--config", str(path)], github_factory=NoIssuesGitHub, backend_factory=lambda cfg: NeverUsedBackend()) == 3
+
+
+class BrokenGitHub(NoIssuesGitHub):
+    def list_candidate_issues(self):
+        raise GitHubConfigurationError("GH_NOT_AUTHENTICATED")
+
+
+def test_baseline_once_no_eligible_tasks_exits_zero_and_never_dispatches():
+    exit_code = main(["--once"], github_factory=NoIssuesGitHub, backend_factory=lambda cfg: NeverUsedBackend())
+    assert exit_code == 0
+
+
+def test_baseline_configuration_failure_exits_nonzero():
+    exit_code = main(["--once"], github_factory=BrokenGitHub, backend_factory=lambda cfg: NeverUsedBackend())
+    assert exit_code != 0

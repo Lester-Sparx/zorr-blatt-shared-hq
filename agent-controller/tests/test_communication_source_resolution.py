@@ -149,3 +149,44 @@ def test_bodyless_work_event_resolves_single_new_protocol_comment_after_epoch(mo
     assert gh.read_calls == [200]
     assert seen['envelope'].comment_id == 200
     assert seen['envelope'].comment_body == exact_body
+
+
+def test_bodyless_work_event_ignores_receipted_message_and_routes_one_new_message(monkeypatch):
+    old='ZB_AGENT_MESSAGE_V1\nMESSAGE_ID = old'
+    receipt='ZB_AGENT_RECEIPT_V1\nSOURCE_COMMENT_ID = 200'
+    new='ZB_AGENT_MESSAGE_V1\nMESSAGE_ID = new'
+    envelope=WebhookEnvelope('delivery-bodyless-2','Lester-Sparx/zorr-blatt-shared-hq',111,None,None,'Lester-Sparx','issue_comment.created',True)
+    rows=[
+        SimpleNamespace(id=200,body=old,actor='Lester-Sparx',top_level=True),
+        SimpleNamespace(id=250,body=receipt,actor='Lester-Sparx',top_level=True),
+        SimpleNamespace(id=300,body=new,actor='Lester-Sparx',top_level=True),
+    ]
+    class GH:
+        def fetch_top_level_comments(self,pr): return rows
+        def fetch_issue_comments(self,issue): return []
+        def read_comment(self,cid): return SimpleNamespace(id=cid,body=new,actor='Lester-Sparx',top_level=True)
+    seen={}
+    monkeypatch.setattr(handler,'route_message',lambda resolved,*a,**k: seen.setdefault('envelope',resolved))
+    handle_webhook(envelope,GH(),object(),SimpleNamespace(communication_pr=111,ingress_epoch_comment_id=150,tracker_issue=106))
+    assert seen['envelope'].comment_id == 300
+    assert seen['envelope'].comment_body == new
+
+
+def test_bodyless_work_event_uses_tracker_to_ignore_processed_probe(monkeypatch):
+    probe='ZB_WORK_COMMENT_EVENT_PROBE_V3\nPROBE_ONLY = TRUE\nAGENT_MESSAGE = NO\nPROBE_INSTANCE = oldprobe'
+    message='ZB_AGENT_MESSAGE_V1\nMESSAGE_ID = newmsg'
+    evidence='ZB106_WORK_COMMENT_EVENT_INGRESS_PROOF_V3\nSOURCE_COMMENT_ID = 200'
+    envelope=WebhookEnvelope('delivery-bodyless-3','Lester-Sparx/zorr-blatt-shared-hq',111,None,None,'Lester-Sparx','issue_comment.created',True)
+    rows=[
+        SimpleNamespace(id=200,body=probe,actor='Lester-Sparx',top_level=True),
+        SimpleNamespace(id=300,body=message,actor='Lester-Sparx',top_level=True),
+    ]
+    class GH:
+        def fetch_top_level_comments(self,pr): return rows
+        def fetch_issue_comments(self,issue): return [SimpleNamespace(id=999,body=evidence,actor='Lester-Sparx')]
+        def read_comment(self,cid): return SimpleNamespace(id=cid,body=message,actor='Lester-Sparx',top_level=True)
+    seen={}
+    monkeypatch.setattr(handler,'route_message',lambda resolved,*a,**k: seen.setdefault('envelope',resolved))
+    handle_webhook(envelope,GH(),object(),SimpleNamespace(communication_pr=111,ingress_epoch_comment_id=150,tracker_issue=106))
+    assert seen['envelope'].comment_id == 300
+    assert seen['envelope'].comment_body == message

@@ -15,9 +15,9 @@ from scripts.zb_execution_profiles import PROFILES
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS = json.dumps({"tasks": [{"name": "zb:exec:lester:implement-r01"}, {"name": "zb:exec:duncan:qc-r01"}]})
-RUNNER_SHA256 = "a0c896f3acf37841cc17f392a38111d39501e56f2990434567f027ee89cf8981"
+RUNNER_SHA256 = "1150692afa94e71f872017e254ea55b6eece1eece3fe7e3a6d4c93d0a1b85cfc"
 TASK_SHA256 = "27c0cd248c12cba03d8958d954a3df981c900be885ec9ce5f6a3cdc4e9a19316"
-OPENCODE_SHA256 = "25fbb765761a5bbc5a9941ae4f2e2ac365558228221f781bf35c6e31135f4b1f"
+OPENCODE_SHA256 = "831e213e5f454d6e8b26f0fb24c7b3d42b40e47d73d154672a9192702eb08416"
 
 
 def policy() -> dict:
@@ -28,11 +28,11 @@ def activation_kwargs() -> dict:
     return {
         "repository_private": True,
         "disposable_host": False,
-        "runner_version": "2.334.0",
+        "runner_version": "2.337.0",
         "runner_sha256": RUNNER_SHA256,
         "task_version": "3.53.1",
         "task_sha256": TASK_SHA256,
-        "opencode_version": "1.18.17",
+        "opencode_version": "1.18.25",
         "opencode_sha256": OPENCODE_SHA256,
         "task_inventory_json": TASKS,
         "profile": PROFILES["LESTER_IMPLEMENT_R01"],
@@ -46,22 +46,22 @@ class PreflightTests(unittest.TestCase):
             profile=PROFILES["LESTER_IMPLEMENT_R01"],
             task_version="3.53.1",
             task_inventory_json=TASKS,
-            opencode_version="1.18.17",
+            opencode_version="1.18.25",
         )
 
     def test_implementation_preflight_rejects_wrong_task_or_opencode_version_and_inventory(self) -> None:
         with self.assertRaisesRegex(PreflightError, "TASK_VERSION_MISMATCH"):
             run_implementation_preflight(
-                profile=PROFILES["LESTER_IMPLEMENT_R01"], task_version="3.53.0", task_inventory_json=TASKS, opencode_version="1.18.17"
+                profile=PROFILES["LESTER_IMPLEMENT_R01"], task_version="3.53.0", task_inventory_json=TASKS, opencode_version="1.18.25"
             )
         with self.assertRaisesRegex(PreflightError, "OPENCODE_VERSION_MISMATCH"):
             run_implementation_preflight(
-                profile=PROFILES["LESTER_IMPLEMENT_R01"], task_version="3.53.1", task_inventory_json=TASKS, opencode_version="1.18.16"
+                profile=PROFILES["LESTER_IMPLEMENT_R01"], task_version="3.53.1", task_inventory_json=TASKS, opencode_version="1.18.24"
             )
         bad_inventory = json.dumps({"tasks": [{"name": "zb:exec:lester:implement-r01"}]})
         with self.assertRaisesRegex(PreflightError, "TASK_INVENTORY_MISMATCH"):
             run_implementation_preflight(
-                profile=PROFILES["LESTER_IMPLEMENT_R01"], task_version="3.53.1", task_inventory_json=bad_inventory, opencode_version="1.18.17"
+                profile=PROFILES["LESTER_IMPLEMENT_R01"], task_version="3.53.1", task_inventory_json=bad_inventory, opencode_version="1.18.25"
             )
 
     def test_public_repository_blocks_owner_pc_activation_before_runner_use(self) -> None:
@@ -78,11 +78,11 @@ class PreflightTests(unittest.TestCase):
 
     def test_activation_requires_exact_runner_task_and_opencode_provenance(self) -> None:
         for key, bad, code in (
-            ("runner_version", "2.333.0", "RUNNER_VERSION_MISMATCH"),
+            ("runner_version", "2.336.0", "RUNNER_VERSION_MISMATCH"),
             ("runner_sha256", "0" * 64, "RUNNER_PROVENANCE_MISMATCH"),
             ("task_version", "3.53.0", "TASK_VERSION_MISMATCH"),
             ("task_sha256", "0" * 64, "TASK_PROVENANCE_MISMATCH"),
-            ("opencode_version", "1.18.16", "OPENCODE_VERSION_MISMATCH"),
+            ("opencode_version", "1.18.24", "OPENCODE_VERSION_MISMATCH"),
             ("opencode_sha256", "0" * 64, "OPENCODE_PROVENANCE_MISMATCH"),
         ):
             with self.subTest(key=key):

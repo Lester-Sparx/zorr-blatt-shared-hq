@@ -36,7 +36,7 @@ R02B_IMPLEMENTATION_PR = 125
 R02B_PROFILE = "LESTER_IMPLEMENT_R02A"
 R02B_ALLOWED_WRITE_SCOPE = ("tests/fixtures/zb-execution-proof/",)
 R02B_TIMEOUT_SECONDS = 600
-_MARKER = "ZB_AGENT_MESSAGE_V1"
+_MARKER = "ZB_AGENT_MESSAGE_R02B_V1"
 _FIELDS = (
     "MESSAGE_ID",
     "EVENT_ID",
@@ -146,20 +146,6 @@ def admit_event(
     github_sha: str,
 ) -> tuple[RootMessage, r01.EventContext]:
     body = ((event.get("comment") or {}).get("body"))
-    revision_text = None
-    if isinstance(body, str):
-        for line in body.splitlines()[1:]:
-            if line.startswith("TASK_REVISION = "):
-                revision_text = line.removeprefix("TASK_REVISION = ")
-                break
-    if revision_text == "1":
-        return r01.admit_event(
-            event,
-            expected_base_sha=expected_base_sha,
-            run_id=run_id,
-            run_attempt=run_attempt,
-            github_sha=github_sha,
-        )
     if event.get("action") != "created":
         raise ProtocolError("event action must be created")
     if (event.get("repository") or {}).get("full_name") != REPOSITORY:
@@ -216,8 +202,6 @@ def _request_body(message: RootMessage, event: dict[str, Any]) -> str:
 
 
 def prepare_substantive_dispatch(message: RootMessage, event: dict[str, Any], port: GitHubPort) -> DispatchDecision:
-    if message.task_revision == 1:
-        return r01.prepare_substantive_dispatch(message, event, port)
     if (
         message.task_id != R02B_TASK_ID
         or message.task_revision != R02B_TASK_REVISION
@@ -307,8 +291,6 @@ def _console_body(request: ExecutionRequest, *, phase: str, reason: str) -> str:
 
 def finalize_substantive_execution(request_body: str, lester_result: str, duncan_result: str, port: GitHubPort) -> str:
     request = parse_execution_request(request_body)
-    if request.task_revision == 1:
-        return r01.finalize_substantive_execution(request_body, lester_result, duncan_result, port)
     if (
         request.task_id != R02B_TASK_ID
         or request.task_revision != R02B_TASK_REVISION
@@ -383,7 +365,7 @@ def main(*, environ: dict[str, str] | None = None, port_factory: Callable[[str],
     github_sha = _require_env(env, "GITHUB_SHA")
     if not _SHA40.fullmatch(github_sha):
         raise ProtocolError("invalid GITHUB_SHA")
-    message, _ = admit_event(
+    message, _context = admit_event(
         event,
         expected_base_sha=github_sha,
         run_id=_require_env(env, "GITHUB_RUN_ID"),
@@ -391,13 +373,7 @@ def main(*, environ: dict[str, str] | None = None, port_factory: Callable[[str],
         github_sha=github_sha,
     )
     port = port_factory(_require_env(env, "GITHUB_TOKEN"))
-    if message.task_revision == 1:
-        if message.task_id == r01.TASK_ID:
-            result = r01.run_base(message, _, port)
-        else:
-            result = r01.prepare_substantive_dispatch(message, event, port).state
-    else:
-        result = prepare_substantive_dispatch(message, event, port).state
+    result = prepare_substantive_dispatch(message, event, port).state
     print(result)
     return 0
 

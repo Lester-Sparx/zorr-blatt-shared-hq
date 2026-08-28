@@ -95,6 +95,8 @@ The communication path is event-driven. Polling GitHub to discover `ZB_AGENT_MES
 
 Existing local Controller/Daemon polling for SALVADOR task execution is a separate already-existing execution mechanism. It does not become authority for logical-role communication and is not removed by this design.
 
+The webhook admission layer ignores its own `ZB_AGENT_RECEIPT_V1`, owner-view, reference, SALVADOR-event, and unrelated comments. Only a strict `ZB_AGENT_MESSAGE_V1` on the canonical Communication PR enters logical-role routing.
+
 ## 5. `ZB_AGENT_MESSAGE_V1`
 
 A live message is a strict machine-readable top-level comment. Unknown fields, duplicate fields, malformed identifiers, unsupported protocol versions, or multiline machine values fail closed.
@@ -120,15 +122,16 @@ TASK_REVISION = <positive integer or NONE>
 EVIDENCE_REF = <durable remote evidence reference or NONE>
 EVIDENCE_SHA256 = <64 lowercase hex or NONE>
 EXPECTED_GATE = <non-empty symbolic gate>
-ATTEMPT = <positive integer>
 NO_AUTO_MERGE = TRUE
 ```
 
 Human-readable direction may follow after one blank line, but it has no power to weaken the machine fields or repository law.
 
+The original message body is immutable for the lifetime of its `MESSAGE_ID`. Transport/execution retries never rewrite it.
+
 ### 5.1 IDs
 
-- `MESSAGE_ID` identifies one logical message and is the primary idempotency key.
+- `MESSAGE_ID` identifies one immutable logical message and is the primary idempotency key.
 - `EVENT_ID` identifies one producer event that caused the message.
 - `CORRELATION_ID` is stable across the whole handoff chain.
 - `CAUSATION_MESSAGE_ID` creates the exact parent edge. `NONE` is legal only for an authorized chain root.
@@ -150,7 +153,7 @@ MESSAGE
   -> RUNNING      only if actual logical-role execution starts
   -> RESULT       successful/negative verdict with exact evidence
      or BLOCKED   fail-closed result
-  -> next MESSAGE only after terminal receipt READ-BACK MATCH
+  -> next MESSAGE only after terminal receipt read-back MATCH
 ```
 
 The receipt marker is:
@@ -172,10 +175,12 @@ RESULT_CODE = <symbolic result or NONE>
 EVIDENCE_REF = <remote evidence reference or NONE>
 EVIDENCE_SHA256 = <hash or NONE>
 ATTEMPT = <positive integer>
-READ_BACK = MATCH
+READ_BACK_REQUIRED = TRUE
 ```
 
-A record is authoritative only after the writer performs a fresh remote read and the read-back body/remote ID matches what was written.
+`READ_BACK_REQUIRED = TRUE` is a requirement, not a self-attestation. A receipt comment cannot truthfully claim that its own future read-back already matched.
+
+After GitHub returns the new remote comment ID, the writer MUST perform a fresh remote read of that exact ID and compare the canonical body. Only after equality is observed may the runtime advance the transaction.
 
 Repository law:
 
@@ -183,6 +188,8 @@ Repository law:
 no remote ID/read-back = NOT PERSISTED
 WRITE + READ-BACK + MATCH = RECORDED
 ```
+
+Read-back MATCH is therefore an observed transaction condition outside the just-written body. Recovery can repeat the fresh read safely. A later receipt/message/owner projection may reference the preceding remote ID as verified evidence, but no record is trusted merely because its body says it is trusted.
 
 If the write succeeds but read-back cannot be proven, the transition stays non-terminal and retry logic may verify/reconcile the same intended receipt. It MUST NOT create a second logical execution merely because acknowledgement was lost.
 
@@ -209,10 +216,10 @@ For every inbound message it MUST:
 7. fresh-read exact task/issue/PR/base/head bindings;
 8. verify required evidence and CAS;
 9. reject any attempt to cross an OWNER-only boundary;
-10. persist/read-back `RECEIVED`;
+10. persist and freshly read back `RECEIVED`;
 11. start the target logical-role execution;
-12. only then persist/read-back `RUNNING`;
-13. persist/read-back `RESULT` or `BLOCKED` with exact result evidence;
+12. only then persist and freshly read back `RUNNING`;
+13. persist and freshly read back `RESULT` or `BLOCKED` with exact result evidence;
 14. derive and emit at most one next legal `ZB_AGENT_MESSAGE_V1`.
 
 No result may be upgraded from FAIL/BLOCKED to PASS by routing logic.
@@ -241,17 +248,17 @@ The router cannot merge a PR, activate production, mutate canon, or create an OW
 
 ### 10.1 Idempotency
 
-The durable idempotency key is `MESSAGE_ID` plus exact task/correlation binding. A second delivery of the same valid message:
+The durable idempotency key is `MESSAGE_ID` plus exact immutable task/correlation/message-body binding. A second delivery of the same valid message:
 
 - may repair a missing read-back receipt;
 - may return the already-recorded terminal result;
 - MUST NOT invoke the logical role twice once actual execution is known to have started or completed.
 
-A reused `MESSAGE_ID` with different canonical content is `MESSAGE_ID_COLLISION` and BLOCKED.
+A reused `MESSAGE_ID` with different canonical message content is `MESSAGE_ID_COLLISION` and BLOCKED.
 
 ### 10.2 Retry
 
-Retry applies to transport/persistence/execution-delivery failures, not to changing a logical verdict. Attempts increment `ATTEMPT` but retain the same `MESSAGE_ID` and correlation binding.
+Retry applies to transport/persistence/execution-delivery failures, not to changing a logical verdict. The original message stays byte-for-byte unchanged. Attempt numbers increment only in `ZB_AGENT_RECEIPT_V1` records for the same immutable `MESSAGE_ID`.
 
 Retry policy is bounded and must be configuration-backed. No infinite retry loop is allowed.
 
@@ -464,11 +471,11 @@ The key invariant is:
 ```text
 ONE GITHUB TRANSPORT
 + AUTHENTICATED EVENT
-+ STRICT MESSAGE CONTRACT
++ STRICT IMMUTABLE MESSAGE CONTRACT
 + DERIVED LOGICAL ROLE
 + EXACT CAS/EVIDENCE BINDING
 + IDEMPOTENT EXECUTION
-+ WRITE/READ-BACK RECEIPTS
++ OBSERVED WRITE/READ-BACK RECEIPTS
 = AUTOMATED COMMUNICATION WITHOUT AUTHORITY COLLAPSE
 ```
 

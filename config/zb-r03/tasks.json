@@ -1,0 +1,19 @@
+{
+  "schema": "ZB_R03_TASK_REGISTRY_V1",
+  "tasks": {
+    "ZB_CODE_CHANGE_R03": {
+      "revision": 1,
+      "profile": "LESTER_GH_AW_CODE_R03",
+      "allowed_files": [
+        "scripts/**",
+        "tests/**",
+        "docs/**",
+        "config/**"
+      ],
+      "max_changed_files": 20,
+      "max_patch_kb": 1024,
+      "timeout_minutes": 20,
+      "auto_merge_after_duncan": true
+    }
+  }
+}

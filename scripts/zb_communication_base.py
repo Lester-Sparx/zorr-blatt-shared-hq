@@ -8,13 +8,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Protocol
 
-
 REPOSITORY = "Lester-Sparx/zorr-blatt-shared-hq"
 COMMUNICATION_PR = 111
 TRACKER_ISSUE = 106
 TRANSPORT_ACTOR = "Lester-Sparx"
+STATE_WRITER = "github-actions[bot]"
 TASK_ID = "ZB_GITHUB_NATIVE_BASE_R01"
 TASK_REVISION = 1
+IMPLEMENTATION_PR = 118
 APPROVED_DESIGN_HEAD = "81c44232b72b4a98c8ad0ac2ea6a0a2876f988bc"
 MARKER = "ZB_AGENT_MESSAGE_V1"
 API_ROOT = "https://api.github.com"
@@ -30,20 +31,10 @@ EXPECTED_STAGES = (
     ("JINGO", "JINGO", "CLOSE_REQUEST"),
 )
 _REPLAY_STATES = frozenset({"RECEIVED", "RUNNING", "RESULT", "BLOCKED"})
-
 _FIELDS = (
-    "MESSAGE_ID",
-    "EVENT_ID",
-    "CORRELATION_ID",
-    "CAUSATION_MESSAGE_ID",
-    "TASK_ID",
-    "FROM_ROLE",
-    "TO_ROLE",
-    "MESSAGE_KIND",
-    "BASE_SHA",
-    "TASK_REVISION",
-    "DESIGN_HEAD",
-    "NO_AUTO_MERGE",
+    "MESSAGE_ID", "EVENT_ID", "CORRELATION_ID", "CAUSATION_MESSAGE_ID",
+    "TASK_ID", "FROM_ROLE", "TO_ROLE", "MESSAGE_KIND", "BASE_SHA",
+    "TASK_REVISION", "DESIGN_HEAD", "NO_AUTO_MERGE",
 )
 _SHA40 = re.compile(r"^[0-9a-f]{40}$")
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -120,11 +111,7 @@ class GitHubApi:
             raise PersistenceError("GitHub API returned invalid JSON") from exc
 
     def create_tracker_comment(self, body: str) -> int:
-        result = self._request_json(
-            f"{TRACKER_ISSUE_URL}/comments",
-            method="POST",
-            payload={"body": body},
-        )
+        result = self._request_json(f"{TRACKER_ISSUE_URL}/comments", method="POST", payload={"body": body})
         comment_id = result.get("id") if isinstance(result, dict) else None
         if not isinstance(comment_id, int) or isinstance(comment_id, bool) or comment_id <= 0:
             raise PersistenceError("GitHub API did not return a numeric comment ID")
@@ -182,6 +169,11 @@ def _parse_receipt_fields(body: Any) -> dict[str, str] | None:
 def _is_replay(message: RootMessage, context: EventContext, port: GitHubPort) -> bool:
     expected_source = str(context.comment_id)
     for comment in port.list_tracker_comments():
+        if comment.get("issue_url") != TRACKER_ISSUE_URL:
+            continue
+        user = comment.get("user") or {}
+        if user.get("login") != STATE_WRITER:
+            continue
         fields = _parse_receipt_fields(comment.get("body"))
         if not fields:
             continue
@@ -192,6 +184,10 @@ def _is_replay(message: RootMessage, context: EventContext, port: GitHubPort) ->
         if fields.get("STATE") in _REPLAY_STATES:
             return True
     return False
+
+
+def _provenance_lines(context: EventContext) -> list[str]:
+    return [f"IMPLEMENTATION_PR = {IMPLEMENTATION_PR}", f"RUNNER_SHA = {context.github_sha}"]
 
 
 def _receipt_body(
@@ -205,99 +201,63 @@ def _receipt_body(
     result_code: str,
     execution_id: str,
 ) -> str:
-    return "\n".join(
-        [
-            "ZB_AGENT_RECEIPT_V1",
-            f"MESSAGE_ID = {message.message_id}",
-            f"CORRELATION_ID = {message.correlation_id}",
-            f"SOURCE_COMMENT_ID = {context.comment_id}",
-            f"TASK_ID = {message.task_id}",
-            f"TASK_REVISION = {message.task_revision}",
-            f"BASE_SHA = {message.base_sha}",
-            f"DESIGN_HEAD = {message.design_head}",
-            f"SOURCE_ACTOR = {context.actor}",
-            f"WORKFLOW_RUN_ID = {context.run_id}",
-            f"WORKFLOW_RUN_ATTEMPT = {context.run_attempt}",
-            f"LOGICAL_FROM_ROLE = {from_role}",
-            f"LOGICAL_TO_ROLE = {to_role}",
-            f"MESSAGE_KIND = {message_kind}",
-            f"STATE = {state}",
-            f"RESULT_CODE = {result_code}",
-            f"EXECUTION_ID = {execution_id}",
-            "PRODUCTION_ACTIVE = NO",
-        ]
-    )
+    lines = [
+        "ZB_AGENT_RECEIPT_V1",
+        f"MESSAGE_ID = {message.message_id}",
+        f"CORRELATION_ID = {message.correlation_id}",
+        f"SOURCE_COMMENT_ID = {context.comment_id}",
+        f"TASK_ID = {message.task_id}",
+        f"TASK_REVISION = {message.task_revision}",
+        f"BASE_SHA = {message.base_sha}",
+        f"DESIGN_HEAD = {message.design_head}",
+        *_provenance_lines(context),
+        f"SOURCE_ACTOR = {context.actor}",
+        f"WORKFLOW_RUN_ID = {context.run_id}",
+        f"WORKFLOW_RUN_ATTEMPT = {context.run_attempt}",
+        f"LOGICAL_FROM_ROLE = {from_role}",
+        f"LOGICAL_TO_ROLE = {to_role}",
+        f"MESSAGE_KIND = {message_kind}",
+        f"STATE = {state}",
+        f"RESULT_CODE = {result_code}",
+        f"EXECUTION_ID = {execution_id}",
+        "PRODUCTION_ACTIVE = NO",
+    ]
+    return "\n".join(lines)
 
 
 def _owner_view_body(message: RootMessage, context: EventContext) -> str:
-    return "\n".join(
-        [
-            "ZB_OWNER_VIEW_V0",
-            f"MESSAGE_ID = {message.message_id}",
-            f"CORRELATION_ID = {message.correlation_id}",
-            f"SOURCE_COMMENT_ID = {context.comment_id}",
-            f"TASK_ID = {message.task_id}",
-            f"TASK_REVISION = {message.task_revision}",
-            f"BASE_SHA = {message.base_sha}",
-            f"DESIGN_HEAD = {message.design_head}",
-            f"WORKFLOW_RUN_ID = {context.run_id}",
-            f"WORKFLOW_RUN_ATTEMPT = {context.run_attempt}",
-            "LAST_STAGE = JINGO -> JINGO / CLOSE_REQUEST",
-            "OWNER_GATE_REQUIRED = TRUE",
-            "OWNER_ACTION_REQUIRED = TRUE",
-            "PRODUCTION_ACTIVE = NO",
-        ]
-    )
+    lines = [
+        "ZB_OWNER_VIEW_V0",
+        f"MESSAGE_ID = {message.message_id}",
+        f"CORRELATION_ID = {message.correlation_id}",
+        f"SOURCE_COMMENT_ID = {context.comment_id}",
+        f"TASK_ID = {message.task_id}",
+        f"TASK_REVISION = {message.task_revision}",
+        f"BASE_SHA = {message.base_sha}",
+        f"DESIGN_HEAD = {message.design_head}",
+        *_provenance_lines(context),
+        f"WORKFLOW_RUN_ID = {context.run_id}",
+        f"WORKFLOW_RUN_ATTEMPT = {context.run_attempt}",
+        "LAST_STAGE = JINGO -> JINGO / CLOSE_REQUEST",
+        "OWNER_GATE_REQUIRED = TRUE",
+        "OWNER_ACTION_REQUIRED = TRUE",
+        "PRODUCTION_ACTIVE = NO",
+    ]
+    return "\n".join(lines)
 
 
 def run_base(message: RootMessage, context: EventContext, port: GitHubPort) -> str:
     if _is_replay(message, context, port):
         return "NOOP_REPLAY"
 
-    initial_stage = EXPECTED_STAGES[0]
-    write_and_verify(
-        port,
-        _receipt_body(
-            message,
-            context,
-            from_role=initial_stage[0],
-            to_role=initial_stage[1],
-            message_kind=initial_stage[2],
-            state="RECEIVED",
-            result_code="NONE",
-            execution_id="NONE",
-        ),
-    )
+    first = EXPECTED_STAGES[0]
+    write_and_verify(port, _receipt_body(message, context, from_role=first[0], to_role=first[1], message_kind=first[2], state="RECEIVED", result_code="NONE", execution_id="NONE"))
 
     execution_id = f"github-actions:{context.run_id}:{context.run_attempt}"
-    write_and_verify(
-        port,
-        _receipt_body(
-            message,
-            context,
-            from_role=initial_stage[0],
-            to_role=initial_stage[1],
-            message_kind=initial_stage[2],
-            state="RUNNING",
-            result_code="NONE",
-            execution_id=execution_id,
-        ),
-    )
+    write_and_verify(port, _receipt_body(message, context, from_role=first[0], to_role=first[1], message_kind=first[2], state="RUNNING", result_code="NONE", execution_id=execution_id))
 
     for from_role, to_role, message_kind in EXPECTED_STAGES:
-        write_and_verify(
-            port,
-            _receipt_body(
-                message,
-                context,
-                from_role=from_role,
-                to_role=to_role,
-                message_kind=message_kind,
-                state="RESULT",
-                result_code="PASS",
-                execution_id=execution_id,
-            ),
-        )
+        write_and_verify(port, _receipt_body(message, context, from_role=from_role, to_role=to_role, message_kind=message_kind, state="RESULT", result_code="PASS", execution_id=execution_id))
 
     write_and_verify(port, _owner_view_body(message, context))
     return "OWNER_GATE_REQUIRED"
@@ -311,7 +271,6 @@ def _require_identifier(name: str, value: str) -> None:
 def parse_root_message(body: str) -> RootMessage:
     if not isinstance(body, str):
         raise ProtocolError("body must be text")
-
     lines = body.splitlines()
     if not lines or lines[0] != MARKER:
         raise ProtocolError("invalid marker")
@@ -334,29 +293,20 @@ def parse_root_message(body: str) -> RootMessage:
     missing = [name for name in _FIELDS if name not in values]
     if missing:
         raise ProtocolError("missing field: " + ",".join(missing))
-    if len(values) != len(_FIELDS):
-        raise ProtocolError("invalid field count")
-
     for name in ("MESSAGE_ID", "EVENT_ID", "CORRELATION_ID"):
         _require_identifier(name, values[name])
-
     if values["CAUSATION_MESSAGE_ID"] != "NONE":
         raise ProtocolError("initial CAUSATION_MESSAGE_ID must be NONE")
     if values["TASK_ID"] != TASK_ID:
         raise ProtocolError("wrong TASK_ID")
-    if values["FROM_ROLE"] != "JINGO":
-        raise ProtocolError("wrong FROM_ROLE")
-    if values["TO_ROLE"] != "LESTER":
-        raise ProtocolError("wrong TO_ROLE")
-    if values["MESSAGE_KIND"] != "ASSIGN":
-        raise ProtocolError("wrong MESSAGE_KIND")
+    if (values["FROM_ROLE"], values["TO_ROLE"], values["MESSAGE_KIND"]) != EXPECTED_STAGES[0]:
+        raise ProtocolError("wrong initial logical transition")
     if not _SHA40.fullmatch(values["BASE_SHA"]):
         raise ProtocolError("invalid BASE_SHA")
     if values["DESIGN_HEAD"] != APPROVED_DESIGN_HEAD:
         raise ProtocolError("wrong DESIGN_HEAD")
     if values["NO_AUTO_MERGE"] != "TRUE":
         raise ProtocolError("NO_AUTO_MERGE must be TRUE")
-
     try:
         task_revision = int(values["TASK_REVISION"])
     except ValueError as exc:
@@ -365,65 +315,33 @@ def parse_root_message(body: str) -> RootMessage:
         raise ProtocolError("wrong TASK_REVISION")
 
     return RootMessage(
-        message_id=values["MESSAGE_ID"],
-        event_id=values["EVENT_ID"],
-        correlation_id=values["CORRELATION_ID"],
-        causation_message_id=values["CAUSATION_MESSAGE_ID"],
-        task_id=values["TASK_ID"],
-        from_role=values["FROM_ROLE"],
-        to_role=values["TO_ROLE"],
-        message_kind=values["MESSAGE_KIND"],
-        base_sha=values["BASE_SHA"],
-        task_revision=task_revision,
-        design_head=values["DESIGN_HEAD"],
-        no_auto_merge=True,
+        message_id=values["MESSAGE_ID"], event_id=values["EVENT_ID"], correlation_id=values["CORRELATION_ID"],
+        causation_message_id=values["CAUSATION_MESSAGE_ID"], task_id=values["TASK_ID"], from_role=values["FROM_ROLE"],
+        to_role=values["TO_ROLE"], message_kind=values["MESSAGE_KIND"], base_sha=values["BASE_SHA"],
+        task_revision=task_revision, design_head=values["DESIGN_HEAD"], no_auto_merge=True,
     )
 
 
-def admit_event(
-    event: dict[str, Any],
-    *,
-    expected_base_sha: str,
-    run_id: str,
-    run_attempt: str,
-    github_sha: str,
-) -> tuple[RootMessage, EventContext]:
+def admit_event(event: dict[str, Any], *, expected_base_sha: str, run_id: str, run_attempt: str, github_sha: str) -> tuple[RootMessage, EventContext]:
     if event.get("action") != "created":
         raise ProtocolError("event action must be created")
-
-    repository = event.get("repository") or {}
-    if repository.get("full_name") != REPOSITORY:
+    if (event.get("repository") or {}).get("full_name") != REPOSITORY:
         raise ProtocolError("wrong repository")
-
     issue = event.get("issue") or {}
     if issue.get("number") != COMMUNICATION_PR:
         raise ProtocolError("wrong communication PR")
     if not isinstance(issue.get("pull_request"), dict):
         raise ProtocolError("source is not a pull request conversation")
-
     comment = event.get("comment") or {}
-    user = comment.get("user") or {}
-    if user.get("login") != TRANSPORT_ACTOR:
+    if (comment.get("user") or {}).get("login") != TRANSPORT_ACTOR:
         raise ProtocolError("wrong transport actor")
-
     comment_id = comment.get("id")
     if not isinstance(comment_id, int) or isinstance(comment_id, bool) or comment_id <= 0:
         raise ProtocolError("invalid source comment ID")
-
     message = parse_root_message(comment.get("body"))
     if message.base_sha != expected_base_sha:
         raise ProtocolError("BASE_SHA does not match active base")
-
-    context = EventContext(
-        repository=REPOSITORY,
-        issue_number=COMMUNICATION_PR,
-        comment_id=comment_id,
-        actor=TRANSPORT_ACTOR,
-        run_id=str(run_id),
-        run_attempt=str(run_attempt),
-        github_sha=str(github_sha),
-    )
-    return message, context
+    return message, EventContext(REPOSITORY, COMMUNICATION_PR, comment_id, TRANSPORT_ACTOR, str(run_id), str(run_attempt), str(github_sha))
 
 
 def _require_env(environ: dict[str, str], name: str) -> str:
@@ -433,11 +351,7 @@ def _require_env(environ: dict[str, str], name: str) -> str:
     return value
 
 
-def main(
-    *,
-    environ: dict[str, str] | None = None,
-    port_factory: Callable[[str], GitHubPort] = GitHubApi,
-) -> int:
+def main(*, environ: dict[str, str] | None = None, port_factory: Callable[[str], GitHubPort] = GitHubApi) -> int:
     env = os.environ if environ is None else environ
     event_path = Path(_require_env(env, "GITHUB_EVENT_PATH"))
     try:
@@ -447,12 +361,10 @@ def main(
     if not isinstance(event, dict):
         raise ProtocolError("GitHub event payload must be an object")
 
-    comment = event.get("comment") or {}
-    body = comment.get("body")
+    body = (event.get("comment") or {}).get("body")
     if not isinstance(body, str) or not body.splitlines() or body.splitlines()[0] != MARKER:
         print("IGNORED_NON_PROTOCOL")
         return 0
-
     if _require_env(env, "GITHUB_REPOSITORY") != REPOSITORY:
         raise ProtocolError("environment repository mismatch")
     github_sha = _require_env(env, "GITHUB_SHA")
@@ -466,8 +378,7 @@ def main(
         run_attempt=_require_env(env, "GITHUB_RUN_ATTEMPT"),
         github_sha=github_sha,
     )
-    token = _require_env(env, "GITHUB_TOKEN")
-    result = run_base(message, context, port_factory(token))
+    result = run_base(message, context, port_factory(_require_env(env, "GITHUB_TOKEN")))
     print(result)
     return 0
 

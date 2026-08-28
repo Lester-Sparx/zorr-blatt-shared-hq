@@ -195,3 +195,120 @@ def canonical_message_body(message: AgentMessage) -> str:
 
 def message_body_digest(message: AgentMessage) -> str:
     return sha256(canonical_message_body(message).encode("utf-8")).hexdigest()
+
+RECEIPT_MARKER = "ZB_AGENT_RECEIPT_V1"
+RECEIPT_STATES = {"RECEIVED", "RUNNING", "RESULT", "BLOCKED", "DEAD_LETTER"}
+RECEIPT_KEYS = (
+    "MESSAGE_ID", "EVENT_ID", "CORRELATION_ID", "SOURCE_COMMENT_ID", "RECEIPT_ID", "STATE",
+    "TRANSPORT_ACTOR", "LOGICAL_ROLE", "TASK_ID", "TARGET_HEAD_SHA", "EXECUTION_ID", "RESULT_CODE",
+    "EVIDENCE_REF", "EVIDENCE_SHA256", "ATTEMPT", "READ_BACK_REQUIRED",
+)
+
+
+@dataclass(frozen=True)
+class AgentReceipt:
+    message_id: str
+    event_id: str
+    correlation_id: str
+    source_comment_id: int
+    receipt_id: str
+    state: str
+    transport_actor: str
+    logical_role: str
+    task_id: str
+    target_head_sha: str | None
+    execution_id: str | None
+    result_code: str | None
+    evidence_ref: str | None
+    evidence_sha256: str | None
+    attempt: int
+    read_back_required: bool = True
+
+
+def _receipt_values(receipt: AgentReceipt) -> dict[str, str]:
+    if receipt.state not in RECEIPT_STATES:
+        _fail()
+    if receipt.transport_actor != "Lester-Sparx" or receipt.logical_role not in MESSAGE_ROLES:
+        _fail()
+    if not isinstance(receipt.source_comment_id, int) or receipt.source_comment_id <= 0:
+        _fail()
+    if not isinstance(receipt.attempt, int) or receipt.attempt <= 0 or receipt.read_back_required is not True:
+        _fail()
+    if receipt.target_head_sha is not None and not _SHA40.fullmatch(receipt.target_head_sha):
+        _fail()
+    if receipt.evidence_sha256 is not None and not _SHA64.fullmatch(receipt.evidence_sha256):
+        _fail()
+    if (receipt.evidence_ref is None) != (receipt.evidence_sha256 is None):
+        _fail()
+    if receipt.state == "RUNNING" and not receipt.execution_id:
+        _fail()
+    if receipt.state in {"RESULT", "BLOCKED", "DEAD_LETTER"} and not receipt.result_code:
+        _fail()
+    if receipt.state == "DEAD_LETTER" and receipt.result_code == "PASS":
+        _fail()
+    if receipt.result_code is not None and not _SYMBOL.fullmatch(receipt.result_code):
+        _fail()
+    return {
+        "MESSAGE_ID": _id(receipt.message_id),
+        "EVENT_ID": _id(receipt.event_id),
+        "CORRELATION_ID": _id(receipt.correlation_id),
+        "SOURCE_COMMENT_ID": str(receipt.source_comment_id),
+        "RECEIPT_ID": _id(receipt.receipt_id),
+        "STATE": receipt.state,
+        "TRANSPORT_ACTOR": receipt.transport_actor,
+        "LOGICAL_ROLE": receipt.logical_role,
+        "TASK_ID": _single(receipt.task_id),
+        "TARGET_HEAD_SHA": _none(receipt.target_head_sha),
+        "EXECUTION_ID": _none(receipt.execution_id),
+        "RESULT_CODE": _none(receipt.result_code),
+        "EVIDENCE_REF": _none(receipt.evidence_ref),
+        "EVIDENCE_SHA256": _none(receipt.evidence_sha256),
+        "ATTEMPT": str(receipt.attempt),
+        "READ_BACK_REQUIRED": "TRUE",
+    }
+
+
+def canonical_receipt_body(receipt: AgentReceipt) -> str:
+    values = _receipt_values(receipt)
+    return "\n".join([RECEIPT_MARKER] + [f"{key} = {values[key]}" for key in RECEIPT_KEYS])
+
+
+def parse_receipt(body: str) -> AgentReceipt:
+    if not isinstance(body, str):
+        _fail()
+    lines = body.splitlines()
+    if len(lines) != 1 + len(RECEIPT_KEYS) or lines[0] != RECEIPT_MARKER:
+        _fail()
+    fields: dict[str, str] = {}
+    for expected, raw in zip(RECEIPT_KEYS, lines[1:]):
+        if " = " not in raw:
+            _fail()
+        key, value = raw.split(" = ", 1)
+        if key != expected or key in fields:
+            _fail()
+        fields[key] = _single(value)
+    try:
+        source_id = int(fields["SOURCE_COMMENT_ID"])
+        attempt = int(fields["ATTEMPT"])
+    except ValueError:
+        _fail()
+    receipt = AgentReceipt(
+        message_id=fields["MESSAGE_ID"],
+        event_id=fields["EVENT_ID"],
+        correlation_id=fields["CORRELATION_ID"],
+        source_comment_id=source_id,
+        receipt_id=fields["RECEIPT_ID"],
+        state=fields["STATE"],
+        transport_actor=fields["TRANSPORT_ACTOR"],
+        logical_role=fields["LOGICAL_ROLE"],
+        task_id=fields["TASK_ID"],
+        target_head_sha=None if fields["TARGET_HEAD_SHA"] == "NONE" else fields["TARGET_HEAD_SHA"],
+        execution_id=None if fields["EXECUTION_ID"] == "NONE" else fields["EXECUTION_ID"],
+        result_code=None if fields["RESULT_CODE"] == "NONE" else fields["RESULT_CODE"],
+        evidence_ref=None if fields["EVIDENCE_REF"] == "NONE" else fields["EVIDENCE_REF"],
+        evidence_sha256=None if fields["EVIDENCE_SHA256"] == "NONE" else fields["EVIDENCE_SHA256"],
+        attempt=attempt,
+        read_back_required=fields["READ_BACK_REQUIRED"] == "TRUE",
+    )
+    _receipt_values(receipt)
+    return receipt

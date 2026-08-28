@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import copy
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
+WORKFLOW_PATH = ROOT / ".github/workflows/zb-communication-base.yml"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -18,6 +21,7 @@ from zb_communication_base import (  # noqa: E402
     PersistenceError,
     ProtocolError,
     admit_event,
+    main,
     parse_root_message,
     run_base,
     write_and_verify,
@@ -311,6 +315,79 @@ class StateMachineTest(unittest.TestCase):
         port = RecordingPort(malformed)
         self.assertEqual(run_base(message, context, port), "OWNER_GATE_REQUIRED")
         self.assertEqual(len(port.created), 10)
+
+
+class EntrypointWorkflowTest(unittest.TestCase):
+    def _write_event(self, event: dict) -> tuple[tempfile.TemporaryDirectory, str]:
+        temp = tempfile.TemporaryDirectory()
+        path = Path(temp.name) / "event.json"
+        path.write_text(json.dumps(event), encoding="utf-8")
+        return temp, str(path)
+
+    def test_non_protocol_comment_is_ignored_without_github_port(self):
+        temp, path = self._write_event(valid_event("ordinary prose"))
+        self.addCleanup(temp.cleanup)
+
+        def forbidden_factory(token: str):
+            raise AssertionError("GitHub port must not be created for ordinary prose")
+
+        env = {
+            "GITHUB_EVENT_PATH": path,
+            "GITHUB_REPOSITORY": "Lester-Sparx/zorr-blatt-shared-hq",
+            "GITHUB_RUN_ID": "55",
+            "GITHUB_RUN_ATTEMPT": "1",
+            "GITHUB_SHA": BASE_SHA,
+        }
+        self.assertEqual(main(environ=env, port_factory=forbidden_factory), 0)
+
+    def test_valid_event_runs_base_through_injected_port(self):
+        temp, path = self._write_event(valid_event())
+        self.addCleanup(temp.cleanup)
+        port = RecordingPort()
+        seen_tokens: list[str] = []
+
+        def factory(token: str):
+            seen_tokens.append(token)
+            return port
+
+        env = {
+            "GITHUB_EVENT_PATH": path,
+            "GITHUB_REPOSITORY": "Lester-Sparx/zorr-blatt-shared-hq",
+            "GITHUB_RUN_ID": "12345",
+            "GITHUB_RUN_ATTEMPT": "2",
+            "GITHUB_SHA": BASE_SHA,
+            "GITHUB_TOKEN": "test-token",
+        }
+        self.assertEqual(main(environ=env, port_factory=factory), 0)
+        self.assertEqual(seen_tokens, ["test-token"])
+        self.assertEqual(len(port.created), 10)
+        self.assertIn("OWNER_GATE_REQUIRED = TRUE", port.created[-1])
+
+    def test_workflow_is_issue_comment_only_and_least_privilege(self):
+        text = WORKFLOW_PATH.read_text(encoding="utf-8")
+        required = (
+            "issue_comment:",
+            "types: [created]",
+            "contents: read",
+            "issues: write",
+            "pull-requests: read",
+            "GITHUB_TOKEN: ${{ github.token }}",
+            "python3 scripts/zb_communication_base.py",
+        )
+        for needle in required:
+            self.assertIn(needle, text)
+
+        forbidden = (
+            "contents: write",
+            "actions: write",
+            "pull-requests: write",
+            "workflow_dispatch",
+            "schedule:",
+            "secrets.",
+            "PAT",
+        )
+        for needle in forbidden:
+            self.assertNotIn(needle, text)
 
 
 if __name__ == "__main__":

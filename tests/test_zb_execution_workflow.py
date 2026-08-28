@@ -79,7 +79,9 @@ class ExecutionWorkflowShapeTests(unittest.TestCase):
             "workflow_dispatch:",
             "schedule:",
             "secrets.",
-            "PAT",
+            "GH_PAT",
+            "GITHUB_PAT",
+            "PERSONAL_ACCESS_TOKEN",
             "runs-on: ${{",
             "github.event.comment.body }}",
         ):

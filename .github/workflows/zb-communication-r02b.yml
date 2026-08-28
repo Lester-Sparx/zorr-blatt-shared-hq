@@ -40,7 +40,8 @@ jobs:
           import json
           import os
           from pathlib import Path
-          from scripts.zb_communication_r02b import GitHubApi, admit_event, prepare_substantive_dispatch
+          from scripts.zb_communication_r02b import GitHubApi, admit_event
+          from scripts.zb_communication_r02b_dispatch import prepare_r02b_dispatch_once
 
           event = json.loads(Path(os.environ["ZB_EVENT_FILE"]).read_text(encoding="utf-8"))
           message, _ = admit_event(
@@ -50,14 +51,19 @@ jobs:
               run_attempt=os.environ["GITHUB_RUN_ATTEMPT"],
               github_sha=os.environ["GITHUB_SHA"],
           )
-          decision = prepare_substantive_dispatch(message, event, GitHubApi(os.environ["GITHUB_TOKEN"]))
+          decision = prepare_r02b_dispatch_once(message, event, GitHubApi(os.environ["GITHUB_TOKEN"]))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"request_ready={'true' if decision.state == 'REQUEST_NEW' else 'false'}\n")
+          if decision.state == "REQUEST_REPLAY_BLOCKED":
+              print("R02B_REPLAY_BLOCKED = durable request already exists; execution jobs remain locked")
+              raise SystemExit(0)
           if decision.request_body is None:
               raise SystemExit("R02B_REQUEST_NOT_MATERIALIZED")
           Path(".zb-exec/request/request.txt").write_text(decision.request_body, encoding="utf-8")
           PY
-          echo "request_ready=true" >> "$GITHUB_OUTPUT"
       - name: Upload immutable execution request
         id: upload_request
+        if: steps.request.outputs.request_ready == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: zb-r02b-request-${{ github.run_id }}-${{ github.run_attempt }}
@@ -214,6 +220,46 @@ jobs:
           Remove-Item Env:ZB_COPILOT_VERSION -ErrorAction SilentlyContinue
           $env:ZB_TASK_INVENTORY_JSON = (task --list --json | Out-String)
           python -m scripts.zb_execution_preflight --mode implementation
+      - name: Independently verify exact R02B proof edit
+        shell: powershell
+        env:
+          ZB_CANDIDATE_EVIDENCE_DIR: ${{ github.workspace }}/.zb-exec/duncan/candidate
+        run: |
+          @'
+          import os
+          import re
+          import tempfile
+          from pathlib import Path
+          from scripts.zb_execution_proof_verify import EXPECTED, TARGET, verify_proof_target
+
+          candidate = Path(os.environ["ZB_CANDIDATE_EVIDENCE_DIR"])
+          changed = [line.strip() for line in (candidate / "changed-files.txt").read_text(encoding="utf-8").splitlines() if line.strip()]
+          target = TARGET.as_posix()
+          if changed != [target]:
+              raise SystemExit(f"R02B_PROOF_CHANGED_FILES_MISMATCH:{changed!r}")
+
+          patch = (candidate / "patch.diff").read_text(encoding="utf-8")
+          patch_lines = [line for line in patch.splitlines() if not line.startswith("index ")]
+          expected_hunk = [
+              f"diff --git a/{target} b/{target}",
+              f"--- a/{target}",
+              f"+++ b/{target}",
+              "@@ -1,2 +1,2 @@",
+              " ZB_R02A_PROOF_TARGET_V1",
+              "-STATE = BEFORE",
+              "+STATE = AFTER",
+          ]
+          if patch_lines != expected_hunk:
+              raise SystemExit("R02B_PROOF_PATCH_MISMATCH")
+
+          with tempfile.TemporaryDirectory() as tmp:
+              root = Path(tmp)
+              target_path = root / TARGET
+              target_path.parent.mkdir(parents=True, exist_ok=True)
+              target_path.write_text(EXPECTED, encoding="utf-8")
+              verify_proof_target(root)
+          print("R02B_INDEPENDENT_PROOF_VERIFY = PASS")
+          '@ | python -
       - name: Run independent DUNCAN QC profile
         id: duncan_run
         continue-on-error: true

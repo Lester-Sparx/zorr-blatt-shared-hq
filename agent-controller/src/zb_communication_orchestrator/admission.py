@@ -11,7 +11,7 @@ class WebhookEnvelope:
     repository: str
     pr_number: int
     comment_id: int | None
-    comment_body: str
+    comment_body: str | None
     authenticated_actor: str
     event_type: str
     top_level: bool

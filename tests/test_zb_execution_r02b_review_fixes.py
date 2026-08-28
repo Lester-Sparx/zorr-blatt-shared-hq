@@ -43,7 +43,7 @@ PRODUCTION_ACTIVE = NO
 
 
 def root_body() -> str:
-    return """ZB_AGENT_MESSAGE_R02B_V1
+    return f"""ZB_AGENT_MESSAGE_R02B_V1
 MESSAGE_ID = msg-r02b-review
 EVENT_ID = evt-r02b-review
 CORRELATION_ID = corr-r02b-review
@@ -52,9 +52,9 @@ TASK_ID = ZB_EXECUTION_PROOF_R01
 FROM_ROLE = JINGO
 TO_ROLE = LESTER
 MESSAGE_KIND = ASSIGN
-BASE_SHA = dddddddddddddddddddddddddddddddddddddddddddd
+BASE_SHA = {BASE_SHA}
 TASK_REVISION = 2
-DESIGN_HEAD = 2bdf508e1f265bcf3ce56170cfa4ab08f04c2ec8
+DESIGN_HEAD = {DESIGN_HEAD}
 NO_AUTO_MERGE = TRUE
 """
 

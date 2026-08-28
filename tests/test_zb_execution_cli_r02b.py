@@ -158,6 +158,7 @@ PRODUCTION_ACTIVE = NO
                 self.assertEqual(r02b_cli.main(["execute", "--from-env"]), 0)
 
             self.assertEqual(captured["job_root"], evidence_dir.parent)
+            self.assertIn("worktree_root", captured, "R02B must pass an external worktree root")
             expected_worktree_root = runner_temp / "zb-r02b-123-1"
             self.assertEqual(captured["worktree_root"], expected_worktree_root)
             self.assertNotEqual(captured["worktree_root"], captured["job_root"])

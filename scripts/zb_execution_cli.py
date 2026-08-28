@@ -4,7 +4,7 @@ import argparse
 from datetime import datetime, timezone
 import os
 from pathlib import Path, PurePosixPath
-from typing import Mapping, Sequence
+from typing import Mapping, MutableMapping, Sequence
 
 from scripts.zb_execution_contract import (
     ExecutionRequest,
@@ -13,9 +13,16 @@ from scripts.zb_execution_contract import (
     parse_execution_result,
     render_execution_result,
 )
+from scripts.zb_execution_copilot import CopilotWorker
 from scripts.zb_execution_evidence import EvidenceError, build_evidence_bundle, verify_evidence_manifest
-from scripts.zb_execution_profiles import ExecutionProfileError, resolve_profile
-from scripts.zb_execution_worker import OpenCodeWorker, WorkerError, WorkerPort
+from scripts.zb_execution_profiles import ExecutionProfile, ExecutionProfileError, resolve_profile
+from scripts.zb_execution_worker import (
+    AUTH_ENV_KEYS,
+    OpenCodeWorker,
+    WorkerError,
+    WorkerPort,
+    sanitized_execution_env,
+)
 from scripts.zb_execution_workspace import (
     CommandPort,
     SubprocessCommand,
@@ -116,6 +123,35 @@ def trusted_paths_from_env(env: Mapping[str, str], *, workspace_root: Path) -> d
     return resolved
 
 
+def capture_copilot_token_and_scrub(env: MutableMapping[str, str]) -> str:
+    token = env.get("COPILOT_GITHUB_TOKEN", "")
+    for key in AUTH_ENV_KEYS:
+        env.pop(key, None)
+    return token
+
+
+def build_execution_worker(
+    profile: ExecutionProfile,
+    *,
+    command: CommandPort,
+    workspace_root: Path,
+    job_root: Path,
+    copilot_token: str,
+) -> WorkerPort:
+    if profile.worker_backend == "opencode":
+        return OpenCodeWorker(
+            command=command,
+            config_path=Path(workspace_root).resolve() / "config" / "zb-execution" / "opencode-r01.json",
+        )
+    if profile.worker_backend == "copilot-cli":
+        return CopilotWorker(
+            command=command,
+            auth_token=copilot_token,
+            home_path=Path(job_root).resolve() / "copilot-home",
+        )
+    raise WorkerError("WORKER_BACKEND_REJECTED")
+
+
 def _capture_patch(worktree: Path, command: CommandPort) -> bytes:
     completed = command.run(
         ["git", "-C", str(worktree), "diff", "--binary", "--no-ext-diff", "--no-renames"],
@@ -137,7 +173,7 @@ def _run_verification_commands(
     for argv in commands:
         if not argv or any(not isinstance(part, str) or "\x00" in part for part in argv):
             return False, "INVALID_VERIFICATION_COMMAND\n"
-        completed = command.run(list(argv), cwd=worktree)
+        completed = command.run(list(argv), cwd=worktree, env=sanitized_execution_env())
         chunks.append(f"$ {' '.join(argv)}\n")
         chunks.append(completed.stdout)
         chunks.append(completed.stderr)
@@ -433,17 +469,27 @@ def main(argv: list[str] | None = None) -> int:
         request_path = paths["ZB_EXECUTION_REQUEST_PATH"]
         result_path = paths["ZB_EXECUTION_RESULT_PATH"]
         evidence_dir = paths["ZB_EVIDENCE_DIR"]
-        policy_path = workspace_root / "config" / "zb-execution" / "opencode-r01.json"
+        request_body = request_path.read_text(encoding="utf-8")
+        profile = resolve_profile(parse_execution_request(request_body))
+        copilot_token = capture_copilot_token_and_scrub(os.environ)
+        command = SubprocessCommand()
+        worker = build_execution_worker(
+            profile,
+            command=command,
+            workspace_root=workspace_root,
+            job_root=evidence_dir.parent,
+            copilot_token=copilot_token,
+        )
         result = run_lester_execution(
-            request_path.read_text(encoding="utf-8"),
+            request_body,
             repo_root=workspace_root,
             job_root=evidence_dir.parent,
             execution_id=execution_id,
             workflow_run_id=workflow_run_id,
             workflow_run_attempt=workflow_run_attempt,
             runner_provenance=runner_provenance,
-            worker=OpenCodeWorker(command=SubprocessCommand(), config_path=policy_path),
-            command=SubprocessCommand(),
+            worker=worker,
+            command=command,
             verification_commands=(),
         )
         result_path.write_text(render_execution_result(result), encoding="utf-8")

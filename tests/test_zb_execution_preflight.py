@@ -14,7 +14,11 @@ from scripts.zb_execution_profiles import PROFILES
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TASKS = json.dumps({"tasks": [{"name": "zb:exec:lester:implement-r01"}, {"name": "zb:exec:duncan:qc-r01"}]})
+TASKS = json.dumps({"tasks": [
+    {"name": "zb:exec:lester:implement-r01"},
+    {"name": "zb:exec:lester:implement-r02a"},
+    {"name": "zb:exec:duncan:qc-r01"},
+]})
 RUNNER_SHA256 = "1150692afa94e71f872017e254ea55b6eece1eece3fe7e3a6d4c93d0a1b85cfc"
 TASK_SHA256 = "27c0cd248c12cba03d8958d954a3df981c900be885ec9ce5f6a3cdc4e9a19316"
 OPENCODE_SHA256 = "831e213e5f454d6e8b26f0fb24c7b3d42b40e47d73d154672a9192702eb08416"

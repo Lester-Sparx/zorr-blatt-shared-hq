@@ -44,7 +44,7 @@ class CommandRunner(Protocol):
     ) -> Completed: ...
 
 
-_STRIP_ENV = frozenset(
+AUTH_ENV_KEYS = frozenset(
     {
         "GITHUB_TOKEN",
         "GH_TOKEN",
@@ -53,8 +53,26 @@ _STRIP_ENV = frozenset(
         "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
         "ACTIONS_RUNTIME_TOKEN",
         "ACTIONS_RESULTS_URL",
+        "COPILOT_GITHUB_TOKEN",
+        "COPILOT_PROVIDER_API_KEY",
+        "COPILOT_PROVIDER_BASE_URL",
+        "COPILOT_ALLOW_ALL",
+        "COPILOT_MODEL",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
     }
 )
+_STRIP_ENV = AUTH_ENV_KEYS
+
+
+def sanitized_execution_env(base: Mapping[str, str] | None = None) -> dict[str, str]:
+    env = dict(os.environ if base is None else base)
+    for key in AUTH_ENV_KEYS:
+        env.pop(key, None)
+    return env
+
 
 _PROJECT_CONFIG_PATHS = ("opencode.json", "opencode.jsonc", ".opencode")
 
@@ -78,9 +96,7 @@ class OpenCodeWorker:
         self._expected_version = expected_version
 
     def _environment(self) -> dict[str, str]:
-        env = dict(os.environ)
-        for key in _STRIP_ENV:
-            env.pop(key, None)
+        env = sanitized_execution_env()
         env["OPENCODE_CONFIG"] = str(self._config_path)
         env["OPENCODE_DISABLE_AUTOUPDATE"] = "true"
         env["OPENCODE_AUTO_SHARE"] = "false"

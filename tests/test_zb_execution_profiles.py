@@ -5,6 +5,7 @@ from pathlib import Path
 import unittest
 
 from scripts.zb_execution_contract import parse_execution_request
+import scripts.zb_execution_profiles as execution_profiles
 from scripts.zb_execution_profiles import (
     OPENCODE_VERSION,
     PROFILES,
@@ -49,19 +50,32 @@ def request_body(**overrides: str) -> str:
 
 
 class ProfileRegistryTests(unittest.TestCase):
-    def test_registry_contains_only_initial_static_profiles(self) -> None:
-        self.assertEqual(set(PROFILES), {"LESTER_IMPLEMENT_R01", "DUNCAN_QC_R01"})
+    def test_registry_contains_only_static_profiles_including_r02a(self) -> None:
+        self.assertEqual(set(PROFILES), {"LESTER_IMPLEMENT_R01", "LESTER_IMPLEMENT_R02A", "DUNCAN_QC_R01"})
         self.assertEqual(PROFILES["LESTER_IMPLEMENT_R01"].task_name, "zb:exec:lester:implement-r01")
         self.assertEqual(PROFILES["LESTER_IMPLEMENT_R01"].worker_backend, "opencode")
         self.assertEqual(PROFILES["LESTER_IMPLEMENT_R01"].max_timeout_seconds, 1800)
+        r02a = PROFILES["LESTER_IMPLEMENT_R02A"]
+        self.assertEqual(r02a.logical_role, "LESTER")
+        self.assertEqual(r02a.task_name, "zb:exec:lester:implement-r02a")
+        self.assertEqual(r02a.worker_backend, "copilot-cli")
+        self.assertEqual(r02a.max_timeout_seconds, 1800)
         self.assertEqual(PROFILES["DUNCAN_QC_R01"].task_name, "zb:exec:duncan:qc-r01")
         self.assertEqual(PROFILES["DUNCAN_QC_R01"].worker_backend, "deterministic-qc")
         self.assertEqual(PROFILES["DUNCAN_QC_R01"].max_timeout_seconds, 900)
+        self.assertEqual(getattr(execution_profiles, "COPILOT_CLI_VERSION", None), "1.0.80")
+        self.assertEqual(getattr(execution_profiles, "COPILOT_MODEL", None), "gpt-5.3-codex")
 
     def test_resolve_profile_accepts_exact_authorized_request(self) -> None:
         profile = resolve_profile(parse_execution_request(request_body()))
         self.assertEqual(profile.name, "LESTER_IMPLEMENT_R01")
         self.assertEqual(profile.logical_role, "LESTER")
+
+    def test_resolve_profile_accepts_exact_r02a_request(self) -> None:
+        profile = resolve_profile(parse_execution_request(request_body(EXECUTION_PROFILE="LESTER_IMPLEMENT_R02A")))
+        self.assertEqual(profile.name, "LESTER_IMPLEMENT_R02A")
+        self.assertEqual(profile.logical_role, "LESTER")
+        self.assertEqual(profile.worker_backend, "copilot-cli")
 
     def test_unknown_profile_rejected(self) -> None:
         request = parse_execution_request(request_body(EXECUTION_PROFILE="UNKNOWN_R01"))
@@ -99,18 +113,20 @@ class TaskAuthorityTests(unittest.TestCase):
             {
                 "tasks": [
                     {"name": "zb:exec:lester:implement-r01"},
+                    {"name": "zb:exec:lester:implement-r02a"},
                     {"name": "zb:exec:duncan:qc-r01"},
                 ]
             }
         )
         validate_task_inventory(task_json, PROFILES["LESTER_IMPLEMENT_R01"])
         validate_task_inventory(task_json, PROFILES["DUNCAN_QC_R01"])
+        validate_task_inventory(task_json, PROFILES["LESTER_IMPLEMENT_R02A"])
 
     def test_task_inventory_rejects_missing_extra_or_dynamic_names(self) -> None:
         bad_inventories = (
-            {"tasks": [{"name": "zb:exec:lester:implement-r01"}]},
-            {"tasks": [{"name": "zb:exec:lester:implement-r01"}, {"name": "zb:exec:duncan:qc-r01"}, {"name": "extra"}]},
-            {"tasks": [{"name": "zb:exec:lester:{{.CLI_ARGS}}"}, {"name": "zb:exec:duncan:qc-r01"}]},
+            {"tasks": [{"name": "zb:exec:lester:implement-r01"}, {"name": "zb:exec:duncan:qc-r01"}]},
+            {"tasks": [{"name": "zb:exec:lester:implement-r01"}, {"name": "zb:exec:lester:implement-r02a"}, {"name": "zb:exec:duncan:qc-r01"}, {"name": "extra"}]},
+            {"tasks": [{"name": "zb:exec:lester:{{.CLI_ARGS}}"}, {"name": "zb:exec:lester:implement-r02a"}, {"name": "zb:exec:duncan:qc-r01"}]},
         )
         for inventory in bad_inventories:
             with self.subTest(inventory=inventory), self.assertRaises(ExecutionProfileError):
@@ -121,6 +137,7 @@ class TaskAuthorityTests(unittest.TestCase):
         validate_taskfile_text(text)
         self.assertIn("version: '3'", text)
         self.assertIn("zb:exec:lester:implement-r01", text)
+        self.assertIn("zb:exec:lester:implement-r02a", text)
         self.assertIn("zb:exec:duncan:qc-r01", text)
         self.assertIn("python -m scripts.zb_execution_cli execute --from-env", text)
         self.assertIn("python -m scripts.zb_execution_cli qc --from-env", text)
@@ -145,6 +162,8 @@ class ToolchainPinTests(unittest.TestCase):
     def test_exact_versions_are_required(self) -> None:
         self.assertEqual(TASK_VERSION, "3.53.1")
         self.assertEqual(OPENCODE_VERSION, "1.18.25")
+        self.assertEqual(getattr(execution_profiles, "COPILOT_CLI_VERSION", None), "1.0.80")
+        self.assertEqual(getattr(execution_profiles, "COPILOT_MODEL", None), "gpt-5.3-codex")
         validate_toolchain_versions(task_version="3.53.1", opencode_version=None)
         validate_toolchain_versions(task_version="3.53.1", opencode_version="1.18.25")
         with self.assertRaisesRegex(ExecutionProfileError, "TASK_VERSION_MISMATCH"):

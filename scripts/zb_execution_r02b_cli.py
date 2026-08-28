@@ -94,7 +94,6 @@ def main(argv: list[str] | None = None) -> int:
         command=command,
         verification_commands=((sys.executable, "-m", "scripts.zb_execution_proof_verify"),),
     )
-    result_path.write_text(render_execution_result(result), encoding="utf-8")
     return 0 if result.terminal_state == "PASS" else 1
 
 

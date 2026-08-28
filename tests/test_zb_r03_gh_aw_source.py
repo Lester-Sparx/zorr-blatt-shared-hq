@@ -20,6 +20,7 @@ class R03GhAwSourceTests(unittest.TestCase):
         text = self.source()
         self.assertIn("workflow_call:", text)
         self.assertIn("engine: copilot", text)
+        self.assertIn("model: auto", text)
         self.assertIn("strict: true", text)
         self.assertNotIn("schedule:", text)
         self.assertNotIn("issue_comment:", text)
@@ -87,6 +88,20 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertNotIn("/latest/", text)
         self.assertNotIn("curl |", text)
         self.assertNotIn("curl -sL", text)
+
+    def test_generated_lock_sync_is_same_repo_owner_only_and_path_bounded(self):
+        if not COMPILE_WORKFLOW.is_file():
+            self.skipTest("compile workflow is added after source GREEN")
+        text = COMPILE_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("sync-generated-lock:", text)
+        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", text)
+        self.assertIn("github.actor == 'Lester-Sparx'", text)
+        self.assertIn("contents: write", text)
+        self.assertIn("git diff --cached --name-only", text)
+        self.assertIn(".github/workflows/zb-r03-lester-agent.lock.yml", text)
+        self.assertIn("R03_LOCK_SYNC_SCOPE_VIOLATION", text)
+        self.assertNotIn("pull_request_target:", text)
+        self.assertNotIn("secrets: inherit", text)
 
 
 if __name__ == "__main__":

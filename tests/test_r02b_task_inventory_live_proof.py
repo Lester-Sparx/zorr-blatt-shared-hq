@@ -29,6 +29,19 @@ class R02BV2HostedSourceCleanlinessTests(unittest.TestCase):
         for job in (lester, duncan):
             self.assertIn('PYTHONDONTWRITEBYTECODE: "1"', job)
 
+    def test_windows_lester_uses_hash_pinned_native_copilot(self):
+        workflow = WORKFLOW.read_text(encoding='utf-8')
+        lester = workflow.split('  lester_execute:\n', 1)[1].split('  duncan_qc:\n', 1)[0]
+        self.assertNotIn('npm install --global @github/copilot@1.0.80', lester)
+        self.assertIn(
+            'https://github.com/github/copilot-cli/releases/download/v1.0.80/copilot-win32-x64.zip',
+            lester,
+        )
+        self.assertIn('e9ea2063913faa8a9f1cf374529c5fea075da0545a894d7469026166f854c541', lester.lower())
+        self.assertIn('Get-FileHash -Algorithm SHA256', lester)
+        self.assertIn("'copilot.exe'", lester)
+        self.assertIn('$env:GITHUB_PATH', lester)
+
 
 if __name__ == '__main__':
     unittest.main()

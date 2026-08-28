@@ -144,31 +144,31 @@ class TaskAuthorityTests(unittest.TestCase):
 class ToolchainPinTests(unittest.TestCase):
     def test_exact_versions_are_required(self) -> None:
         self.assertEqual(TASK_VERSION, "3.53.1")
-        self.assertEqual(OPENCODE_VERSION, "1.18.17")
+        self.assertEqual(OPENCODE_VERSION, "1.18.25")
         validate_toolchain_versions(task_version="3.53.1", opencode_version=None)
-        validate_toolchain_versions(task_version="3.53.1", opencode_version="1.18.17")
+        validate_toolchain_versions(task_version="3.53.1", opencode_version="1.18.25")
         with self.assertRaisesRegex(ExecutionProfileError, "TASK_VERSION_MISMATCH"):
             validate_toolchain_versions(task_version="3.53.0", opencode_version=None)
         with self.assertRaisesRegex(ExecutionProfileError, "OPENCODE_VERSION_MISMATCH"):
-            validate_toolchain_versions(task_version="3.53.1", opencode_version="1.18.16")
+            validate_toolchain_versions(task_version="3.53.1", opencode_version="1.18.24")
 
     def test_toolchain_manifest_contains_exact_approved_pins(self) -> None:
         manifest = json.loads((ROOT / "config/zb-execution/toolchain-r01.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["actions_runner"]["version"], "2.334.0")
+        self.assertEqual(manifest["actions_runner"]["version"], "2.337.0")
         self.assertEqual(
             manifest["actions_runner"]["windows_x64_sha256"],
-            "a0c896f3acf37841cc17f392a38111d39501e56f2990434567f027ee89cf8981",
+            "1150692afa94e71f872017e254ea55b6eece1eece3fe7e3a6d4c93d0a1b85cfc",
         )
         self.assertEqual(manifest["task"]["version"], "3.53.1")
         self.assertEqual(
             manifest["task"]["windows_amd64_sha256"],
             "27c0cd248c12cba03d8958d954a3df981c900be885ec9ce5f6a3cdc4e9a19316",
         )
-        self.assertEqual(manifest["opencode"]["version"], "1.18.17")
+        self.assertEqual(manifest["opencode"]["version"], "1.18.25")
         self.assertEqual(manifest["opencode"]["windows_x64_asset"], "opencode-windows-x64.zip")
         self.assertEqual(
             manifest["opencode"]["windows_x64_sha256"],
-            "25fbb765761a5bbc5a9941ae4f2e2ac365558228221f781bf35c6e31135f4b1f",
+            "831e213e5f454d6e8b26f0fb24c7b3d42b40e47d73d154672a9192702eb08416",
         )
         self.assertEqual(manifest["actions"]["checkout_v4"], "11d5960a326750d5838078e36cf38b85af677262")
         self.assertEqual(manifest["actions"]["upload_artifact_v7"], "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a")

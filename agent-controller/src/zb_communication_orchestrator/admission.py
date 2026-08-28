@@ -10,7 +10,7 @@ class WebhookEnvelope:
     producer_event_id: str
     repository: str
     pr_number: int
-    comment_id: int
+    comment_id: int | None
     comment_body: str
     authenticated_actor: str
     event_type: str

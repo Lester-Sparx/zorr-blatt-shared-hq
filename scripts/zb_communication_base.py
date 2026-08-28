@@ -5,12 +5,14 @@ import os
 import re
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Protocol
 
 REPOSITORY = "Lester-Sparx/zorr-blatt-shared-hq"
 COMMUNICATION_PR = 111
 TRACKER_ISSUE = 106
+CONSOLE_ISSUE = 39
 TRANSPORT_ACTOR = "Lester-Sparx"
 STATE_WRITER = "github-actions[bot]"
 TASK_ID = "ZB_GITHUB_NATIVE_BASE_R01"
@@ -20,6 +22,7 @@ APPROVED_DESIGN_HEAD = "81c44232b72b4a98c8ad0ac2ea6a0a2876f988bc"
 MARKER = "ZB_AGENT_MESSAGE_V1"
 API_ROOT = "https://api.github.com"
 TRACKER_ISSUE_URL = f"{API_ROOT}/repos/{REPOSITORY}/issues/{TRACKER_ISSUE}"
+CONSOLE_ISSUE_URL = f"{API_ROOT}/repos/{REPOSITORY}/issues/{CONSOLE_ISSUE}"
 
 EXPECTED_STAGES = (
     ("JINGO", "LESTER", "ASSIGN"),
@@ -77,8 +80,10 @@ class EventContext:
 
 class GitHubPort(Protocol):
     def create_tracker_comment(self, body: str) -> int: ...
+    def create_console_comment(self, body: str) -> int: ...
     def read_comment(self, comment_id: int) -> dict[str, Any]: ...
     def list_tracker_comments(self) -> list[dict[str, Any]]: ...
+    def list_console_comments(self) -> list[dict[str, Any]]: ...
 
 
 class GitHubApi:
@@ -110,12 +115,18 @@ class GitHubApi:
         except json.JSONDecodeError as exc:
             raise PersistenceError("GitHub API returned invalid JSON") from exc
 
-    def create_tracker_comment(self, body: str) -> int:
-        result = self._request_json(f"{TRACKER_ISSUE_URL}/comments", method="POST", payload={"body": body})
+    def _create_issue_comment(self, issue_url: str, body: str) -> int:
+        result = self._request_json(f"{issue_url}/comments", method="POST", payload={"body": body})
         comment_id = result.get("id") if isinstance(result, dict) else None
         if not isinstance(comment_id, int) or isinstance(comment_id, bool) or comment_id <= 0:
             raise PersistenceError("GitHub API did not return a numeric comment ID")
         return comment_id
+
+    def create_tracker_comment(self, body: str) -> int:
+        return self._create_issue_comment(TRACKER_ISSUE_URL, body)
+
+    def create_console_comment(self, body: str) -> int:
+        return self._create_issue_comment(CONSOLE_ISSUE_URL, body)
 
     def read_comment(self, comment_id: int) -> dict[str, Any]:
         if not isinstance(comment_id, int) or isinstance(comment_id, bool) or comment_id <= 0:
@@ -125,35 +136,50 @@ class GitHubApi:
             raise PersistenceError("GitHub comment read returned non-object")
         return result
 
-    def list_tracker_comments(self) -> list[dict[str, Any]]:
+    def _list_issue_comments(self, issue_url: str, label: str) -> list[dict[str, Any]]:
         comments: list[dict[str, Any]] = []
         for page in range(1, 21):
-            result = self._request_json(f"{TRACKER_ISSUE_URL}/comments?per_page=100&page={page}")
+            result = self._request_json(f"{issue_url}/comments?per_page=100&page={page}")
             if not isinstance(result, list) or not all(isinstance(item, dict) for item in result):
-                raise PersistenceError("GitHub tracker comment list returned invalid data")
+                raise PersistenceError(f"GitHub {label} comment list returned invalid data")
             comments.extend(result)
             if len(result) < 100:
                 return comments
-        raise PersistenceError("tracker pagination exceeded safety bound")
+        raise PersistenceError(f"{label} pagination exceeded safety bound")
+
+    def list_tracker_comments(self) -> list[dict[str, Any]]:
+        return self._list_issue_comments(TRACKER_ISSUE_URL, "tracker")
+
+    def list_console_comments(self) -> list[dict[str, Any]]:
+        return self._list_issue_comments(CONSOLE_ISSUE_URL, "console")
 
 
-def write_and_verify(port: GitHubPort, body: str) -> int:
-    comment_id = port.create_tracker_comment(body)
-    readback = port.read_comment(comment_id)
+def _verify_comment(readback: dict[str, Any], *, comment_id: int, body: str, issue_url: str) -> None:
     if readback.get("id") != comment_id:
         raise PersistenceError("comment ID read-back mismatch")
     if readback.get("body") != body:
         raise PersistenceError("comment body read-back mismatch")
-    if readback.get("issue_url") != TRACKER_ISSUE_URL:
+    if readback.get("issue_url") != issue_url:
         raise PersistenceError("comment container read-back mismatch")
+
+
+def write_and_verify(port: GitHubPort, body: str) -> int:
+    comment_id = port.create_tracker_comment(body)
+    _verify_comment(port.read_comment(comment_id), comment_id=comment_id, body=body, issue_url=TRACKER_ISSUE_URL)
     return comment_id
 
 
-def _parse_receipt_fields(body: Any) -> dict[str, str] | None:
+def _write_console_and_verify(port: GitHubPort, body: str) -> int:
+    comment_id = port.create_console_comment(body)
+    _verify_comment(port.read_comment(comment_id), comment_id=comment_id, body=body, issue_url=CONSOLE_ISSUE_URL)
+    return comment_id
+
+
+def _parse_marker_fields(body: Any, marker: str) -> dict[str, str] | None:
     if not isinstance(body, str):
         return None
     lines = body.splitlines()
-    if not lines or lines[0] != "ZB_AGENT_RECEIPT_V1":
+    if not lines or lines[0] != marker:
         return None
     values: dict[str, str] = {}
     for line in lines[1:]:
@@ -166,13 +192,21 @@ def _parse_receipt_fields(body: Any) -> dict[str, str] | None:
     return values
 
 
+def _parse_receipt_fields(body: Any) -> dict[str, str] | None:
+    return _parse_marker_fields(body, "ZB_AGENT_RECEIPT_V1")
+
+
+def _trusted_comment(comment: dict[str, Any], issue_url: str) -> bool:
+    if comment.get("issue_url") != issue_url:
+        return False
+    user = comment.get("user") or {}
+    return user.get("login") == STATE_WRITER
+
+
 def _is_replay(message: RootMessage, context: EventContext, port: GitHubPort) -> bool:
     expected_source = str(context.comment_id)
     for comment in port.list_tracker_comments():
-        if comment.get("issue_url") != TRACKER_ISSUE_URL:
-            continue
-        user = comment.get("user") or {}
-        if user.get("login") != STATE_WRITER:
+        if not _trusted_comment(comment, TRACKER_ISSUE_URL):
             continue
         fields = _parse_receipt_fields(comment.get("body"))
         if not fields:
@@ -182,6 +216,39 @@ def _is_replay(message: RootMessage, context: EventContext, port: GitHubPort) ->
         if fields.get("SOURCE_COMMENT_ID") != expected_source:
             continue
         if fields.get("STATE") in _REPLAY_STATES:
+            return True
+    return False
+
+
+def _terminal_owner_view_exists(message: RootMessage, context: EventContext, port: GitHubPort) -> bool:
+    expected_source = str(context.comment_id)
+    for comment in port.list_tracker_comments():
+        if not _trusted_comment(comment, TRACKER_ISSUE_URL):
+            continue
+        fields = _parse_marker_fields(comment.get("body"), "ZB_OWNER_VIEW_V0")
+        if not fields:
+            continue
+        if fields.get("MESSAGE_ID") != message.message_id:
+            continue
+        if fields.get("SOURCE_COMMENT_ID") != expected_source:
+            continue
+        if fields.get("OWNER_GATE_REQUIRED") == "TRUE":
+            return True
+    return False
+
+
+def _projection_binding_line(message: RootMessage, context: EventContext) -> str:
+    execution_id = f"github-actions:{context.run_id}:{context.run_attempt}"
+    return f"GATE = PROJECTION_BINDING | DONE | source_comment_id={context.comment_id} correlation_id={message.correlation_id} run={execution_id}"
+
+
+def _console_projection_exists(message: RootMessage, context: EventContext, port: GitHubPort) -> bool:
+    binding = _projection_binding_line(message, context)
+    for comment in port.list_console_comments():
+        if not _trusted_comment(comment, CONSOLE_ISSUE_URL):
+            continue
+        body = comment.get("body")
+        if isinstance(body, str) and body.startswith("ZB_OWNER_VIEW_V0\n") and binding in body.splitlines():
             return True
     return False
 
@@ -246,8 +313,38 @@ def _owner_view_body(message: RootMessage, context: EventContext) -> str:
     return "\n".join(lines)
 
 
+def _console_projection_body(message: RootMessage, context: EventContext) -> str:
+    updated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    execution_id = f"github-actions:{context.run_id}:{context.run_attempt}"
+    lines = [
+        "ZB_OWNER_VIEW_V0",
+        f"UPDATED_AT = {updated_at}",
+        "OVERALL_STATUS = WAITING",
+        "SPARX_ACTION = OWNER_GATE_REQUIRED",
+        f"WHY = formal GitHub-native workflow reached OWNER gate; source_comment_id={context.comment_id}; correlation_id={message.correlation_id}; run={execution_id}; substantive execution is not connected",
+        "SCOUT_LAST_CHECK = UNKNOWN",
+        "SCOUT_SUMMARY = NONE",
+        "AGENT = JINGO | UNKNOWN | substantive execution not connected | NONE | execution adapter not connected | await authorized task adapter",
+        "AGENT = LESTER | UNKNOWN | substantive execution not connected | NONE | execution adapter not connected | await authorized task adapter",
+        "AGENT = DUNCAN | UNKNOWN | substantive independent QC not connected | NONE | QC execution adapter not connected | await authorized QC adapter",
+        "AGENT = SALVADOR | UNKNOWN | not part of this base workflow | NONE | NONE | await authorized art task",
+        "AGENT = LYNCH | UNKNOWN | not part of this base workflow | NONE | NONE | await authorized directing task",
+        "AGENT = MAO | UNKNOWN | not part of this base workflow | NONE | NONE | await authorized task",
+        "AGENT = CHARLIE | UNKNOWN | not part of this base workflow | NONE | NONE | await authorized task",
+        "AGENT = MEMORO | UNKNOWN | not part of this base workflow | NONE | NONE | await authorized task",
+        "GATE = BASE_AUTOMATION | DONE | formal workflow completed with durable OWNER gate",
+        "GATE = OWNER_GATE | WAITING | human OWNER decision required; no automatic OWNER execution",
+        "GATE = SUBSTANTIVE_EXECUTION | WAITING | real task execution adapter not connected",
+        _projection_binding_line(message, context),
+    ]
+    return "\n".join(lines)
+
+
 def run_base(message: RootMessage, context: EventContext, port: GitHubPort) -> str:
     if _is_replay(message, context, port):
+        if _terminal_owner_view_exists(message, context, port) and not _console_projection_exists(message, context, port):
+            _write_console_and_verify(port, _console_projection_body(message, context))
+            return "OWNER_GATE_REQUIRED"
         return "NOOP_REPLAY"
 
     first = EXPECTED_STAGES[0]
@@ -260,6 +357,7 @@ def run_base(message: RootMessage, context: EventContext, port: GitHubPort) -> s
         write_and_verify(port, _receipt_body(message, context, from_role=from_role, to_role=to_role, message_kind=message_kind, state="RESULT", result_code="PASS", execution_id=execution_id))
 
     write_and_verify(port, _owner_view_body(message, context))
+    _write_console_and_verify(port, _console_projection_body(message, context))
     return "OWNER_GATE_REQUIRED"
 
 

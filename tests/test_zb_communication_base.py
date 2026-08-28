@@ -5,6 +5,7 @@ import json
 import sys
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -28,6 +29,7 @@ from zb_communication_base import (  # noqa: E402
 
 BASE_SHA = "a" * 40
 TRACKER_URL = "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106"
+CONSOLE_URL = "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/39"
 BOT = "github-actions[bot]"
 VALID_BODY = f"""ZB_AGENT_MESSAGE_V1
 MESSAGE_ID = zb-native-r01-msg-001
@@ -149,8 +151,13 @@ class PersistenceBoundaryTest(unittest.TestCase):
 
 
 class RecordingPort:
-    def __init__(self, existing: list[dict] | None = None):
-        self.comments = list(existing or []); self.created: list[str] = []; self.next_id = 10000
+    def __init__(self, existing: list[dict] | None = None, existing_console: list[dict] | None = None):
+        self.comments = list(existing or [])
+        self.console_comments = list(existing_console or [])
+        self.created: list[str] = []
+        self.console_created: list[str] = []
+        used_ids = [comment.get("id") for comment in self.comments + self.console_comments if isinstance(comment.get("id"), int)]
+        self.next_id = max(used_ids, default=9999) + 1
 
     def create_tracker_comment(self, body: str) -> int:
         comment_id = self.next_id; self.next_id += 1
@@ -158,14 +165,23 @@ class RecordingPort:
         self.created.append(body)
         return comment_id
 
+    def create_console_comment(self, body: str) -> int:
+        comment_id = self.next_id; self.next_id += 1
+        self.console_comments.append({"id": comment_id, "body": body, "issue_url": CONSOLE_URL, "user": {"login": BOT}})
+        self.console_created.append(body)
+        return comment_id
+
     def read_comment(self, comment_id: int) -> dict:
-        for comment in self.comments:
+        for comment in self.comments + self.console_comments:
             if comment.get("id") == comment_id:
                 return dict(comment)
         raise AssertionError(f"missing comment {comment_id}")
 
     def list_tracker_comments(self) -> list[dict]:
         return [dict(comment) for comment in self.comments]
+
+    def list_console_comments(self) -> list[dict]:
+        return [dict(comment) for comment in self.console_comments]
 
 
 def receipt_record(message, context, *, state="RECEIVED", writer=BOT, issue_url=TRACKER_URL) -> dict:
@@ -175,6 +191,49 @@ def receipt_record(message, context, *, state="RECEIVED", writer=BOT, issue_url=
         "user": {"login": writer},
         "body": "\n".join(["ZB_AGENT_RECEIPT_V1", f"MESSAGE_ID = {message.message_id}", f"SOURCE_COMMENT_ID = {context.comment_id}", f"STATE = {state}"]),
     }
+
+
+def assert_console_contract(test: unittest.TestCase, body: str) -> None:
+    required_scalars = {"UPDATED_AT", "OVERALL_STATUS", "SPARX_ACTION", "WHY", "SCOUT_LAST_CHECK", "SCOUT_SUMMARY"}
+    required_agents = {"JINGO", "LESTER", "DUNCAN", "SALVADOR", "LYNCH", "MAO", "CHARLIE", "MEMORO"}
+    allowed_statuses = {"WORKING", "WAITING", "BLOCKED", "FAIL", "DONE", "UNKNOWN", "STALE"}
+    lines = body.splitlines()
+    test.assertEqual(lines[0], "ZB_OWNER_VIEW_V0")
+    scalars: dict[str, str] = {}
+    agents: dict[str, tuple[str, ...]] = {}
+    gates: dict[str, tuple[str, ...]] = {}
+    for line in lines[1:]:
+        if line.startswith("AGENT = "):
+            parts = tuple(part.strip() for part in line.removeprefix("AGENT = ").split("|"))
+            test.assertEqual(len(parts), 6)
+            agents[parts[0]] = parts
+            test.assertIn(parts[1], allowed_statuses)
+            continue
+        if line.startswith("GATE = "):
+            parts = tuple(part.strip() for part in line.removeprefix("GATE = ").split("|"))
+            test.assertEqual(len(parts), 3)
+            gates[parts[0]] = parts
+            test.assertIn(parts[1], allowed_statuses)
+            continue
+        test.assertIn(" = ", line)
+        key, value = line.split(" = ", 1)
+        test.assertIn(key, required_scalars)
+        test.assertNotIn(key, scalars)
+        test.assertTrue(value)
+        scalars[key] = value
+    test.assertEqual(set(scalars), required_scalars)
+    test.assertEqual(set(agents), required_agents)
+    test.assertTrue(gates)
+    datetime.fromisoformat(scalars["UPDATED_AT"].replace("Z", "+00:00"))
+    test.assertEqual(scalars["OVERALL_STATUS"], "WAITING")
+    test.assertEqual(scalars["SPARX_ACTION"], "OWNER_GATE_REQUIRED")
+    test.assertEqual(scalars["SCOUT_LAST_CHECK"], "UNKNOWN")
+    test.assertEqual(scalars["SCOUT_SUMMARY"], "NONE")
+    for agent in required_agents:
+        test.assertEqual(agents[agent][1], "UNKNOWN")
+    test.assertEqual(gates["BASE_AUTOMATION"][1], "DONE")
+    test.assertEqual(gates["OWNER_GATE"][1], "WAITING")
+    test.assertEqual(gates["SUBSTANTIVE_EXECUTION"][1], "WAITING")
 
 
 class StateMachineTest(unittest.TestCase):
@@ -198,9 +257,28 @@ class StateMachineTest(unittest.TestCase):
         self.assertTrue(owner.startswith("ZB_OWNER_VIEW_V0\n")); self.assertIn("OWNER_GATE_REQUIRED = TRUE", owner); self.assertIn("OWNER_ACTION_REQUIRED = TRUE", owner)
         combined = "\n".join(port.created); self.assertNotIn("LOGICAL_TO_ROLE = OWNER", combined); self.assertNotIn("MESSAGE_KIND = OWNER", combined)
 
+    def test_happy_path_projects_console_compatible_owner_snapshot(self):
+        message, context = admitted(); port = RecordingPort()
+        self.assertEqual(run_base(message, context, port), "OWNER_GATE_REQUIRED")
+        self.assertEqual(len(port.console_created), 1)
+        projection = port.console_created[0]
+        assert_console_contract(self, projection)
+        self.assertIn("source_comment_id=9001", projection)
+        self.assertIn("correlation_id=zb-native-r01", projection)
+        self.assertIn("run=github-actions:12345:2", projection)
+
+    def test_terminal_replay_repairs_missing_console_projection_once(self):
+        message, context = admitted(); first = RecordingPort()
+        self.assertEqual(run_base(message, context, first), "OWNER_GATE_REQUIRED")
+        replay = RecordingPort(existing=first.comments)
+        self.assertEqual(run_base(message, context, replay), "OWNER_GATE_REQUIRED")
+        self.assertEqual(replay.created, [])
+        self.assertEqual(len(replay.console_created), 1)
+        assert_console_contract(self, replay.console_created[0])
+
     def test_trusted_bot_replay_is_noop_without_duplicate_writes(self):
         message, context = admitted(); port = RecordingPort([receipt_record(message, context)])
-        self.assertEqual(run_base(message, context, port), "NOOP_REPLAY"); self.assertEqual(port.created, [])
+        self.assertEqual(run_base(message, context, port), "NOOP_REPLAY"); self.assertEqual(port.created, []); self.assertEqual(port.console_created, [])
 
     def test_foreign_or_wrong_container_receipt_cannot_suppress_execution(self):
         message, context = admitted()
@@ -230,7 +308,7 @@ class EntrypointWorkflowTest(unittest.TestCase):
         temp, path = self._write_event(valid_event()); self.addCleanup(temp.cleanup); port = RecordingPort(); seen = []
         def factory(token: str): seen.append(token); return port
         env = {"GITHUB_EVENT_PATH": path, "GITHUB_REPOSITORY": "Lester-Sparx/zorr-blatt-shared-hq", "GITHUB_RUN_ID": "12345", "GITHUB_RUN_ATTEMPT": "2", "GITHUB_SHA": BASE_SHA, "GITHUB_TOKEN": "test-token"}
-        self.assertEqual(main(environ=env, port_factory=factory), 0); self.assertEqual(seen, ["test-token"]); self.assertEqual(len(port.created), 10); self.assertIn("OWNER_GATE_REQUIRED = TRUE", port.created[-1])
+        self.assertEqual(main(environ=env, port_factory=factory), 0); self.assertEqual(seen, ["test-token"]); self.assertEqual(len(port.created), 10); self.assertEqual(len(port.console_created), 1); self.assertIn("OWNER_GATE_REQUIRED = TRUE", port.created[-1])
 
     def test_workflow_is_issue_comment_only_and_least_privilege(self):
         text = WORKFLOW_PATH.read_text(encoding="utf-8")

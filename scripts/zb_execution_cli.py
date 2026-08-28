@@ -211,6 +211,7 @@ def run_lester_execution(
     *,
     repo_root: Path,
     job_root: Path,
+    worktree_root: Path | None = None,
     execution_id: str,
     workflow_run_id: str,
     workflow_run_attempt: int,
@@ -227,7 +228,9 @@ def run_lester_execution(
     repo_root = Path(repo_root).resolve()
     job_root = Path(job_root).resolve()
     job_root.mkdir(parents=True, exist_ok=True)
-    worktree = job_root / "worktree"
+    worktree_parent = job_root if worktree_root is None else Path(worktree_root).resolve()
+    worktree_parent.mkdir(parents=True, exist_ok=True)
+    worktree = worktree_parent / "worktree"
     evidence_dir = job_root / "evidence"
     replay = _load_verified_replay(evidence_dir, request_body)
     if replay is not None:

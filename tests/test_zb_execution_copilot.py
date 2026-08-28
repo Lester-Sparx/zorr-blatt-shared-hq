@@ -108,9 +108,10 @@ class CopilotWorkerTests(unittest.TestCase):
                 "--allow-tool=write", "--disable-builtin-mcps", "--no-auto-update",
                 "--no-custom-instructions", "--no-experimental", "--no-remote",
                 "--no-remote-export", "--disallow-temp-dir", "--output-format=json",
-                "--no-banner", "--no-color",
+                "--no-color",
             ):
                 self.assertIn(token, argv)
+            self.assertNotIn("--no-banner", argv)
             joined = " ".join(argv).lower()
             for forbidden in ("--yolo", "--allow-all", "--allow-all-tools", "apply_patch", "bash", "powershell", "web_fetch", "task"):
                 self.assertNotIn(forbidden, joined)

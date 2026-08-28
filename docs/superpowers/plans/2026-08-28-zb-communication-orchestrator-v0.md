@@ -76,7 +76,7 @@
 - [ ] Write RED tests for successful write -> remote ID -> fresh exact-ID read -> canonical body equality.
 - [ ] Add failure tests for missing ID, write exception, 404/read exception, body mismatch, wrong remote actor/body mutation, and ambiguous acknowledgement.
 - [ ] Add reconciliation test: write succeeded but acknowledgement was lost; retry must fresh-read/reconcile the same intended receipt and must not imply a second execution.
-- [ ] Implement `persist_and_verify(...)` returning a verified remote receipt reference only after MATCH.
+- [ ] Implement `persist_and_verify` as the only helper allowed to return a verified remote receipt reference, and only after MATCH.
 - [ ] Run targeted tests GREEN.
 - [ ] Commit: `feat: enforce receipt write read-back law`.
 
@@ -175,13 +175,13 @@
 - Create: `agent-controller/tests/test_communication_owner_view.py`
 - Modify: `agent-controller/src/zb_local_controller/owner_snapshot.py`
 - Modify: `agent-controller/tests/test_owner_snapshot.py`
-- Modify if required by test: `agent-controller/src/zb_local_controller/console.py`
-- Modify if required by test: `agent-controller/tests/test_console.py`
+- Modify: `agent-controller/tests/test_console.py`
+- Verify unchanged: `agent-controller/src/zb_local_controller/console.py`
 
 - [ ] Write RED tests formatting a complete `ZB_OWNER_VIEW_V0` after each terminal communication receipt, exposing current correlation/task in stable descriptive fields/gates, last legal transition, true running role only when RUNNING exists, blocker/dead-letter, next gate, OWNER action requirement, and evidence summary.
 - [ ] Add `DJANGO` to the required owner-snapshot agent set atomically and update existing parser/Console fixtures.
-- [ ] Test that a producer snapshot accepted by `owner_snapshot.py` renders in Console; forbid producer/parser version skew.
-- [ ] Keep Console read-only; no route/approve/merge action is added to `console.py`.
+- [ ] Test that a producer snapshot accepted by `owner_snapshot.py` renders in the unchanged Console implementation; forbid producer/parser version skew.
+- [ ] Keep Console read-only; no route/approve/merge action is added.
 - [ ] Persist owner view through the same `persist_and_verify` helper; failure is `OWNER_VIEW_PERSISTENCE_FAILED` and blocks automatic forwarding if the spec-required projection cannot be recorded.
 - [ ] Run `python -m pytest tests/test_communication_owner_view.py tests/test_owner_snapshot.py tests/test_console.py -q` GREEN.
 - [ ] Commit: `feat: project communication state to owner console`.
@@ -204,7 +204,7 @@
 
 **Files:**
 - Create: `agent-controller/tests/test_communication_security.py`
-- Modify: root tests only if a new positive regression is required; do not weaken existing validators.
+- Verify unchanged: existing root Shared HQ validator code and tests.
 
 - [ ] Test every minimum spec failure code: `TRANSPORT_ACTOR_REJECTED`, `COMMUNICATION_PR_MISMATCH`, `MESSAGE_PROTOCOL_INVALID`, `MESSAGE_ID_COLLISION`, `REPLAY_TERMINAL`, `CAUSATION_MISMATCH`, `ROLE_TRANSITION_ILLEGAL`, `TARGET_HEAD_STALE`, `BASE_CAS_MISMATCH`, `TASK_REVISION_MISMATCH`, `EVIDENCE_MISSING`, `EVIDENCE_MISMATCH`, `OWNER_GATE_REQUIRED`, `RECEIPT_WRITE_FAILED`, `RECEIPT_READ_BACK_MISMATCH`, `EXECUTION_START_FAILED`, `EXECUTION_TIMEOUT`, `RETRY_EXHAUSTED`, `DEAD_LETTERED`, `OWNER_VIEW_PERSISTENCE_FAILED`.
 - [ ] Add regressions that historical `builderGitHubLogin`/`reviewerGitHubLogin`/old DUNCAN account comments cannot become live handoffs.
@@ -225,7 +225,7 @@
 ## Task 15: Open PR C and perform independent DUNCAN QC
 
 - [ ] Open dedicated Communication Orchestrator TDD PR, separate from foundation PR and separate from the permanent Communication PR.
-- [ ] Bind PR body to OWNER-approved spec HEAD `9c9f0e...`, exact foundation candidate base, exact candidate HEAD, test counts, and forbidden-operation declarations.
+- [ ] Bind PR body to OWNER-approved spec HEAD `9c9f0ebbf2bd5d5dc5b21578718f1ef356e278f9`, exact foundation candidate base, exact candidate HEAD, test counts, and forbidden-operation declarations.
 - [ ] DUNCAN independently verifies all 20 acceptance-matrix families from the spec, exact diff, transport/role separation, receipt law, replay protection, Console/DJANGO integration, and absence of dangerous command surfaces.
 - [ ] Persist DUNCAN verdict to tracker #106 and PR C using WRITE -> fresh READ-BACK -> MATCH.
 - [ ] Do not merge automatically and do not activate production.

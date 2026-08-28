@@ -1,0 +1,399 @@
+name: zb-communication-r02b-v2
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  admit:
+    if: >-
+      github.event.issue.number == 111 &&
+      github.event.issue.pull_request &&
+      github.event.comment.user.login == 'Lester-Sparx' &&
+      startsWith(github.event.comment.body, 'ZB_AGENT_MESSAGE_R02B_V2') &&
+      contains(github.event.comment.body, 'TASK_REVISION = 2') &&
+      contains(github.event.comment.body, 'DESIGN_HEAD = 2bdf508e1f265bcf3ce56170cfa4ab08f04c2ec8')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    outputs:
+      request_ready: ${{ steps.request.outputs.request_ready }}
+      request_artifact_id: ${{ steps.upload_request.outputs.artifact-id }}
+      request_artifact_digest: ${{ steps.upload_request.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Admit and persist exact R02B request
+        id: request
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ZB_EVENT_FILE: ${{ github.event_path }}
+        shell: bash
+        run: |
+          mkdir -p .zb-exec/request
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from scripts.zb_communication_r02b_v2 import admit_event
+          from scripts.zb_communication_r02b_dispatch import prepare_r02b_dispatch_once
+          from scripts.zb_communication_r02b import GitHubApi
+
+          event = json.loads(Path(os.environ["ZB_EVENT_FILE"]).read_text(encoding="utf-8"))
+          message, _ = admit_event(
+              event,
+              expected_base_sha=os.environ["GITHUB_SHA"],
+              run_id=os.environ["GITHUB_RUN_ID"],
+              run_attempt=os.environ["GITHUB_RUN_ATTEMPT"],
+              github_sha=os.environ["GITHUB_SHA"],
+          )
+          decision = prepare_r02b_dispatch_once(message, event, GitHubApi(os.environ["GITHUB_TOKEN"]))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"request_ready={'true' if decision.state == 'REQUEST_NEW' else 'false'}\n")
+          if decision.state == "REQUEST_REPLAY_BLOCKED":
+              print("R02B_REPLAY_BLOCKED = durable request already exists; execution jobs remain locked")
+              raise SystemExit(0)
+          if decision.request_body is None:
+              raise SystemExit("R02B_REQUEST_NOT_MATERIALIZED")
+          Path(".zb-exec/request/request.txt").write_text(decision.request_body, encoding="utf-8")
+          PY
+      - name: Upload immutable execution request
+        id: upload_request
+        if: steps.request.outputs.request_ready == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: zb-r02b-v2-request-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .zb-exec/request/request.txt
+          retention-days: 7
+          if-no-files-found: error
+
+  lester_execute:
+    needs: admit
+    if: needs.admit.outputs.request_ready == 'true'
+    runs-on: windows-2025
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      lester_artifact_id: ${{ steps.upload_lester.outputs.artifact-id }}
+      lester_artifact_digest: ${{ steps.upload_lester.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Keep execution scratch outside Git evidence
+        shell: powershell
+        run: Add-Content -Path .git/info/exclude -Value ".zb-exec/"
+      - name: Download exact execution request artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.admit.outputs.request_artifact_id }}
+          path: .zb-exec/request
+      - name: Install pinned Task runtime
+        shell: powershell
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'task_windows_amd64.zip'
+          $target = Join-Path $env:RUNNER_TEMP 'zb-task-bin'
+          Invoke-WebRequest -Uri 'https://github.com/go-task/task/releases/download/v3.53.1/task_windows_amd64.zip' -OutFile $archive
+          $actual = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          if ($actual -ne '27c0cd248c12cba03d8958d954a3df981c900be885ec9ce5f6a3cdc4e9a19316') { throw "TASK_SHA256_MISMATCH:$actual" }
+          Expand-Archive -Path $archive -DestinationPath $target -Force
+          Add-Content -Path $env:GITHUB_PATH -Value $target
+      - name: Install exact Copilot CLI
+        shell: powershell
+        run: npm install --global @github/copilot@1.0.80
+      - name: Verify exact hosted execution toolchain
+        shell: powershell
+        env:
+          ZB_EXECUTION_PROFILE: LESTER_IMPLEMENT_R02A
+        run: |
+          $taskText = (task --version | Out-String)
+          if ($taskText -match '3\.53\.1') { $env:ZB_TASK_VERSION = '3.53.1' } else { $env:ZB_TASK_VERSION = '' }
+          $copilotText = (copilot --version | Out-String)
+          if ($copilotText -match '1\.0\.80') { $env:ZB_COPILOT_VERSION = '1.0.80' } else { $env:ZB_COPILOT_VERSION = '' }
+          Remove-Item Env:ZB_OPENCODE_VERSION -ErrorAction SilentlyContinue
+          $env:ZB_TASK_INVENTORY_JSON = (task --list-all --json | Out-String)
+          python -m scripts.zb_execution_preflight --mode implementation
+      - name: Run bounded GitHub-hosted LESTER profile
+        id: lester_run
+        continue-on-error: true
+        shell: powershell
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          ZB_EXECUTION_REQUEST_PATH: ${{ github.workspace }}/.zb-exec/request/request.txt
+          ZB_EXECUTION_RESULT_PATH: ${{ github.workspace }}/.zb-exec/lester/evidence/result.txt
+          ZB_EVIDENCE_DIR: ${{ github.workspace }}/.zb-exec/lester/evidence
+          ZB_EXECUTION_ID: github-actions:${{ github.run_id }}:${{ github.run_attempt }}:lester_execute
+          ZB_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          ZB_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          ZB_RUNNER_PROVENANCE: github-actions:github-hosted:windows-2025
+        run: task zb:exec:lester:implement-r02a
+      - name: Upload immutable LESTER evidence
+        id: upload_lester
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: zb-r02b-v2-lester-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .zb-exec/lester/evidence
+          retention-days: 7
+          if-no-files-found: error
+
+  duncan_qc:
+    needs: [admit, lester_execute]
+    if: >-
+      always() &&
+      needs.admit.outputs.request_ready == 'true' &&
+      needs.lester_execute.result == 'success'
+    runs-on: windows-2025
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      duncan_artifact_id: ${{ steps.upload_duncan.outputs.artifact-id }}
+      duncan_artifact_digest: ${{ steps.upload_duncan.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Keep QC scratch outside Git evidence
+        shell: powershell
+        run: Add-Content -Path .git/info/exclude -Value ".zb-exec/"
+      - name: Download exact execution request artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.admit.outputs.request_artifact_id }}
+          path: .zb-exec/request
+      - name: Download exact LESTER evidence artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.lester_execute.outputs.lester_artifact_id }}
+          path: .zb-exec/duncan/candidate
+      - name: Install pinned Task runtime
+        shell: powershell
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'task_windows_amd64.zip'
+          $target = Join-Path $env:RUNNER_TEMP 'zb-task-bin'
+          Invoke-WebRequest -Uri 'https://github.com/go-task/task/releases/download/v3.53.1/task_windows_amd64.zip' -OutFile $archive
+          $actual = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          if ($actual -ne '27c0cd248c12cba03d8958d954a3df981c900be885ec9ce5f6a3cdc4e9a19316') { throw "TASK_SHA256_MISMATCH:$actual" }
+          Expand-Archive -Path $archive -DestinationPath $target -Force
+          Add-Content -Path $env:GITHUB_PATH -Value $target
+      - name: Derive static DUNCAN QC request
+        shell: powershell
+        env:
+          ZB_INPUT_REQUEST: ${{ github.workspace }}/.zb-exec/request/request.txt
+          ZB_DUNCAN_REQUEST: ${{ github.workspace }}/.zb-exec/duncan/duncan-request.txt
+        run: |
+          @'
+          import os
+          from dataclasses import replace
+          from pathlib import Path
+          from scripts.zb_execution_contract import parse_execution_request, render_execution_request
+
+          source = Path(os.environ["ZB_INPUT_REQUEST"])
+          target = Path(os.environ["ZB_DUNCAN_REQUEST"])
+          request = parse_execution_request(source.read_text(encoding="utf-8"))
+          qc_request = replace(
+              request,
+              execution_request_id=request.execution_request_id + "-qc",
+              logical_role="DUNCAN",
+              execution_profile="DUNCAN_QC_R01",
+              execution_profile_version=1,
+              allowed_write_scope=("evidence/",),
+              timeout_seconds=min(request.timeout_seconds, 900),
+          )
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(render_execution_request(qc_request), encoding="utf-8")
+          '@ | python -
+      - name: Verify exact QC toolchain
+        shell: powershell
+        env:
+          ZB_EXECUTION_PROFILE: DUNCAN_QC_R01
+        run: |
+          $taskText = (task --version | Out-String)
+          if ($taskText -match '3\.53\.1') { $env:ZB_TASK_VERSION = '3.53.1' } else { $env:ZB_TASK_VERSION = '' }
+          Remove-Item Env:ZB_OPENCODE_VERSION -ErrorAction SilentlyContinue
+          Remove-Item Env:ZB_COPILOT_VERSION -ErrorAction SilentlyContinue
+          $env:ZB_TASK_INVENTORY_JSON = (task --list-all --json | Out-String)
+          python -m scripts.zb_execution_preflight --mode implementation
+      - name: Independently verify exact R02B proof edit
+        shell: powershell
+        env:
+          ZB_CANDIDATE_EVIDENCE_DIR: ${{ github.workspace }}/.zb-exec/duncan/candidate
+        run: |
+          @'
+          import os
+          import tempfile
+          from pathlib import Path
+          from scripts.zb_execution_proof_verify import EXPECTED, TARGET, verify_proof_target
+
+          candidate = Path(os.environ["ZB_CANDIDATE_EVIDENCE_DIR"])
+          changed = [line.strip() for line in (candidate / "changed-files.txt").read_text(encoding="utf-8").splitlines() if line.strip()]
+          target = TARGET.as_posix()
+          if changed != [target]:
+              raise SystemExit(f"R02B_PROOF_CHANGED_FILES_MISMATCH:{changed!r}")
+          patch = (candidate / "patch.diff").read_text(encoding="utf-8")
+          patch_lines = [line for line in patch.splitlines() if not line.startswith("index ")]
+          expected_hunk = [
+              f"diff --git a/{target} b/{target}",
+              f"--- a/{target}",
+              f"+++ b/{target}",
+              "@@ -1,2 +1,2 @@",
+              " ZB_R02A_PROOF_TARGET_V1",
+              "-STATE = BEFORE",
+              "+STATE = AFTER",
+          ]
+          if patch_lines != expected_hunk:
+              raise SystemExit("R02B_PROOF_PATCH_MISMATCH")
+          with tempfile.TemporaryDirectory() as tmp:
+              root = Path(tmp)
+              target_path = root / TARGET
+              target_path.parent.mkdir(parents=True, exist_ok=True)
+              target_path.write_text(EXPECTED, encoding="utf-8")
+              verify_proof_target(root)
+          print("R02B_INDEPENDENT_PROOF_VERIFY = PASS")
+          '@ | python -
+      - name: Run independent DUNCAN QC profile
+        id: duncan_run
+        continue-on-error: true
+        shell: powershell
+        env:
+          ZB_EXECUTION_REQUEST_PATH: ${{ github.workspace }}/.zb-exec/duncan/duncan-request.txt
+          ZB_CANDIDATE_EVIDENCE_DIR: ${{ github.workspace }}/.zb-exec/duncan/candidate
+          ZB_QC_RESULT_PATH: ${{ github.workspace }}/.zb-exec/duncan/qc-result.txt
+          ZB_EXECUTION_ID: github-actions:${{ github.run_id }}:${{ github.run_attempt }}:duncan_qc
+          ZB_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          ZB_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          ZB_RUNNER_PROVENANCE: github-actions:github-hosted:windows-2025
+        run: task zb:exec:duncan:qc-r01
+      - name: Upload immutable DUNCAN QC evidence
+        id: upload_duncan
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: zb-r02b-v2-duncan-qc-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .zb-exec/duncan/qc-result.txt
+          retention-days: 7
+          if-no-files-found: error
+
+  finalize:
+    needs: [admit, lester_execute, duncan_qc]
+    if: >-
+      always() &&
+      needs.admit.outputs.request_ready == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Download exact execution request artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.admit.outputs.request_artifact_id }}
+          path: .zb-exec/finalize/request
+      - name: Record failed execution pipeline
+        if: >-
+          needs.lester_execute.result != 'success' ||
+          needs.duncan_qc.result != 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ZB_FINAL_REQUEST: .zb-exec/finalize/request/request.txt
+          ZB_LESTER_JOB_RESULT: ${{ needs.lester_execute.result }}
+          ZB_DUNCAN_JOB_RESULT: ${{ needs.duncan_qc.result }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.zb_communication_base import GitHubApi, _root_from_request, _source_comment_id_from_request, _substantive_console_body, _substantive_failure_record, _write_console_and_verify, write_and_verify
+          from scripts.zb_execution_contract import parse_execution_request
+
+          request = parse_execution_request(Path(os.environ["ZB_FINAL_REQUEST"]).read_text(encoding="utf-8"))
+          lester_job = os.environ["ZB_LESTER_JOB_RESULT"]
+          duncan_job = os.environ["ZB_DUNCAN_JOB_RESULT"]
+          result_code = f"LESTER_JOB_{lester_job.upper()}" if lester_job != "success" else f"DUNCAN_JOB_{duncan_job.upper()}"
+          reason = f"execution pipeline job failure: lester={lester_job} duncan={duncan_job}"
+          port = GitHubApi(os.environ["GITHUB_TOKEN"])
+          write_and_verify(port, _substantive_failure_record(request, result_code))
+          _write_console_and_verify(port, _substantive_console_body(message=_root_from_request(request), source_comment_id=_source_comment_id_from_request(request), phase="FAIL", reason=reason))
+          print(result_code)
+          PY
+      - name: Verify immutable artifact metadata
+        if: >-
+          needs.lester_execute.result == 'success' &&
+          needs.duncan_qc.result == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ZB_REQUEST_ARTIFACT_ID: ${{ needs.admit.outputs.request_artifact_id }}
+          ZB_REQUEST_ARTIFACT_DIGEST: ${{ needs.admit.outputs.request_artifact_digest }}
+          ZB_LESTER_ARTIFACT_ID: ${{ needs.lester_execute.outputs.lester_artifact_id }}
+          ZB_LESTER_ARTIFACT_DIGEST: ${{ needs.lester_execute.outputs.lester_artifact_digest }}
+          ZB_DUNCAN_ARTIFACT_ID: ${{ needs.duncan_qc.outputs.duncan_artifact_id }}
+          ZB_DUNCAN_ARTIFACT_DIGEST: ${{ needs.duncan_qc.outputs.duncan_artifact_digest }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from scripts.zb_communication_base import API_ROOT, GitHubApi, REPOSITORY
+          from scripts.zb_execution_evidence import verify_artifact_metadata
+
+          api = GitHubApi(os.environ["GITHUB_TOKEN"])
+          run_id = int(os.environ["GITHUB_RUN_ID"])
+          for prefix in ("REQUEST", "LESTER", "DUNCAN"):
+              artifact_id = int(os.environ[f"ZB_{prefix}_ARTIFACT_ID"])
+              digest = os.environ[f"ZB_{prefix}_ARTIFACT_DIGEST"]
+              metadata = api._request_json(f"{API_ROOT}/repos/{REPOSITORY}/actions/artifacts/{artifact_id}")
+              verify_artifact_metadata(metadata, expected_id=artifact_id, expected_digest=digest, expected_run_id=run_id)
+          print("ARTIFACT_METADATA_GATE = PASS")
+          PY
+      - name: Download exact LESTER evidence artifact
+        if: >-
+          needs.lester_execute.result == 'success' &&
+          needs.duncan_qc.result == 'success'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.lester_execute.outputs.lester_artifact_id }}
+          path: .zb-exec/finalize/lester
+      - name: Download exact DUNCAN QC artifact
+        if: >-
+          needs.lester_execute.result == 'success' &&
+          needs.duncan_qc.result == 'success'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.duncan_qc.outputs.duncan_artifact_id }}
+          path: .zb-exec/finalize/duncan
+      - name: Finalize verified substantive execution
+        if: >-
+          needs.lester_execute.result == 'success' &&
+          needs.duncan_qc.result == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ZB_FINAL_REQUEST: .zb-exec/finalize/request/request.txt
+          ZB_FINAL_LESTER_RESULT: .zb-exec/finalize/lester/result.txt
+          ZB_FINAL_DUNCAN_RESULT: .zb-exec/finalize/duncan/qc-result.txt
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.zb_communication_r02b import GitHubApi, finalize_substantive_execution
+
+          state = finalize_substantive_execution(
+              Path(os.environ["ZB_FINAL_REQUEST"]).read_text(encoding="utf-8"),
+              Path(os.environ["ZB_FINAL_LESTER_RESULT"]).read_text(encoding="utf-8"),
+              Path(os.environ["ZB_FINAL_DUNCAN_RESULT"]).read_text(encoding="utf-8"),
+              GitHubApi(os.environ["GITHUB_TOKEN"]),
+          )
+          print(state)
+          PY

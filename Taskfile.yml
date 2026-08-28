@@ -2,16 +2,19 @@ version: '3'
 
 tasks:
   zb:exec:lester:implement-r01:
+    desc: Execute the pinned R01 LESTER implementation profile.
     cmds:
       - cmd: python -m scripts.zb_execution_cli execute --from-env
         timeout: 30m
 
   zb:exec:lester:implement-r02a:
+    desc: Execute the pinned R02B Copilot LESTER implementation profile.
     cmds:
       - cmd: python -m scripts.zb_execution_r02b_cli execute --from-env
         timeout: 30m
 
   zb:exec:duncan:qc-r01:
+    desc: Execute the deterministic DUNCAN QC profile.
     cmds:
       - cmd: python -m scripts.zb_execution_cli qc --from-env
         timeout: 15m

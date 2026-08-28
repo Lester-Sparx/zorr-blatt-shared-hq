@@ -105,3 +105,47 @@ def test_key_lookup_fresh_read_must_equal_candidate_not_normalized_event(monkeyp
     with pytest.raises(Exception) as exc:
         handle_webhook(envelope,GH(),object(),SimpleNamespace(communication_pr=111))
     assert getattr(exc.value,'code',None) == 'SOURCE_COMMENT_RESOLUTION_FAILED'
+
+
+def test_bodyless_work_event_resolves_single_new_protocol_comment_after_epoch(monkeypatch):
+    exact_body=(
+        'ZB_WORK_COMMENT_EVENT_PROBE_V3\n'
+        'PROBE_ONLY = TRUE\n'
+        'AGENT_MESSAGE = NO\n'
+        'PROBE_INSTANCE = BODYLESS_WORK_EVENT_01'
+    )
+    envelope=WebhookEnvelope(
+        'delivery-bodyless-1',
+        'Lester-Sparx/zorr-blatt-shared-hq',
+        111,
+        None,
+        None,
+        'Lester-Sparx',
+        'issue_comment.created',
+        True,
+    )
+    rows=[
+        SimpleNamespace(id=100,body='ordinary prose',actor='Lester-Sparx',top_level=True),
+        SimpleNamespace(id=200,body=exact_body,actor='Lester-Sparx',top_level=True),
+    ]
+    class GH:
+        def __init__(self): self.fetch_calls=0; self.read_calls=[]
+        def fetch_top_level_comments(self,pr):
+            self.fetch_calls += 1
+            return rows
+        def read_comment(self,cid):
+            self.read_calls.append(cid)
+            return SimpleNamespace(id=cid,body=exact_body,actor='Lester-Sparx',top_level=True)
+    seen={}
+    monkeypatch.setattr(handler,'route_message',lambda resolved,*a,**k: seen.setdefault('envelope',resolved))
+    gh=GH()
+    handle_webhook(
+        envelope,
+        gh,
+        object(),
+        SimpleNamespace(communication_pr=111, ingress_epoch_comment_id=150),
+    )
+    assert gh.fetch_calls == 1
+    assert gh.read_calls == [200]
+    assert seen['envelope'].comment_id == 200
+    assert seen['envelope'].comment_body == exact_body

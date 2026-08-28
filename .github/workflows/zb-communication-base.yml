@@ -236,9 +236,7 @@ jobs:
     needs: [admit, lester_execute, duncan_qc]
     if: >-
       always() &&
-      needs.admit.outputs.request_ready == 'true' &&
-      needs.lester_execute.result == 'success' &&
-      needs.duncan_qc.result == 'success'
+      needs.admit.outputs.request_ready == 'true'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -249,7 +247,62 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Download exact execution request artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.admit.outputs.request_artifact_id }}
+          path: .zb-exec/finalize/request
+      - name: Record failed execution pipeline
+        if: >-
+          needs.lester_execute.result != 'success' ||
+          needs.duncan_qc.result != 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ZB_FINAL_REQUEST: .zb-exec/finalize/request/request.txt
+          ZB_LESTER_JOB_RESULT: ${{ needs.lester_execute.result }}
+          ZB_DUNCAN_JOB_RESULT: ${{ needs.duncan_qc.result }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.zb_communication_base import (
+              GitHubApi,
+              _root_from_request,
+              _source_comment_id_from_request,
+              _substantive_console_body,
+              _substantive_failure_record,
+              _write_console_and_verify,
+              write_and_verify,
+          )
+          from scripts.zb_execution_contract import parse_execution_request
+
+          request = parse_execution_request(Path(os.environ["ZB_FINAL_REQUEST"]).read_text(encoding="utf-8"))
+          lester_job = os.environ["ZB_LESTER_JOB_RESULT"]
+          duncan_job = os.environ["ZB_DUNCAN_JOB_RESULT"]
+          result_code = (
+              f"LESTER_JOB_{lester_job.upper()}"
+              if lester_job != "success"
+              else f"DUNCAN_JOB_{duncan_job.upper()}"
+          )
+          reason = f"execution pipeline job failure: lester={lester_job} duncan={duncan_job}"
+          port = GitHubApi(os.environ["GITHUB_TOKEN"])
+          write_and_verify(port, _substantive_failure_record(request, result_code))
+          _write_console_and_verify(
+              port,
+              _substantive_console_body(
+                  message=_root_from_request(request),
+                  source_comment_id=_source_comment_id_from_request(request),
+                  phase="FAIL",
+                  reason=reason,
+              ),
+          )
+          print(result_code)
+          PY
       - name: Verify immutable artifact metadata
+        if: >-
+          needs.lester_execute.result == 'success' &&
+          needs.duncan_qc.result == 'success'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           ZB_REQUEST_ARTIFACT_ID: ${{ needs.admit.outputs.request_artifact_id }}
@@ -279,22 +332,26 @@ jobs:
               )
           print("ARTIFACT_METADATA_GATE = PASS")
           PY
-      - name: Download exact execution request artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          artifact-ids: ${{ needs.admit.outputs.request_artifact_id }}
-          path: .zb-exec/finalize/request
       - name: Download exact LESTER evidence artifact
+        if: >-
+          needs.lester_execute.result == 'success' &&
+          needs.duncan_qc.result == 'success'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           artifact-ids: ${{ needs.lester_execute.outputs.lester_artifact_id }}
           path: .zb-exec/finalize/lester
       - name: Download exact DUNCAN QC artifact
+        if: >-
+          needs.lester_execute.result == 'success' &&
+          needs.duncan_qc.result == 'success'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           artifact-ids: ${{ needs.duncan_qc.outputs.duncan_artifact_id }}
           path: .zb-exec/finalize/duncan
       - name: Finalize verified substantive execution
+        if: >-
+          needs.lester_execute.result == 'success' &&
+          needs.duncan_qc.result == 'success'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           ZB_FINAL_REQUEST: .zb-exec/finalize/request/request.txt

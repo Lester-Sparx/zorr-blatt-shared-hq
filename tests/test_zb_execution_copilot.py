@@ -104,7 +104,7 @@ class CopilotWorkerTests(unittest.TestCase):
             self.assertNotIn("COPILOT_GITHUB_TOKEN", fake.calls[0]["env"])
             argv = fake.calls[1]["argv"]
             for token in (
-                "--model=gpt-5.3-codex", "--no-ask-user", "--available-tools=edit,view,grep,glob",
+                "--model=auto", "--no-ask-user", "--available-tools=edit,view,grep,glob",
                 "--allow-tool=write", "--disable-builtin-mcps", "--no-auto-update",
                 "--no-custom-instructions", "--no-experimental", "--no-remote",
                 "--no-remote-export", "--disallow-temp-dir", "--output-format=json",

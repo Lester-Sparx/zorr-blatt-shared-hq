@@ -11,7 +11,7 @@ from scripts.zb_execution_contract import ExecutionRequest
 TASK_VERSION = "3.53.1"
 OPENCODE_VERSION = "1.18.25"
 COPILOT_CLI_VERSION = "1.0.80"
-COPILOT_MODEL = "gpt-5.3-codex"
+COPILOT_MODEL = "auto"
 
 
 class ExecutionProfileError(ValueError):

@@ -2,7 +2,7 @@
 
 Date: 2026-08-28
 Status: OWNER-approved design candidate
-Base main: `0b9b77a9d82f45e7e1821dd6c9c26861a90cf688`
+Base main at design start: `0b9b77a9d82f45e7e1821dd6c9c26861a90cf688`
 Tracker: issue `#106`
 Existing communication bus: PR `#111` (DRAFT / OPEN / DO NOT MERGE)
 Existing orchestrator implementation authority: PR `#110`
@@ -39,6 +39,8 @@ Admission is strict:
 - first line must be exactly `ZB_AGENT_MESSAGE_V1`;
 - message must bind to the currently configured proof task and approved authority values;
 - ordinary prose, receipts, Owner Views, edits, inline review comments, and foreign actors are ignored or rejected fail-closed.
+
+GitHub only dispatches this event to the base runner after the workflow file exists on the repository default branch. Therefore an unmerged implementation PR can be validated locally and by PR CI, but it cannot serve as the final remote `issue_comment.created` proof surface.
 
 ## 4. Runner shape
 
@@ -79,7 +81,8 @@ Every write records enough identifiers to bind:
 - message/correlation ID;
 - task ID/revision;
 - source actor;
-- authority HEAD;
+- implementation PR/head provenance;
+- exact protected-main SHA active for the proof;
 - workflow run ID/attempt;
 - logical stage;
 - result.
@@ -99,7 +102,7 @@ The minimum base executes these logical stages inside one workflow run:
 7. `JINGO -> JINGO / CLOSE_REQUEST`
 8. `OWNER_GATE_REQUIRED`
 
-For this base proof, role work is deliberately minimal: verify the exact task, revision, protected-main binding, authority HEAD, evidence reference, and absence of forbidden mutations. It does not perform substantive production work.
+For this base proof, role work is deliberately minimal: verify the exact task, revision, protected-main binding, implementation provenance, evidence reference, and absence of forbidden mutations. It does not perform substantive production work.
 
 ## 7. Idempotency and replay
 
@@ -142,13 +145,13 @@ A failure may write one compact tracker blocker only when the source itself has 
 
 ## 10. Testing
 
-Required before implementation PR can be considered ready:
+Required before implementation PR can be considered ready for OWNER activation review:
 
 - parser accepts one valid minimal message;
 - malformed or duplicate fields reject;
 - foreign actor rejects;
 - wrong PR rejects;
-- stale authority HEAD rejects;
+- stale authority/provenance binding rejects;
 - wrong task/revision rejects;
 - replay becomes NOOP without duplicate receipts;
 - happy path reaches OWNER gate in exact order;
@@ -156,9 +159,26 @@ Required before implementation PR can be considered ready:
 - forbidden mutation helpers do not exist in the runner;
 - repository validation workflow passes on exact implementation HEAD.
 
-A disposable remote proof then creates one root message on PR `#111` and must produce fresh-read-matched tracker evidence ending at OWNER gate.
+PR CI proves the candidate code. It does not prove the final event trigger.
 
-## 11. Deferred work
+## 11. Activation and remote proof
+
+Activation is a separate OWNER decision.
+
+Sequence:
+
+1. implementation PR is completed and verified while unmerged;
+2. DUNCAN records exact implementation HEAD and verification evidence;
+3. OWNER explicitly approves merge of that exact implementation HEAD;
+4. implementation PR is merged to `main`;
+5. protected `main` is fresh-read and the exact post-merge SHA becomes the proof `BASE_SHA`;
+6. implementation PR/head remain provenance fields in the proof record;
+7. one disposable fresh root `ZB_AGENT_MESSAGE_V1` is posted on PR `#111` using the post-merge `BASE_SHA`;
+8. a real `issue_comment.created` workflow run must create fresh-read-matched tracker evidence ending at OWNER gate.
+
+Merging the workflow enables the event runner but does not mean `PRODUCTION_ACTIVE = YES`. Production activation remains `NO`; this base is communication infrastructure only.
+
+## 12. Deferred work
 
 Not part of this minimum base:
 
@@ -172,11 +192,12 @@ Not part of this minimum base:
 
 These may be layered only after the base happy path is physically proven.
 
-## 12. Success criterion
+## 13. Success criterion
 
-The base is successful only when a fresh root `ZB_AGENT_MESSAGE_V1` on PR `#111` causes a real `issue_comment.created` GitHub Actions run that:
+The base is successful only when, after the separately approved implementation merge, a fresh root `ZB_AGENT_MESSAGE_V1` on PR `#111` causes a real `issue_comment.created` GitHub Actions run that:
 
 - authenticates and binds the source;
+- binds the exact active protected-main SHA plus implementation provenance;
 - records and fresh-read-verifies durable tracker evidence;
 - executes the exact seven logical stages in order;
 - reaches `OWNER_GATE_REQUIRED`;

@@ -10,6 +10,8 @@ from scripts.zb_execution_contract import ExecutionRequest
 
 TASK_VERSION = "3.53.1"
 OPENCODE_VERSION = "1.18.25"
+COPILOT_CLI_VERSION = "1.0.80"
+COPILOT_MODEL = "gpt-5.3-codex"
 
 
 class ExecutionProfileError(ValueError):
@@ -34,6 +36,15 @@ _PROFILES = {
         logical_role="LESTER",
         task_name="zb:exec:lester:implement-r01",
         worker_backend="opencode",
+        max_timeout_seconds=1800,
+        max_write_prefixes=("scripts/", "tests/", "config/zb-execution/", ".github/workflows/", "Taskfile.yml"),
+    ),
+    "LESTER_IMPLEMENT_R02A": ExecutionProfile(
+        name="LESTER_IMPLEMENT_R02A",
+        version=1,
+        logical_role="LESTER",
+        task_name="zb:exec:lester:implement-r02a",
+        worker_backend="copilot-cli",
         max_timeout_seconds=1800,
         max_write_prefixes=("scripts/", "tests/", "config/zb-execution/", ".github/workflows/", "Taskfile.yml"),
     ),
@@ -116,6 +127,7 @@ def validate_taskfile_text(text: str) -> None:
     required = (
         "version: '3'",
         "zb:exec:lester:implement-r01",
+        "zb:exec:lester:implement-r02a",
         "zb:exec:duncan:qc-r01",
         "python -m scripts.zb_execution_cli execute --from-env",
         "python -m scripts.zb_execution_cli qc --from-env",

@@ -9,7 +9,7 @@ from scripts.zb_execution_contract import ExecutionRequest
 
 
 TASK_VERSION = "3.53.1"
-OPENCODE_VERSION = "1.18.17"
+OPENCODE_VERSION = "1.18.25"
 
 
 class ExecutionProfileError(ValueError):

@@ -9,6 +9,9 @@ description = "Zero-budget local ZORR BLATT agent controller"
 requires-python = ">=3.12"
 dependencies = []
 
+[project.scripts]
+zb = "zb_local_controller.console:main"
+
 [project.optional-dependencies]
 test = ["pytest>=8"]
 

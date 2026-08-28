@@ -66,6 +66,22 @@ class GitHubCLI:
             issues.append(GitHubIssue(int(item["number"]), str(item.get("title") or ""), body, comments))
         return issues
 
+    def get_issue_comments(self, issue_number: int) -> tuple[str, ...]:
+        self.ensure_authenticated()
+        args = [
+            "gh", "issue", "view", str(int(issue_number)),
+            "--repo", self.repository,
+            "--json", "comments",
+        ]
+        result = self._runner(args, capture_output=True, text=True, shell=False)
+        if result.returncode != 0:
+            raise GitHubCLIError("GH_READ_FAILED")
+        try:
+            raw = json.loads(result.stdout or "{}")
+        except json.JSONDecodeError as exc:
+            raise GitHubCLIError("GH_OUTPUT_INVALID") from exc
+        return tuple(str(item.get("body") or "") for item in (raw.get("comments") or []))
+
     def post_comment(self, issue_number: int, body: str) -> None:
         args = [
             "gh", "issue", "comment", str(int(issue_number)),

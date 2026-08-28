@@ -1,6 +1,6 @@
 import json
 import pytest
-from zb_local_controller.github_cli import GitHubCLI, GitHubConfigurationError
+from zb_local_controller.github_cli import GitHubCLI, GitHubCLIError, GitHubConfigurationError
 
 
 class Result:
@@ -69,3 +69,33 @@ def test_missing_gh_executable_is_configuration_error():
     with pytest.raises(GitHubConfigurationError) as exc:
         gh.ensure_authenticated()
     assert exc.value.code == "GH_CLI_UNAVAILABLE"
+
+
+def test_get_issue_comments_authenticates_and_reads_bodies():
+    payload = {"comments": [{"body": "one"}, {"body": "two"}]}
+    runner = FakeRunner([Result(), Result(stdout=json.dumps(payload))])
+    gh = GitHubCLI("Lester-Sparx/zorr-blatt-shared-hq", runner=runner)
+
+    assert gh.get_issue_comments(39) == ("one", "two")
+    assert runner.calls[1][0] == [
+        "gh", "issue", "view", "39", "--repo",
+        "Lester-Sparx/zorr-blatt-shared-hq", "--json", "comments",
+    ]
+    assert runner.calls[1][1] == {"capture_output": True, "text": True, "shell": False}
+
+
+@pytest.mark.parametrize(
+    ("result", "code"),
+    [
+        (Result(returncode=1), "GH_READ_FAILED"),
+        (Result(stdout="not-json"), "GH_OUTPUT_INVALID"),
+    ],
+)
+def test_get_issue_comments_rejects_failed_or_invalid_output(result, code):
+    runner = FakeRunner([Result(), result])
+    gh = GitHubCLI("Lester-Sparx/zorr-blatt-shared-hq", runner=runner)
+
+    with pytest.raises(GitHubCLIError) as exc:
+        gh.get_issue_comments(39)
+
+    assert str(exc.value) == code

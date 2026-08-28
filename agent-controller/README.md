@@ -38,3 +38,33 @@ python -m zb_local_controller --once
 `--once` returns `0` after a normal cycle, including no eligible tasks. Configuration failures such as missing/unauthed GitHub CLI return non-zero and never fabricate RUNNING.
 
 Task Scheduler installation and live ComfyUI/model setup are deliberately deferred until after mocked Tasks 1–6 are accepted.
+
+## Read-only owner console
+
+Install the local `zb` PowerShell command once:
+
+```powershell
+cd D:\BLATT2\zb-local-agent-controller
+powershell -ExecutionPolicy Bypass -File .\scripts\install-zb-console.ps1
+```
+
+Use it from any working directory:
+
+```powershell
+zb
+zb why
+zb agents
+zb gates
+zb scout
+zb output
+zb watch
+```
+
+Console v0 is read-only. It reads the latest valid `ZB_OWNER_VIEW_V0`
+snapshot from Shared HQ issue #39 and validated local results under the
+configured result root. It cannot post comments, submit jobs, merge or
+approve changes, activate production, mutate canon, or create OWNER LOCK.
+
+`zb output` opens only a `result.png` whose PNG signature and SHA-256 match
+its parseable `result.json`. A local result never establishes production or
+canon approval by itself.

@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
-from types import MappingProxyType
-from typing import Mapping
+from dataclasses import dataclass
+from pathlib import PurePosixPath
 
 from scripts.zb_execution_contract import ExecutionRequest
 
 
-TASK_VERSION = "3.53.1"
-OPENCODE_VERSION = "1.18.17"
-
-
 class ExecutionProfileError(ValueError):
     pass
+
+
+TASK_VERSION = "3.53.1"
+OPENCODE_VERSION = "1.18.17"
 
 
 @dataclass(frozen=True)
@@ -22,50 +21,35 @@ class ExecutionProfile:
     version: int
     logical_role: str
     task_name: str
-    worker_backend: str
     max_timeout_seconds: int
-    max_write_prefixes: tuple[str, ...]
+    allowed_write_scope: tuple[str, ...]
 
 
-_PROFILES = {
+PROFILES = {
     "LESTER_IMPLEMENT_R01": ExecutionProfile(
         name="LESTER_IMPLEMENT_R01",
         version=1,
         logical_role="LESTER",
         task_name="zb:exec:lester:implement-r01",
-        worker_backend="opencode",
         max_timeout_seconds=1800,
-        max_write_prefixes=("scripts/", "tests/", "config/zb-execution/", ".github/workflows/", "Taskfile.yml"),
+        allowed_write_scope=("scripts/", "tests/", "config/", ".github/workflows/", "Taskfile.yml"),
     ),
     "DUNCAN_QC_R01": ExecutionProfile(
         name="DUNCAN_QC_R01",
         version=1,
         logical_role="DUNCAN",
         task_name="zb:exec:duncan:qc-r01",
-        worker_backend="deterministic-qc",
         max_timeout_seconds=900,
-        max_write_prefixes=("evidence/",),
+        allowed_write_scope=("evidence/",),
     ),
 }
-PROFILES: Mapping[str, ExecutionProfile] = MappingProxyType(_PROFILES)
 
 
-def _scope_is_safe(scope: str) -> bool:
-    if not scope or scope.startswith("/") or scope.startswith("~") or "\\" in scope or "\x00" in scope:
-        return False
-    parts = scope.split("/")
-    return all(part not in {"..", "."} for part in parts if part)
-
-
-def _scope_allowed(scope: str, trusted: tuple[str, ...]) -> bool:
-    if not _scope_is_safe(scope):
-        return False
-    for prefix in trusted:
-        if prefix.endswith("/"):
-            if scope == prefix or scope.startswith(prefix):
-                return True
-        elif scope == prefix:
-            return True
+def _scope_is_within(candidate: str, allowed: str) -> bool:
+    if candidate == allowed:
+        return True
+    if allowed.endswith("/"):
+        return candidate.startswith(allowed)
     return False
 
 
@@ -73,20 +57,24 @@ def resolve_profile(request: ExecutionRequest) -> ExecutionProfile:
     profile = PROFILES.get(request.execution_profile)
     if profile is None:
         raise ExecutionProfileError("EXECUTION_PROFILE_REJECTED")
-    if request.logical_role != profile.logical_role:
-        raise ExecutionProfileError("EXECUTION_ROLE_MISMATCH")
     if request.execution_profile_version != profile.version:
-        raise ExecutionProfileError("EXECUTION_PROFILE_VERSION_MISMATCH")
+        raise ExecutionProfileError("EXECUTION_PROFILE_VERSION_REJECTED")
+    if request.logical_role != profile.logical_role:
+        raise ExecutionProfileError("EXECUTION_PROFILE_ROLE_REJECTED")
     if request.timeout_seconds > profile.max_timeout_seconds:
-        raise ExecutionProfileError("EXECUTION_TIMEOUT_ESCALATION")
-    if not all(_scope_allowed(scope, profile.max_write_prefixes) for scope in request.allowed_write_scope):
-        raise ExecutionProfileError("EXECUTION_WRITE_SCOPE_ESCALATION")
+        raise ExecutionProfileError("EXECUTION_PROFILE_TIMEOUT_REJECTED")
+    for path in request.allowed_write_scope:
+        normalized = str(PurePosixPath(path))
+        if normalized.startswith("../") or normalized == ".." or normalized.startswith("/"):
+            raise ExecutionProfileError("EXECUTION_PROFILE_SCOPE_REJECTED")
+        if not any(_scope_is_within(path, allowed) for allowed in profile.allowed_write_scope):
+            raise ExecutionProfileError("EXECUTION_PROFILE_SCOPE_REJECTED")
     return profile
 
 
-def validate_task_inventory(task_json: str, profile: ExecutionProfile) -> None:
+def validate_task_inventory(inventory_json: str, *, profile: ExecutionProfile) -> None:
     try:
-        payload = json.loads(task_json)
+        payload = json.loads(inventory_json)
     except (TypeError, json.JSONDecodeError) as exc:
         raise ExecutionProfileError("TASK_INVENTORY_INVALID") from exc
     tasks = payload.get("tasks") if isinstance(payload, dict) else None
@@ -117,8 +105,8 @@ def validate_taskfile_text(text: str) -> None:
         "version: '3'",
         "zb:exec:lester:implement-r01",
         "zb:exec:duncan:qc-r01",
-        "python scripts/zb_execution_cli.py execute --from-env",
-        "python scripts/zb_execution_cli.py qc --from-env",
+        "python -m scripts.zb_execution_cli execute --from-env",
+        "python -m scripts.zb_execution_cli qc --from-env",
     )
     if any(token not in text for token in required):
         raise ExecutionProfileError("TASKFILE_INVENTORY_MISMATCH")

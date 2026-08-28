@@ -13,6 +13,7 @@ UPLOAD = "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
 DOWNLOAD = "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
 DESIGN_HEAD = "2bdf508e1f265bcf3ce56170cfa4ab08f04c2ec8"
 TASK_SHA256 = "27c0cd248c12cba03d8958d954a3df981c900be885ec9ce5f6a3cdc4e9a19316"
+R02B_MARKER = "ZB_AGENT_MESSAGE_R02B_V1"
 
 
 def section(text: str, name: str, next_name: str | None) -> str:
@@ -37,16 +38,19 @@ class R02BWorkflowTests(unittest.TestCase):
         self.assertIn("needs: [admit, lester_execute]", duncan)
         self.assertIn("needs: [admit, lester_execute, duncan_qc]", section(text, "finalize", None))
 
-    def test_event_gate_is_exact_r02b_authority_and_r01_ignores_revision_two(self) -> None:
+    def test_event_gate_is_exact_r02b_authority_and_old_marker_does_not_match(self) -> None:
         text = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("issue_comment:", text)
         self.assertIn("types: [created]", text)
+        self.assertIn(R02B_MARKER, text)
         self.assertIn("TASK_REVISION = 2", text)
         self.assertIn(DESIGN_HEAD, text)
         self.assertIn("Lester-Sparx", text)
         self.assertIn("scripts.zb_communication_r02b", text)
         r01 = R01_WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("TASK_REVISION = 1", r01)
+        self.assertIn("startsWith(github.event.comment.body, 'ZB_AGENT_MESSAGE_V1')", r01)
+        self.assertNotIn(R02B_MARKER, r01)
+        self.assertFalse(R02B_MARKER.startswith("ZB_AGENT_MESSAGE_V1"))
 
     def test_only_lester_receives_pat_and_no_workflow_token_write_escalation(self) -> None:
         text = WORKFLOW.read_text(encoding="utf-8")

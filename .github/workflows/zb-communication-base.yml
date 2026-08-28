@@ -116,7 +116,7 @@ jobs:
           $taskText = (task --version | Out-String)
           if ($taskText -match '3\.53\.1') { $env:ZB_TASK_VERSION = '3.53.1' } else { $env:ZB_TASK_VERSION = '' }
           $openText = (opencode --version | Out-String)
-          if ($openText -match '1\.18\.17') { $env:ZB_OPENCODE_VERSION = '1.18.17' } else { $env:ZB_OPENCODE_VERSION = '' }
+          if ($openText -match '1\.18\.25') { $env:ZB_OPENCODE_VERSION = '1.18.25' } else { $env:ZB_OPENCODE_VERSION = '' }
           $env:ZB_TASK_INVENTORY_JSON = (task --list --json | Out-String)
           python -m scripts.zb_execution_preflight --mode implementation
       - name: Run bounded LESTER profile
@@ -241,6 +241,7 @@ jobs:
       needs.duncan_qc.result == 'success'
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       issues: write
       pull-requests: read
@@ -248,6 +249,36 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Verify immutable artifact metadata
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ZB_REQUEST_ARTIFACT_ID: ${{ needs.admit.outputs.request_artifact_id }}
+          ZB_REQUEST_ARTIFACT_DIGEST: ${{ needs.admit.outputs.request_artifact_digest }}
+          ZB_LESTER_ARTIFACT_ID: ${{ needs.lester_execute.outputs.lester_artifact_id }}
+          ZB_LESTER_ARTIFACT_DIGEST: ${{ needs.lester_execute.outputs.lester_artifact_digest }}
+          ZB_DUNCAN_ARTIFACT_ID: ${{ needs.duncan_qc.outputs.duncan_artifact_id }}
+          ZB_DUNCAN_ARTIFACT_DIGEST: ${{ needs.duncan_qc.outputs.duncan_artifact_digest }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from scripts.zb_communication_base import API_ROOT, GitHubApi, REPOSITORY
+          from scripts.zb_execution_evidence import verify_artifact_metadata
+
+          api = GitHubApi(os.environ["GITHUB_TOKEN"])
+          run_id = int(os.environ["GITHUB_RUN_ID"])
+          for prefix in ("REQUEST", "LESTER", "DUNCAN"):
+              artifact_id = int(os.environ[f"ZB_{prefix}_ARTIFACT_ID"])
+              digest = os.environ[f"ZB_{prefix}_ARTIFACT_DIGEST"]
+              metadata = api._request_json(f"{API_ROOT}/repos/{REPOSITORY}/actions/artifacts/{artifact_id}")
+              verify_artifact_metadata(
+                  metadata,
+                  expected_id=artifact_id,
+                  expected_digest=digest,
+                  expected_run_id=run_id,
+              )
+          print("ARTIFACT_METADATA_GATE = PASS")
+          PY
       - name: Download exact execution request artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:

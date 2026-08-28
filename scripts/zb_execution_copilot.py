@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import subprocess
 
 from scripts.zb_execution_contract import ExecutionRequest
 from scripts.zb_execution_profiles import COPILOT_CLI_VERSION, COPILOT_MODEL
@@ -11,6 +12,7 @@ from scripts.zb_execution_worker import (
     WorkerOutcome,
     sanitized_execution_env,
 )
+from scripts.zb_execution_workspace import WorkspaceError
 
 
 _PROOF_TASK_ID = "ZB_EXECUTION_PROOF_R01"
@@ -142,6 +144,10 @@ class CopilotWorker:
             result = self._command.run(argv, cwd=worktree, timeout=timeout_seconds, env=env)
         except TimeoutError:
             return WorkerOutcome(exit_code=124, stdout="", stderr="worker timeout", timed_out=True)
+        except WorkspaceError as exc:
+            if isinstance(exc.__cause__, subprocess.TimeoutExpired):
+                return WorkerOutcome(exit_code=124, stdout="", stderr="worker timeout", timed_out=True)
+            raise WorkerError("COPILOT_EXECUTION_ERROR") from exc
         except Exception as exc:
             raise WorkerError("COPILOT_EXECUTION_ERROR") from exc
         return WorkerOutcome(

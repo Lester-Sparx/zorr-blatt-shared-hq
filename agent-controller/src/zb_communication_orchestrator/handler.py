@@ -25,6 +25,17 @@ def _preflight_source_lookup(envelope, config):
         raise SourceCommentResolutionError("MESSAGE_PROTOCOL_INVALID")
 
 
+def _preflight_bodyless_source_lookup(envelope, config):
+    if envelope.repository != TARGET_REPOSITORY or envelope.pr_number != config.communication_pr:
+        raise SourceCommentResolutionError("COMMUNICATION_PR_MISMATCH")
+    if envelope.authenticated_actor not in {None, "Lester-Sparx"}:
+        raise SourceCommentResolutionError("TRANSPORT_ACTOR_REJECTED")
+    if envelope.event_type not in {None, "issue_comment.created"}:
+        raise SourceCommentResolutionError("MESSAGE_PROTOCOL_INVALID")
+    if envelope.top_level not in {None, True}:
+        raise SourceCommentResolutionError("MESSAGE_PROTOCOL_INVALID")
+
+
 def _extract_unique_field(body: object, field: str) -> str | None:
     if not isinstance(body, str):
         return None
@@ -128,7 +139,8 @@ def _bodyless_protocol_candidate(row, actor: str, epoch: int, processed_ids: set
 
 
 def _resolve_bodyless_source_comment(envelope, github, config):
-    _preflight_source_lookup(envelope, config)
+    _preflight_bodyless_source_lookup(envelope, config)
+    expected_actor = "Lester-Sparx"
     epoch = getattr(config, "ingress_epoch_comment_id", None)
     if not isinstance(epoch, int) or epoch < 0:
         raise SourceCommentResolutionError()
@@ -143,7 +155,7 @@ def _resolve_bodyless_source_comment(envelope, github, config):
     matches = [
         row
         for row in rows
-        if _bodyless_protocol_candidate(row, envelope.authenticated_actor, epoch, processed)
+        if _bodyless_protocol_candidate(row, expected_actor, epoch, processed)
     ]
     if len(matches) != 1:
         raise SourceCommentResolutionError()
@@ -160,7 +172,7 @@ def _resolve_bodyless_source_comment(envelope, github, config):
     exact_top_level = getattr(exact, "top_level", True)
     if (
         exact_id != comment_id
-        or getattr(exact, "actor", None) != envelope.authenticated_actor
+        or getattr(exact, "actor", None) != expected_actor
         or exact_top_level is not True
         or exact_body != candidate_body
     ):
@@ -170,7 +182,19 @@ def _resolve_bodyless_source_comment(envelope, github, config):
     if not lines or lines[0] not in {MESSAGE_MARKER, PROBE_MARKER}:
         raise SourceCommentResolutionError()
 
-    return replace(envelope, comment_id=comment_id, comment_body=exact_body)
+    # Work may omit actor/event metadata from the webhook envelope. In the
+    # bodyless path only, exact GitHub source verification supplies transport
+    # authority and the configured trigger contract supplies the logical event
+    # type used by the strict router. Physical metadata remains NOT_EXPOSED in
+    # external evidence when Work did not expose it.
+    return replace(
+        envelope,
+        comment_id=comment_id,
+        comment_body=exact_body,
+        authenticated_actor=expected_actor,
+        event_type="issue_comment.created",
+        top_level=True,
+    )
 
 
 def handle_webhook(envelope, github, executor, config):

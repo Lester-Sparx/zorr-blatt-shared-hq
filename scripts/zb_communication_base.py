@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import urllib.request
 from dataclasses import dataclass
-from typing import Any, Protocol
+from pathlib import Path
+from typing import Any, Callable, Protocol
 
 
 REPOSITORY = "Lester-Sparx/zorr-blatt-shared-hq"
@@ -422,3 +424,53 @@ def admit_event(
         github_sha=str(github_sha),
     )
     return message, context
+
+
+def _require_env(environ: dict[str, str], name: str) -> str:
+    value = environ.get(name)
+    if not value:
+        raise ProtocolError(f"missing environment: {name}")
+    return value
+
+
+def main(
+    *,
+    environ: dict[str, str] | None = None,
+    port_factory: Callable[[str], GitHubPort] = GitHubApi,
+) -> int:
+    env = os.environ if environ is None else environ
+    event_path = Path(_require_env(env, "GITHUB_EVENT_PATH"))
+    try:
+        event = json.loads(event_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProtocolError("invalid GitHub event payload") from exc
+    if not isinstance(event, dict):
+        raise ProtocolError("GitHub event payload must be an object")
+
+    comment = event.get("comment") or {}
+    body = comment.get("body")
+    if not isinstance(body, str) or not body.splitlines() or body.splitlines()[0] != MARKER:
+        print("IGNORED_NON_PROTOCOL")
+        return 0
+
+    if _require_env(env, "GITHUB_REPOSITORY") != REPOSITORY:
+        raise ProtocolError("environment repository mismatch")
+    github_sha = _require_env(env, "GITHUB_SHA")
+    if not _SHA40.fullmatch(github_sha):
+        raise ProtocolError("invalid GITHUB_SHA")
+
+    message, context = admit_event(
+        event,
+        expected_base_sha=github_sha,
+        run_id=_require_env(env, "GITHUB_RUN_ID"),
+        run_attempt=_require_env(env, "GITHUB_RUN_ATTEMPT"),
+        github_sha=github_sha,
+    )
+    token = _require_env(env, "GITHUB_TOKEN")
+    result = run_base(message, context, port_factory(token))
+    print(result)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

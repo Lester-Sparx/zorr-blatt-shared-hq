@@ -106,6 +106,21 @@ class ExecutionWorkflowShapeTests(unittest.TestCase):
         self.assertIn("/actions/artifacts/", finalize)
         self.assertIn("expected_run_id=run_id", finalize)
 
+    def test_finalizer_records_execution_job_failure_instead_of_silent_skip(self) -> None:
+        text = WORKFLOW.read_text(encoding="utf-8")
+        finalize = job_section(text, "finalize", None)
+        header = finalize.split("steps:\n", 1)[0]
+        self.assertIn("always()", header)
+        self.assertIn("needs.admit.outputs.request_ready == 'true'", header)
+        self.assertNotIn("needs.lester_execute.result == 'success'", header)
+        self.assertNotIn("needs.duncan_qc.result == 'success'", header)
+        self.assertIn("Record failed execution pipeline", finalize)
+        self.assertIn("_substantive_failure_record", finalize)
+        self.assertIn("_substantive_console_body", finalize)
+        self.assertIn("OWNER_GATE_REQUIRED = FALSE", (ROOT / "scripts" / "zb_communication_base.py").read_text(encoding="utf-8"))
+        self.assertIn("needs.lester_execute.result != 'success'", finalize)
+        self.assertIn("needs.duncan_qc.result != 'success'", finalize)
+
     def test_taskfile_uses_python_module_mode_not_script_path(self) -> None:
         text = TASKFILE.read_text(encoding="utf-8")
         self.assertIn("python -m scripts.zb_execution_cli execute --from-env", text)

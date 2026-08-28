@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -8,6 +9,21 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Protocol
+
+try:
+    from scripts.zb_execution_contract import (
+        ExecutionRequest,
+        parse_execution_request,
+        parse_execution_result,
+        render_execution_request,
+    )
+except ModuleNotFoundError:  # direct script mode
+    from zb_execution_contract import (
+        ExecutionRequest,
+        parse_execution_request,
+        parse_execution_result,
+        render_execution_request,
+    )
 
 REPOSITORY = "Lester-Sparx/zorr-blatt-shared-hq"
 COMMUNICATION_PR = 111
@@ -19,6 +35,11 @@ TASK_ID = "ZB_GITHUB_NATIVE_BASE_R01"
 TASK_REVISION = 1
 IMPLEMENTATION_PR = 118
 APPROVED_DESIGN_HEAD = "81c44232b72b4a98c8ad0ac2ea6a0a2876f988bc"
+SUBSTANTIVE_TASK_ID = "ZB_EXECUTION_PROOF_R01"
+SUBSTANTIVE_TASK_REVISION = 1
+SUBSTANTIVE_DESIGN_HEAD = "7bac0b6c10dda0448a8792dd3c97f8cec76bbb03"
+SUBSTANTIVE_IMPLEMENTATION_PR = 122
+SUBSTANTIVE_ALLOWED_WRITE_SCOPE = ("tests/fixtures/zb-execution-proof/",)
 MARKER = "ZB_AGENT_MESSAGE_V1"
 API_ROOT = "https://api.github.com"
 TRACKER_ISSUE_URL = f"{API_ROOT}/repos/{REPOSITORY}/issues/{TRACKER_ISSUE}"
@@ -33,6 +54,10 @@ EXPECTED_STAGES = (
     ("DJANGO", "JINGO", "ARCH_VERDICT"),
     ("JINGO", "JINGO", "CLOSE_REQUEST"),
 )
+_TASK_AUTHORITIES = {
+    TASK_ID: (TASK_REVISION, APPROVED_DESIGN_HEAD),
+    SUBSTANTIVE_TASK_ID: (SUBSTANTIVE_TASK_REVISION, SUBSTANTIVE_DESIGN_HEAD),
+}
 _REPLAY_STATES = frozenset({"RECEIVED", "RUNNING", "RESULT", "BLOCKED"})
 _FIELDS = (
     "MESSAGE_ID", "EVENT_ID", "CORRELATION_ID", "CAUSATION_MESSAGE_ID",
@@ -76,6 +101,13 @@ class EventContext:
     run_id: str
     run_attempt: str
     github_sha: str
+
+
+@dataclass(frozen=True)
+class DispatchDecision:
+    state: str
+    request_body: str | None
+    request_sha256: str | None
 
 
 class GitHubPort(Protocol):
@@ -361,6 +393,252 @@ def run_base(message: RootMessage, context: EventContext, port: GitHubPort) -> s
     return "OWNER_GATE_REQUIRED"
 
 
+def _substantive_request_body(message: RootMessage, event: dict[str, Any]) -> str:
+    comment_id = (event.get("comment") or {}).get("id")
+    if not isinstance(comment_id, int) or isinstance(comment_id, bool) or comment_id <= 0:
+        raise ProtocolError("invalid source comment ID")
+    request = ExecutionRequest(
+        execution_request_id=f"{message.message_id}-lester",
+        message_id=message.message_id,
+        event_id=message.event_id,
+        correlation_id=message.correlation_id,
+        causation_message_id=message.message_id,
+        task_id=message.task_id,
+        task_revision=message.task_revision,
+        logical_role="LESTER",
+        execution_profile="LESTER_IMPLEMENT_R01",
+        execution_profile_version=1,
+        base_sha=message.base_sha,
+        authority_ref=f"pr:{COMMUNICATION_PR}:comment:{comment_id}",
+        design_head=message.design_head,
+        source_refs=(f"pr:{COMMUNICATION_PR}", f"source-comment:{comment_id}"),
+        evidence_input_refs=("spec:120", "plan:121"),
+        allowed_write_scope=SUBSTANTIVE_ALLOWED_WRITE_SCOPE,
+        timeout_seconds=600,
+        no_auto_merge=True,
+        production_active=False,
+    )
+    return render_execution_request(request)
+
+
+def _substantive_dispatch_record(message: RootMessage, event: dict[str, Any], result_code: str) -> str:
+    comment_id = (event.get("comment") or {}).get("id")
+    return "\n".join(
+        [
+            "ZB_SUBSTANTIVE_DISPATCH_V1",
+            f"MESSAGE_ID = {message.message_id}",
+            f"CORRELATION_ID = {message.correlation_id}",
+            f"SOURCE_COMMENT_ID = {comment_id}",
+            f"TASK_ID = {message.task_id}",
+            f"TASK_REVISION = {message.task_revision}",
+            f"BASE_SHA = {message.base_sha}",
+            f"DESIGN_HEAD = {message.design_head}",
+            f"IMPLEMENTATION_PR = {SUBSTANTIVE_IMPLEMENTATION_PR}",
+            "STATE = BLOCKED",
+            f"RESULT_CODE = {result_code}",
+            "PRODUCTION_ACTIVE = NO",
+        ]
+    )
+
+
+def _substantive_console_body(message: RootMessage, *, source_comment_id: str, phase: str, reason: str) -> str:
+    updated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    if phase == "DONE":
+        overall = "WAITING"
+        action = "OWNER_GATE_REQUIRED"
+        lester = "DONE"
+        duncan = "DONE"
+        owner_gate = "WAITING"
+        substantive = "DONE"
+    elif phase == "FAIL":
+        overall = "FAIL"
+        action = "REVIEW_EXECUTION_FAILURE"
+        lester = "DONE"
+        duncan = "FAIL"
+        owner_gate = "BLOCKED"
+        substantive = "FAIL"
+    else:
+        overall = "BLOCKED"
+        action = "RESOLVE_EXECUTION_HOST_GATE"
+        lester = "BLOCKED"
+        duncan = "WAITING"
+        owner_gate = "BLOCKED"
+        substantive = "BLOCKED"
+    lines = [
+        "ZB_OWNER_VIEW_V0",
+        f"UPDATED_AT = {updated_at}",
+        f"OVERALL_STATUS = {overall}",
+        f"SPARX_ACTION = {action}",
+        f"WHY = {reason}; source_comment_id={source_comment_id}; correlation_id={message.correlation_id}",
+        "SCOUT_LAST_CHECK = UNKNOWN",
+        "SCOUT_SUMMARY = NONE",
+        "AGENT = JINGO | DONE | substantive request authority resolved | NONE | NONE | await execution state",
+        f"AGENT = LESTER | {lester} | substantive execution | NONE | execution profile R01 | follow workflow gate",
+        f"AGENT = DUNCAN | {duncan} | independent substantive QC | NONE | QC profile R01 | follow workflow gate",
+        "AGENT = SALVADOR | UNKNOWN | not part of this execution path | NONE | NONE | await authorized art task",
+        "AGENT = LYNCH | UNKNOWN | not part of this execution path | NONE | NONE | await authorized directing task",
+        "AGENT = MAO | UNKNOWN | not part of this execution path | NONE | NONE | await authorized task",
+        "AGENT = CHARLIE | UNKNOWN | not part of this execution path | NONE | NONE | await authorized task",
+        "AGENT = MEMORO | UNKNOWN | not part of this execution path | NONE | NONE | await authorized task",
+        "GATE = BASE_AUTOMATION | DONE | GitHub-native communication base retained",
+        f"GATE = OWNER_GATE | {owner_gate} | human OWNER only after verified DUNCAN PASS",
+        f"GATE = SUBSTANTIVE_EXECUTION | {substantive} | {reason}",
+    ]
+    return "\n".join(lines)
+
+
+def prepare_substantive_dispatch(message: RootMessage, event: dict[str, Any], port: GitHubPort) -> DispatchDecision:
+    if message.task_id != SUBSTANTIVE_TASK_ID:
+        raise ProtocolError("wrong substantive task")
+    repository = event.get("repository") or {}
+    source_comment_id = str((event.get("comment") or {}).get("id"))
+    if repository.get("private") is not True:
+        write_and_verify(port, _substantive_dispatch_record(message, event, "RUNNER_SECURITY_GATE_BLOCKED"))
+        _write_console_and_verify(
+            port,
+            _substantive_console_body(
+                message,
+                source_comment_id=source_comment_id,
+                phase="BLOCKED",
+                reason="public repository blocks persistent self-hosted execution",
+            ),
+        )
+        return DispatchDecision("BLOCKED", None, None)
+
+    request_body = _substantive_request_body(message, event)
+    request_sha256 = hashlib.sha256(request_body.encode("utf-8")).hexdigest()
+    for comment in port.list_tracker_comments():
+        if _trusted_comment(comment, TRACKER_ISSUE_URL) and comment.get("body") == request_body:
+            return DispatchDecision("REQUEST_RECORDED", request_body, request_sha256)
+    write_and_verify(port, request_body)
+    return DispatchDecision("REQUEST_RECORDED", request_body, request_sha256)
+
+
+def _source_comment_id_from_request(request: ExecutionRequest) -> str:
+    prefix = f"pr:{COMMUNICATION_PR}:comment:"
+    if not request.authority_ref.startswith(prefix):
+        return "UNKNOWN"
+    value = request.authority_ref.removeprefix(prefix)
+    return value if value.isdigit() else "UNKNOWN"
+
+
+def _substantive_owner_view(request: ExecutionRequest, lester_execution_id: str, duncan_execution_id: str) -> str:
+    return "\n".join(
+        [
+            "ZB_OWNER_VIEW_V0",
+            f"MESSAGE_ID = {request.message_id}",
+            f"CORRELATION_ID = {request.correlation_id}",
+            f"SOURCE_COMMENT_ID = {_source_comment_id_from_request(request)}",
+            f"TASK_ID = {request.task_id}",
+            f"TASK_REVISION = {request.task_revision}",
+            f"BASE_SHA = {request.base_sha}",
+            f"DESIGN_HEAD = {request.design_head}",
+            f"IMPLEMENTATION_PR = {SUBSTANTIVE_IMPLEMENTATION_PR}",
+            f"LESTER_EXECUTION_ID = {lester_execution_id}",
+            f"DUNCAN_EXECUTION_ID = {duncan_execution_id}",
+            "LAST_STAGE = DUNCAN / VERIFIED_QC_PASS",
+            "OWNER_GATE_REQUIRED = TRUE",
+            "OWNER_ACTION_REQUIRED = TRUE",
+            "PRODUCTION_ACTIVE = NO",
+        ]
+    )
+
+
+def _substantive_failure_record(request: ExecutionRequest, result_code: str) -> str:
+    return "\n".join(
+        [
+            "ZB_SUBSTANTIVE_FINALIZE_V1",
+            f"MESSAGE_ID = {request.message_id}",
+            f"CORRELATION_ID = {request.correlation_id}",
+            f"TASK_ID = {request.task_id}",
+            f"TASK_REVISION = {request.task_revision}",
+            f"BASE_SHA = {request.base_sha}",
+            "STATE = FAIL",
+            f"RESULT_CODE = {result_code}",
+            "OWNER_GATE_REQUIRED = FALSE",
+            "PRODUCTION_ACTIVE = NO",
+        ]
+    )
+
+
+def finalize_substantive_execution(request_body: str, lester_result: str, duncan_result: str, port: GitHubPort) -> str:
+    request = parse_execution_request(request_body)
+    lester = parse_execution_result(lester_result)
+    duncan = parse_execution_result(duncan_result)
+    source_comment_id = _source_comment_id_from_request(request)
+
+    common_lester = (
+        lester.message_id == request.message_id
+        and lester.correlation_id == request.correlation_id
+        and lester.task_id == request.task_id
+        and lester.task_revision == request.task_revision
+        and lester.base_sha == request.base_sha
+        and lester.logical_role == "LESTER"
+        and lester.execution_profile == "LESTER_IMPLEMENT_R01"
+        and lester.execution_profile_version == 1
+    )
+    common_duncan = (
+        duncan.message_id == request.message_id
+        and duncan.correlation_id == request.correlation_id
+        and duncan.task_id == request.task_id
+        and duncan.task_revision == request.task_revision
+        and duncan.base_sha == request.base_sha
+        and duncan.logical_role == "DUNCAN"
+        and duncan.execution_profile == "DUNCAN_QC_R01"
+        and duncan.execution_profile_version == 1
+    )
+    if not common_lester or lester.terminal_state != "PASS":
+        write_and_verify(port, _substantive_failure_record(request, "LESTER_RESULT_REJECTED"))
+        _write_console_and_verify(
+            port,
+            _substantive_console_body(message=_root_from_request(request), source_comment_id=source_comment_id, phase="FAIL", reason="LESTER result verification failed"),
+        )
+        return "LESTER_RESULT_REJECTED"
+    if not common_duncan or duncan.terminal_state != "PASS":
+        write_and_verify(port, _substantive_failure_record(request, "DUNCAN_QC_FAIL"))
+        _write_console_and_verify(
+            port,
+            _substantive_console_body(message=_root_from_request(request), source_comment_id=source_comment_id, phase="FAIL", reason="DUNCAN QC did not pass"),
+        )
+        return "DUNCAN_QC_FAIL"
+    if duncan.execution_id == lester.execution_id:
+        write_and_verify(port, _substantive_failure_record(request, "DUNCAN_EXECUTION_ID_NOT_DISTINCT"))
+        _write_console_and_verify(
+            port,
+            _substantive_console_body(message=_root_from_request(request), source_comment_id=source_comment_id, phase="FAIL", reason="DUNCAN physical execution identity is not distinct"),
+        )
+        return "DUNCAN_EXECUTION_ID_NOT_DISTINCT"
+
+    write_and_verify(port, _substantive_owner_view(request, lester.execution_id, duncan.execution_id))
+    _write_console_and_verify(
+        port,
+        _substantive_console_body(
+            message=_root_from_request(request),
+            source_comment_id=source_comment_id,
+            phase="DONE",
+            reason="verified LESTER result and independent DUNCAN PASS reached human OWNER gate",
+        ),
+    )
+    return "OWNER_GATE_REQUIRED"
+
+
+def _root_from_request(request: ExecutionRequest) -> RootMessage:
+    return RootMessage(
+        message_id=request.message_id,
+        event_id=request.event_id,
+        correlation_id=request.correlation_id,
+        causation_message_id="NONE",
+        task_id=request.task_id,
+        from_role="JINGO",
+        to_role="LESTER",
+        message_kind="ASSIGN",
+        base_sha=request.base_sha,
+        task_revision=request.task_revision,
+        design_head=request.design_head,
+        no_auto_merge=True,
+    )
+
+
 def _require_identifier(name: str, value: str) -> None:
     if not _IDENTIFIER.fullmatch(value):
         raise ProtocolError(f"invalid {name}")
@@ -395,13 +673,15 @@ def parse_root_message(body: str) -> RootMessage:
         _require_identifier(name, values[name])
     if values["CAUSATION_MESSAGE_ID"] != "NONE":
         raise ProtocolError("initial CAUSATION_MESSAGE_ID must be NONE")
-    if values["TASK_ID"] != TASK_ID:
+    authority = _TASK_AUTHORITIES.get(values["TASK_ID"])
+    if authority is None:
         raise ProtocolError("wrong TASK_ID")
     if (values["FROM_ROLE"], values["TO_ROLE"], values["MESSAGE_KIND"]) != EXPECTED_STAGES[0]:
         raise ProtocolError("wrong initial logical transition")
     if not _SHA40.fullmatch(values["BASE_SHA"]):
         raise ProtocolError("invalid BASE_SHA")
-    if values["DESIGN_HEAD"] != APPROVED_DESIGN_HEAD:
+    expected_revision, expected_design_head = authority
+    if values["DESIGN_HEAD"] != expected_design_head:
         raise ProtocolError("wrong DESIGN_HEAD")
     if values["NO_AUTO_MERGE"] != "TRUE":
         raise ProtocolError("NO_AUTO_MERGE must be TRUE")
@@ -409,7 +689,7 @@ def parse_root_message(body: str) -> RootMessage:
         task_revision = int(values["TASK_REVISION"])
     except ValueError as exc:
         raise ProtocolError("invalid TASK_REVISION") from exc
-    if task_revision != TASK_REVISION:
+    if task_revision != expected_revision:
         raise ProtocolError("wrong TASK_REVISION")
 
     return RootMessage(
@@ -476,7 +756,11 @@ def main(*, environ: dict[str, str] | None = None, port_factory: Callable[[str],
         run_attempt=_require_env(env, "GITHUB_RUN_ATTEMPT"),
         github_sha=github_sha,
     )
-    result = run_base(message, context, port_factory(_require_env(env, "GITHUB_TOKEN")))
+    port = port_factory(_require_env(env, "GITHUB_TOKEN"))
+    if message.task_id == TASK_ID:
+        result = run_base(message, context, port)
+    else:
+        result = prepare_substantive_dispatch(message, event, port).state
     print(result)
     return 0
 

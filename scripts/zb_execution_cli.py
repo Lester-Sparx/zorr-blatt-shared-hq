@@ -147,6 +147,29 @@ def _run_verification_commands(
     return True, "".join(chunks)
 
 
+def _load_verified_replay(evidence_dir: Path, request_body: str) -> ExecutionResult | None:
+    if not evidence_dir.exists():
+        return None
+    verify_evidence_manifest(evidence_dir)
+    stored_request_body = (evidence_dir / "request.txt").read_text(encoding="utf-8")
+    if stored_request_body != request_body:
+        raise EvidenceError("REPLAY_REQUEST_MISMATCH")
+    stored_request = parse_execution_request(stored_request_body)
+    stored_result = parse_execution_result((evidence_dir / "result.txt").read_text(encoding="utf-8"))
+    if (
+        stored_result.execution_request_id != stored_request.execution_request_id
+        or stored_result.message_id != stored_request.message_id
+        or stored_result.correlation_id != stored_request.correlation_id
+        or stored_result.task_id != stored_request.task_id
+        or stored_result.task_revision != stored_request.task_revision
+        or stored_result.execution_profile != stored_request.execution_profile
+        or stored_result.execution_profile_version != stored_request.execution_profile_version
+        or stored_result.base_sha != stored_request.base_sha
+    ):
+        raise EvidenceError("REPLAY_BINDING_MISMATCH")
+    return stored_result
+
+
 def run_lester_execution(
     request_body: str,
     *,
@@ -170,6 +193,10 @@ def run_lester_execution(
     job_root.mkdir(parents=True, exist_ok=True)
     worktree = job_root / "worktree"
     evidence_dir = job_root / "evidence"
+    replay = _load_verified_replay(evidence_dir, request_body)
+    if replay is not None:
+        return replay
+
     started_at = _now()
     terminal_state = "EXECUTION_ERROR"
     result_code = "EXECUTION_ERROR"
@@ -351,7 +378,7 @@ def run_duncan_qc(
             start_head = lester_result.start_head
             end_head = lester_result.end_head
             changed_files = lester_result.changed_files
-    except (EvidenceError, OSError, ValueError, ExecutionProfileError) as exc:
+    except (EvidenceError, OSError, ValueError, ExecutionProfileError):
         terminal_state = "FAIL"
         result_code = "EVIDENCE_INVALID"
         process_exit_code = 1

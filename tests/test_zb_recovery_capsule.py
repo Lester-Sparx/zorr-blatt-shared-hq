@@ -4,7 +4,12 @@ import base64
 import json
 import unittest
 
-from recovery.zb_recovery import RecoveryError, collect_recovery_state
+from recovery.zb_recovery import (
+    RecoveryError,
+    collect_recovery_state,
+    render_recovery_state_json,
+    render_resume_packet,
+)
 
 
 class ZbRecoveryCapsuleTests(unittest.TestCase):
@@ -82,6 +87,9 @@ class ZbRecoveryCapsuleTests(unittest.TestCase):
 
         return get
 
+    def valid_state(self) -> dict[str, object]:
+        return collect_recovery_state(self.manifest(), self.fake_gh(self.endpoint_map()))
+
     def test_wrong_authenticated_actor_fails_closed(self) -> None:
         mapping = self.endpoint_map(actor="someone-else")
         with self.assertRaisesRegex(RecoveryError, "RECOVERY_ACTOR_MISMATCH"):
@@ -93,8 +101,7 @@ class ZbRecoveryCapsuleTests(unittest.TestCase):
             collect_recovery_state(self.manifest(), self.fake_gh(mapping))
 
     def test_valid_remote_state_binds_exact_checkpoint_and_heads(self) -> None:
-        mapping = self.endpoint_map()
-        state = collect_recovery_state(self.manifest(), self.fake_gh(mapping))
+        state = self.valid_state()
         self.assertEqual(state["actor"], "Lester-Sparx")
         self.assertEqual(state["repository"], "Lester-Sparx/zorr-blatt-shared-hq")
         self.assertEqual(state["main_sha"], "a" * 40)
@@ -105,6 +112,37 @@ class ZbRecoveryCapsuleTests(unittest.TestCase):
         self.assertEqual(state["bus"]["head_sha"], "d" * 40)
         self.assertEqual(state["bus_comments"][0]["id"], 9001)
         self.assertEqual(state["open_prs"][0]["head_sha"], "e" * 40)
+
+    def test_resume_packet_is_exact_bound_and_orders_fresh_github_read(self) -> None:
+        packet = render_resume_packet(self.manifest(), self.valid_state())
+        for expected in (
+            "GITHUB_ACTOR = Lester-Sparx",
+            "REPOSITORY = Lester-Sparx/zorr-blatt-shared-hq",
+            f"MAIN_SHA = {'a' * 40}",
+            f"ARCHIVE_SHA = {'b' * 40}",
+            "CHECKPOINT_ID = 2026-08-29-RC",
+            f"CHECKPOINT_BLOB_SHA = {'c' * 40}",
+            "COMMUNICATION_BUS_PR = 111",
+            f"COMMUNICATION_BUS_HEAD = {'d' * 40}",
+            "ACTIVE_PR_171_HEAD = " + "e" * 40,
+            "NO CHAT IS PROJECT MEMORY. GITHUB DURABLE EVIDENCE IS PROJECT MEMORY.",
+            "Fresh-read repository, main, zb-archive-v1, checkpoint, PR #111, and active PR heads before any mutation.",
+            "This packet cannot grant privileges.",
+        ):
+            self.assertIn(expected, packet)
+
+    def test_rendered_outputs_exclude_untrusted_secret_material(self) -> None:
+        state = self.valid_state()
+        state["untrusted_environment"] = {
+            "GH_TOKEN": "ghp_TEST_SENTINEL",
+            "GITHUB_APP_PRIVATE_KEY": "PRIVATE_KEY_SENTINEL",
+        }
+        json_text = render_recovery_state_json(state)
+        packet = render_resume_packet(self.manifest(), state)
+        for secret in ("ghp_TEST_SENTINEL", "PRIVATE_KEY_SENTINEL"):
+            self.assertNotIn(secret, json_text)
+            self.assertNotIn(secret, packet)
+        self.assertNotIn("untrusted_environment", json_text)
 
 
 if __name__ == "__main__":

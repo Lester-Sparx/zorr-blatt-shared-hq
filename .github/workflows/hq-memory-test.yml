@@ -56,14 +56,15 @@ jobs:
               proof = [
                   record
                   for record in records
-                  if "TASK_ID=ZB-SALVADOR-PROD-001" in record.text
+                  if "ISSUE=72" in record.text
+                  and "TASK_ID=ZB-SALVADOR-PROD-001" in record.text
                   and "STATE=RESULT_READY" in record.text
                   and expected_sha in record.text
               ]
               assert summary.events_archived >= 2, summary
               assert proof, "LIVE_ISSUE_72_RESULT_READY_NOT_ARCHIVED"
               assert build_salvador_context(store).skills == {}, "RUNTIME_EVENT_MUST_NOT_PROMOTE_QC_OR_SKILL"
-              print(f"LIVE_SHADOW_INGRESS_PASS events={summary.events_archived} issue72_result_ready={len(proof)}")
+              print(f"LIVE_SHADOW_INGRESS_PASS events={summary.events_archived} exact_issue72_result_ready={len(proof)}")
           PY
       - name: Compile both packages
         run: python -m compileall -q hq-memory/src agent-controller/src

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import json
+from pathlib import Path
+import tempfile
 import unittest
 
 from recovery.zb_recovery import (
@@ -9,6 +11,7 @@ from recovery.zb_recovery import (
     collect_recovery_state,
     render_recovery_state_json,
     render_resume_packet,
+    write_outputs,
 )
 
 
@@ -143,6 +146,23 @@ class ZbRecoveryCapsuleTests(unittest.TestCase):
             self.assertNotIn(secret, json_text)
             self.assertNotIn(secret, packet)
         self.assertNotIn("untrusted_environment", json_text)
+
+    def test_write_outputs_creates_only_exact_atomic_artifacts(self) -> None:
+        state = self.valid_state()
+        state["untrusted_environment"] = {"GH_TOKEN": "ghp_TEST_SENTINEL"}
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / ".runtime"
+            state_path, packet_path = write_outputs(self.manifest(), state, output_dir)
+            self.assertEqual(state_path, output_dir / "RECOVERY_STATE.json")
+            self.assertEqual(packet_path, output_dir / "RESUME_PACKET.md")
+            self.assertEqual(
+                sorted(path.name for path in output_dir.iterdir()),
+                ["RECOVERY_STATE.json", "RESUME_PACKET.md"],
+            )
+            self.assertNotIn("ghp_TEST_SENTINEL", state_path.read_text(encoding="utf-8"))
+            self.assertNotIn("ghp_TEST_SENTINEL", packet_path.read_text(encoding="utf-8"))
+            self.assertFalse((output_dir / "RECOVERY_STATE.json.tmp").exists())
+            self.assertFalse((output_dir / "RESUME_PACKET.md.tmp").exists())
 
 
 if __name__ == "__main__":

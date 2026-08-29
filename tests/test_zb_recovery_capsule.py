@@ -200,8 +200,9 @@ class ZbRecoveryCapsuleTests(unittest.TestCase):
 
         for task in ("doctor:", "recover:", "mcp:"):
             self.assertIn(task, taskfile)
+        self.assertIn("dir: '..'", taskfile)
         self.assertIn("deps: [doctor]", taskfile)
-        self.assertIn("python -m recovery.zb_recovery", taskfile)
+        self.assertIn("python -X utf8 -m recovery.zb_recovery", taskfile)
         self.assertIn("github-mcp-server stdio", taskfile)
 
         self.assertEqual(mcp["mcpServers"]["github"]["command"], "github-mcp-server")

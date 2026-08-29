@@ -14,6 +14,8 @@ RECORD_SCHEMA = "ZB_UNIFIED_ARCHIVE_RECORD_V1"
 CONTEXT_SCHEMA = "ZB_UNIFIED_CURRENT_CONTEXT_V1"
 _URL_RE = re.compile(r"https?://[^\s<>'\"\)\]]+")
 _TOKEN_RE = re.compile(r"\w+", re.UNICODE)
+_KEY_RE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
+_FIELD_RE = re.compile(r"^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$")
 
 
 class UnifiedArchiveError(RuntimeError):
@@ -255,6 +257,103 @@ def search_records(archive_root: Path, query: str, *, limit: int = 10) -> list[d
     return [by_digest[str(row[0])] for row in rows]
 
 
+def _structured_fields(text: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for line in text.splitlines():
+        match = _FIELD_RE.fullmatch(line)
+        if not match:
+            continue
+        key, value = match.groups()
+        previous = fields.get(key)
+        if previous is not None and previous != value:
+            raise UnifiedArchiveError("STRUCTURED_FIELD_CONFLICT")
+        fields[key] = value
+    return fields
+
+
+def resolve_assertion(
+    archive_root: Path,
+    subject_kind: str,
+    subject_number: int | None,
+    key: str,
+) -> dict[str, Any]:
+    if not _KEY_RE.fullmatch(key):
+        raise UnifiedArchiveError("ASSERTION_KEY_INVALID")
+    records = [
+        record
+        for record in _load_records(Path(archive_root))
+        if record.get("subject_kind") == subject_kind and record.get("subject_number") == subject_number
+    ]
+    records.sort(key=lambda item: (str(item.get("created_at") or ""), str(item.get("raw_sha256") or "")), reverse=True)
+    for record in records:
+        fields = _structured_fields(str(record.get("body_text") or ""))
+        if key not in fields:
+            continue
+        return {
+            "status": "PROVEN",
+            "key": key,
+            "value": fields[key],
+            "raw_sha256": record["raw_sha256"],
+            "source_url": record.get("source_url", ""),
+            "created_at": record.get("created_at", ""),
+        }
+    return {"status": "NOT_PROVEN", "key": key}
+
+
+def guard_assertion(
+    archive_root: Path,
+    subject_kind: str,
+    subject_number: int | None,
+    key: str,
+    claimed_value: str,
+) -> dict[str, Any]:
+    resolved = resolve_assertion(archive_root, subject_kind, subject_number, key)
+    if resolved["status"] != "PROVEN":
+        return resolved
+    if resolved["value"] == claimed_value:
+        return {
+            "status": "MATCH",
+            "key": key,
+            "value": claimed_value,
+            "raw_sha256": resolved["raw_sha256"],
+            "source_url": resolved["source_url"],
+            "created_at": resolved["created_at"],
+        }
+    return {
+        "status": "CONFLICT",
+        "key": key,
+        "claimed_value": claimed_value,
+        "corrected_value": resolved["value"],
+        "raw_sha256": resolved["raw_sha256"],
+        "source_url": resolved["source_url"],
+        "created_at": resolved["created_at"],
+    }
+
+
+def build_restore_packet(archive_root: Path, query: str, *, limit: int = 10) -> dict[str, Any]:
+    records = search_records(Path(archive_root), query, limit=limit)
+    results = [
+        {
+            "raw_sha256": record["raw_sha256"],
+            "event_name": record["event_name"],
+            "action": record["action"],
+            "subject_kind": record["subject_kind"],
+            "subject_number": record["subject_number"],
+            "subject_title": record["subject_title"],
+            "body_excerpt": str(record.get("body_text") or "")[:1200],
+            "source_url": record.get("source_url", ""),
+            "attachment_urls": record.get("attachment_urls", []),
+            "created_at": record.get("created_at", ""),
+        }
+        for record in records
+    ]
+    return {
+        "status": "PROVEN" if results else "NOT_PROVEN",
+        "query": query,
+        "results": results,
+    }
+
+
 def _ingest_event(args: argparse.Namespace) -> dict[str, Any]:
     event_bytes = args.event_path.read_bytes()
     digest = hashlib.sha256(event_bytes).hexdigest()
@@ -291,11 +390,41 @@ def main() -> int:
     search.add_argument("--query", required=True)
     search.add_argument("--limit", type=int, default=10)
 
+    restore = subparsers.add_parser("restore")
+    restore.add_argument("--archive-root", required=True, type=Path)
+    restore.add_argument("--query", required=True)
+    restore.add_argument("--limit", type=int, default=10)
+
+    resolve = subparsers.add_parser("resolve")
+    resolve.add_argument("--archive-root", required=True, type=Path)
+    resolve.add_argument("--subject-kind", required=True)
+    resolve.add_argument("--subject-number", type=int)
+    resolve.add_argument("--key", required=True)
+
+    guard = subparsers.add_parser("guard")
+    guard.add_argument("--archive-root", required=True, type=Path)
+    guard.add_argument("--subject-kind", required=True)
+    guard.add_argument("--subject-number", type=int)
+    guard.add_argument("--key", required=True)
+    guard.add_argument("--claimed-value", required=True)
+
     args = parser.parse_args()
     if args.command == "ingest-event":
         result: Any = _ingest_event(args)
-    else:
+    elif args.command == "search":
         result = search_records(args.archive_root, args.query, limit=args.limit)
+    elif args.command == "restore":
+        result = build_restore_packet(args.archive_root, args.query, limit=args.limit)
+    elif args.command == "resolve":
+        result = resolve_assertion(args.archive_root, args.subject_kind, args.subject_number, args.key)
+    else:
+        result = guard_assertion(
+            args.archive_root,
+            args.subject_kind,
+            args.subject_number,
+            args.key,
+            args.claimed_value,
+        )
     print(json.dumps(result, sort_keys=True, ensure_ascii=False))
     return 0
 

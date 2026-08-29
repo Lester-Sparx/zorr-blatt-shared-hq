@@ -102,6 +102,19 @@ class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
         self.assertGreater(invocation, 0)
         self.assertGreater(install, invocation)
 
+    def test_openssh_client_is_repaired_before_first_podman_machine_init(self):
+        self.assertIn('function Ensure-OpenSshClient', self.bootstrap)
+        self.assertIn('OpenSSH.Client~~~~0.0.1.0', self.bootstrap)
+        self.assertIn('Add-WindowsCapability -Online -Name', self.bootstrap)
+        self.assertIn('ssh-keygen.exe', self.bootstrap)
+        self.assertIn('OPENSSH_CLIENT = PASS', self.bootstrap)
+        invocation = self.bootstrap.find('Ensure-OpenSshClient')
+        machine_patch = self.bootstrap.find('Patch-PodmanMachineFirstInit $Deployer')
+        install = self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install')
+        self.assertGreater(invocation, 0)
+        self.assertGreater(machine_patch, invocation)
+        self.assertGreater(install, machine_patch)
+
     def test_github_cli_is_not_a_physical_runtime_gate(self):
         self.assertIn('function Patch-EvidenceTransport', self.bootstrap)
         self.assertIn('GITHUB_EVIDENCE_POST = DEFERRED_TO_CONNECTED_CHAT', self.bootstrap)

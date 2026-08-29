@@ -40,7 +40,7 @@ permissions:
   issues: read
   pull-requests: read
 engine: copilot
-model: agent
+model: gpt-5-mini
 models:
   default-ai-credits-pricing:
     input: 3.0

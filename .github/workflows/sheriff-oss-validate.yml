@@ -1,0 +1,48 @@
+name: sheriff-oss-validate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'config/sheriff/**'
+      - 'schemas/SHERIFF_AGENT_EVENT_V1.schema.json'
+      - 'schemas/SHERIFF_VERDICT_V1.schema.json'
+      - 'scripts/sheriff_core.py'
+      - 'scripts/sheriff_worker.py'
+      - 'scripts/sheriff_validate.py'
+      - 'requirements-sheriff.txt'
+      - 'tests/test_sheriff_core.py'
+      - 'tests/test_sheriff_oss_control_plane.py'
+      - 'tests/test_sheriff_policy_v1.py'
+      - 'tests/test_sheriff_worker_contract.py'
+      - 'tests/test_sheriff_stabilization_v1.py'
+      - '.github/workflows/sheriff-oss-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate OSS manifest and topology
+        run: python3 scripts/sheriff_validate.py
+
+      - name: Install SHERIFF runtime dependencies
+        run: python3 -m pip install -r requirements-sheriff.txt
+
+      - name: Run SHERIFF tests
+        run: python3 -m unittest discover -s tests -p 'test_sheriff*.py' -v
+
+      - name: Compile Python glue
+        run: python3 -m py_compile scripts/sheriff_core.py scripts/sheriff_worker.py
+
+      - name: Parse Docker Compose
+        run: docker compose -f config/sheriff/docker-compose.yml config
+
+      - name: Run opa test
+        run: docker run --rm -v "$PWD/config/sheriff/opa:/policy:ro" openpolicyagent/opa:1.0.1-static test /policy

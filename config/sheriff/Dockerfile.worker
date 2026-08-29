@@ -1,0 +1,12 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements-sheriff.txt /app/requirements-sheriff.txt
+RUN pip install --no-cache-dir -r /app/requirements-sheriff.txt
+
+COPY schemas/SHERIFF_AGENT_EVENT_V1.schema.json /app/schemas/SHERIFF_AGENT_EVENT_V1.schema.json
+COPY scripts/sheriff_core.py /app/sheriff_core.py
+COPY scripts/sheriff_worker.py /app/sheriff_worker.py
+
+CMD ["python", "/app/sheriff_worker.py"]

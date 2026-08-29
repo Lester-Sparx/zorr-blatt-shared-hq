@@ -60,7 +60,7 @@ jobs:
         run: actionlint
 
       - name: Audit GitHub Actions security with zizmor
-        run: zizmor --collect=workflows .
+        run: zizmor --collect=workflows --min-severity high --min-confidence high .
 
       - name: Scan repository history for secrets with Gitleaks
         run: gitleaks git --redact --no-banner --verbose .

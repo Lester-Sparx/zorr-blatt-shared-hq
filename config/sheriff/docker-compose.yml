@@ -1,0 +1,134 @@
+name: zb-sheriff
+
+services:
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:15.0.7
+    restart: unless-stopped
+    environment:
+      FORGEJO__database__DB_TYPE: postgres
+      FORGEJO__database__HOST: postgres:5432
+      FORGEJO__database__NAME: forgejo
+      FORGEJO__database__USER: forgejo
+      FORGEJO__database__PASSWD: ${FORGEJO_DB_PASSWORD:-forgejo-dev-only}
+    ports:
+      - "3000:3000"
+      - "2222:22"
+    volumes:
+      - forgejo-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  nats:
+    image: nats:2.10-alpine
+    restart: unless-stopped
+    command: ["-c", "/etc/nats/nats.conf"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      # canonical repository source: config/sheriff/nats.conf
+      - ./nats.conf:/etc/nats/nats.conf:ro
+      - nats-data:/data/jetstream
+
+  opa:
+    image: openpolicyagent/opa:1.0.1-static
+    restart: unless-stopped
+    command: ["run", "--server", "--addr=0.0.0.0:8181", "/policy"]
+    ports:
+      - "8181:8181"
+    volumes:
+      # canonical repository source: config/sheriff/opa
+      - ./opa:/policy:ro
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sheriff
+      POSTGRES_USER: sheriff
+      POSTGRES_PASSWORD: ${SHERIFF_DB_PASSWORD:-sheriff-dev-only}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sheriff -d sheriff"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # canonical repository source: config/sheriff/postgres
+      - ./postgres:/docker-entrypoint-initdb.d:ro
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.117.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+
+  loki:
+    image: grafana/loki:3.3.2
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./loki.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+
+  grafana:
+    image: grafana/grafana-oss:11.4.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin-dev-only}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+      - loki
+
+  sheriff-worker:
+    build:
+      context: ../..
+      dockerfile: config/sheriff/Dockerfile.worker
+    restart: unless-stopped
+    environment:
+      SHERIFF_NATS_URL: nats://nats:4222
+      SHERIFF_POSTGRES_DSN: postgresql://sheriff:${SHERIFF_DB_PASSWORD:-sheriff-dev-only}@postgres:5432/sheriff
+      SHERIFF_OPA_URL: http://opa:8181/v1/data/zorr/sheriff/decision
+      SHERIFF_METRICS_PORT: "9464"
+    depends_on:
+      nats:
+        condition: service_started
+      opa:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    ports:
+      - "9464:9464"
+
+volumes:
+  forgejo-data:
+  nats-data:
+  postgres-data:
+  prometheus-data:
+  loki-data:
+  grafana-data:

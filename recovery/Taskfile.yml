@@ -14,7 +14,7 @@ tasks:
     dir: '..'
     deps: [doctor]
     cmds:
-      - python -m recovery.zb_recovery --manifest recovery/recovery_manifest.json --output recovery/.runtime
+      - python -X utf8 -m recovery.zb_recovery --manifest recovery/recovery_manifest.json --output recovery/.runtime
 
   mcp:
     desc: Start the official GitHub MCP server over stdio

@@ -208,12 +208,13 @@ def archive_duncan_night_event(
     }
 
 
-def _validated_records(archive_root: Path) -> list[dict[str, object]]:
-    root = Path(archive_root) / EVENTS_REL
+def _all_records(archive_root: Path, *, require_raw: bool = False) -> list[dict[str, object]]:
+    root = Path(archive_root)
+    events_root = root / EVENTS_REL
     records: list[dict[str, object]] = []
-    if not root.is_dir():
+    if not events_root.is_dir():
         return records
-    for path in sorted(root.glob("*.json")):
+    for path in sorted(events_root.glob("*.json")):
         try:
             record = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -221,26 +222,24 @@ def _validated_records(archive_root: Path) -> list[dict[str, object]]:
         if not isinstance(record, dict) or record.get("schema") != SCHEMA:
             raise DuncanNightArchiveError("DUNCAN_DERIVED_SCHEMA_INVALID")
         digest = record.get("source_raw_sha256")
-        if not isinstance(digest, str) or path.stem != digest:
+        if not isinstance(digest, str) or len(digest) != 64 or path.stem != digest:
             raise DuncanNightArchiveError("DUNCAN_DERIVED_HASH_NAME_MISMATCH")
-        if record.get("training_eligible") is True:
-            records.append(record)
+        if require_raw:
+            raw_path = root / "raw" / "sha256" / digest[:2] / f"{digest}.json"
+            if not raw_path.is_file():
+                raise DuncanNightArchiveError("DUNCAN_SOURCE_RAW_MISSING")
+            if hashlib.sha256(raw_path.read_bytes()).hexdigest() != digest:
+                raise DuncanNightArchiveError("DUNCAN_SOURCE_RAW_HASH_MISMATCH")
+        records.append(record)
     records.sort(key=lambda item: (int(item["sequence"]), str(item["source_raw_sha256"])))
     return records
 
 
-def _write_context(archive_root: Path, context: dict[str, object]) -> None:
-    path = Path(archive_root) / CONTEXT_REL
-    path.parent.mkdir(parents=True, exist_ok=True)
-    data = _canonical_json(context)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_bytes(data)
-    os.replace(tmp, path)
-    if path.read_bytes() != data:
-        raise DuncanNightArchiveError("DUNCAN_CONTEXT_READBACK_MISMATCH")
+def _validated_records(archive_root: Path) -> list[dict[str, object]]:
+    return [record for record in _all_records(archive_root) if record.get("training_eligible") is True]
 
 
-def rebuild_duncan_context(archive_root: Path) -> dict[str, object]:
+def compute_duncan_context(archive_root: Path) -> dict[str, object]:
     skills: dict[str, str] = {}
     self_model: dict[str, str] = {}
     owner_taste_model: dict[str, str] = {}
@@ -280,7 +279,7 @@ def rebuild_duncan_context(archive_root: Path) -> dict[str, object]:
         )
         latest_cycle_id = cycle_id
 
-    context: dict[str, object] = {
+    return {
         "schema": CONTEXT_SCHEMA,
         "prime_core_mutable": False,
         "skills": dict(sorted(skills.items())),
@@ -289,8 +288,40 @@ def rebuild_duncan_context(archive_root: Path) -> dict[str, object]:
         "source_events": source_events,
         "latest_cycle_id": latest_cycle_id,
     }
+
+
+def _write_context(archive_root: Path, context: dict[str, object]) -> None:
+    path = Path(archive_root) / CONTEXT_REL
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = _canonical_json(context)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)
+    if path.read_bytes() != data:
+        raise DuncanNightArchiveError("DUNCAN_CONTEXT_READBACK_MISMATCH")
+
+
+def rebuild_duncan_context(archive_root: Path) -> dict[str, object]:
+    context = compute_duncan_context(archive_root)
     _write_context(archive_root, context)
     return context
+
+
+def verify_duncan_archive(archive_root: Path) -> dict[str, int]:
+    root = Path(archive_root)
+    events_root = root / EVENTS_REL
+    context_path = root / CONTEXT_REL
+    if not events_root.exists() and not context_path.exists():
+        return {"duncan_events": 0, "duncan_training_events": 0}
+
+    records = _all_records(root, require_raw=True)
+    if not context_path.is_file():
+        raise DuncanNightArchiveError("DUNCAN_CONTEXT_MISSING")
+    expected = _canonical_json(compute_duncan_context(root))
+    if context_path.read_bytes() != expected:
+        raise DuncanNightArchiveError("DUNCAN_CONTEXT_MISMATCH")
+    training_count = sum(1 for record in records if record.get("training_eligible") is True)
+    return {"duncan_events": len(records), "duncan_training_events": training_count}
 
 
 def rebuild_duncan_from_raw(archive_root: Path) -> dict[str, object]:

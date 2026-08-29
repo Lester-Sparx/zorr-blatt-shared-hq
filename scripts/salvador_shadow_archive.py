@@ -124,6 +124,7 @@ def archive_salvador_shadow_event(
         critical = _count(body, "CRITICAL")
         if None in {passed, total, major, critical} or total == 0:
             return None
+        state_after = "FAILED" if critical > 0 else "PARTIAL"
         return _write_record(
             event_bytes,
             archive_root,
@@ -139,7 +140,7 @@ def archive_salvador_shadow_event(
                     "critical": critical,
                 },
                 "state_before": "UNTESTED",
-                "state_after": "PARTIAL",
+                "state_after": state_after,
                 "training_eligible": True,
                 "certification": False,
                 "holdout": False,

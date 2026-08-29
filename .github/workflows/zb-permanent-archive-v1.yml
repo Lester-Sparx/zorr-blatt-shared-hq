@@ -19,10 +19,6 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: zb-permanent-archive-v1
-  cancel-in-progress: false
-
 jobs:
   archive:
     runs-on: ubuntu-latest
@@ -39,7 +35,7 @@ jobs:
         with:
           ref: zb-archive-v1
           path: archive
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Preserve raw GitHub event
         shell: bash
@@ -56,7 +52,7 @@ jobs:
           python3 source/scripts/hq_archive_verify.py \
             --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
 
-      - name: Append archive commit
+      - name: Append archive commit with Git-native retry
         shell: bash
         run: |
           set -euo pipefail
@@ -69,4 +65,15 @@ jobs:
             exit 0
           fi
           git commit -m "archive: ${GITHUB_EVENT_NAME} ${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
-          git push origin HEAD:zb-archive-v1
+
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if git push origin HEAD:zb-archive-v1; then
+              exit 0
+            fi
+            echo "Concurrent archive update detected; retry ${attempt}/8"
+            git fetch origin zb-archive-v1
+            git rebase origin/zb-archive-v1
+          done
+
+          echo "ARCHIVE_PUSH_RETRY_EXHAUSTED" >&2
+          exit 1

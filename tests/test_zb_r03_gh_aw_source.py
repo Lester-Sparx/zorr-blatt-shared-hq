@@ -27,6 +27,13 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertNotIn("issue_comment:", text)
         self.assertNotIn("pull_request:", text)
 
+    def test_checkout_is_pinned_to_exact_authorized_base_not_pr_context(self):
+        text = self.source()
+        self.assertIn("checkout:", text)
+        self.assertIn("repository: ${{ github.repository }}", text)
+        self.assertIn("ref: ${{ inputs.base-sha }}", text)
+        self.assertIn("fetch-depth: 0", text)
+
     def test_agent_permissions_are_read_only_except_copilot_request(self):
         text = self.source()
         self.assertRegex(text, r"(?m)^permissions:\s*$")

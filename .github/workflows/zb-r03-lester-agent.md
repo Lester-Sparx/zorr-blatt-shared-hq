@@ -37,7 +37,7 @@ on:
 permissions:
   contents: read
 engine: copilot
-model: copilot/auto
+model: agent
 models:
   default-ai-credits-pricing:
     input: 3.0

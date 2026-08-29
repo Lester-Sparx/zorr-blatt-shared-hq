@@ -24,6 +24,17 @@ class SkillState(StrEnum):
     LOCKED = "LOCKED"
 
 
+class RuleState(StrEnum):
+    OBSERVED = "OBSERVED"
+    CANDIDATE = "CANDIDATE"
+    RETESTED = "RETESTED"
+    PROVEN = "PROVEN"
+    LOCKED = "LOCKED"
+    REJECTED = "REJECTED"
+    SUPERSEDED = "SUPERSEDED"
+    QUARANTINED = "QUARANTINED"
+
+
 class ShadowObservation(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -52,6 +63,10 @@ class SalvadorContext(BaseModel):
 
     subject: Literal["SALVADOR"] = "SALVADOR"
     skills: dict[str, SkillState]
+    locked_skills: list[str]
+    proven_capabilities: list[str]
+    partial_skills: list[str]
+    open_weaknesses: list[str]
     learned_rules: list[str]
     known_failures: list[str]
     next_targets: list[str]
@@ -66,6 +81,32 @@ def normalized_error(*, observed: float, expected: float, scale: float) -> float
     if scale <= 0:
         raise ShadowLearningError("MEASUREMENT_SCALE_INVALID")
     return abs(observed - expected) / scale
+
+
+def promote_rule(
+    current: RuleState,
+    *,
+    retest_passed: bool = False,
+    independent_evidence: bool = False,
+    authority_promoted: bool = False,
+) -> RuleState:
+    if current == RuleState.OBSERVED:
+        return RuleState.CANDIDATE
+    if current == RuleState.CANDIDATE:
+        if retest_passed:
+            return RuleState.RETESTED
+        raise ShadowLearningError("RULE_PROMOTION_GATE")
+    if current == RuleState.RETESTED:
+        if independent_evidence:
+            return RuleState.PROVEN
+        raise ShadowLearningError("RULE_PROMOTION_GATE")
+    if current == RuleState.PROVEN:
+        if authority_promoted:
+            return RuleState.LOCKED
+        raise ShadowLearningError("RULE_LOCK_REQUIRES_AUTHORITY")
+    if current == RuleState.LOCKED:
+        return RuleState.LOCKED
+    raise ShadowLearningError("RULE_NOT_PROMOTABLE")
 
 
 def _effective_qc(observation: ShadowObservation) -> Literal["PASS", "FAIL"]:
@@ -99,6 +140,14 @@ def _next_skill_state(observation: ShadowObservation) -> SkillState:
     return before
 
 
+def _record_status(state: SkillState) -> RecordStatus:
+    if state == SkillState.LOCKED:
+        return RecordStatus.LOCKED
+    if state == SkillState.PROVEN:
+        return RecordStatus.PROVEN
+    return RecordStatus.OPEN
+
+
 def make_progress_event(
     record_id: str,
     observation: ShadowObservation,
@@ -123,7 +172,7 @@ def make_progress_event(
     return ProgressEvent(
         record_id=record_id,
         entity_id="SALVADOR",
-        status=RecordStatus.OPEN,
+        status=_record_status(after),
         source=source,
         created_at=observed_at,
         text=" | ".join(details),
@@ -143,6 +192,7 @@ def make_progress_event(
         failures=list(observation.failure_ids),
         root_cause_hypotheses=list(observation.root_cause_hypotheses),
         learned_rules=list(observation.learned_rule_candidates),
+        rule_states={rule: RuleState.CANDIDATE.value for rule in observation.learned_rule_candidates},
         progress_delta=f"{observation.before_state.value}->{after.value}",
         next_target=observation.next_target,
     )
@@ -179,8 +229,19 @@ def build_salvador_context(store: ArchiveStore) -> SalvadorContext:
         if record.next_target and record.next_target not in next_targets:
             next_targets.append(record.next_target)
 
+    locked_skills = sorted(skill for skill, state in skills.items() if state == SkillState.LOCKED)
+    proven_capabilities = sorted(skill for skill, state in skills.items() if state == SkillState.PROVEN)
+    partial_skills = sorted(skill for skill, state in skills.items() if state == SkillState.PARTIAL)
+    open_weaknesses = sorted(
+        skill for skill, state in skills.items() if state in {SkillState.UNTESTED, SkillState.FAILED}
+    )
+
     return SalvadorContext(
         skills=skills,
+        locked_skills=locked_skills,
+        proven_capabilities=proven_capabilities,
+        partial_skills=partial_skills,
+        open_weaknesses=open_weaknesses,
         learned_rules=learned_rules,
         known_failures=known_failures,
         next_targets=next_targets,

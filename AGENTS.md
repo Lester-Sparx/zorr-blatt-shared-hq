@@ -70,7 +70,8 @@ DUNCAN Night School must build a broad, comparative reference atlas across anime
 - **Salvador Dalí** — metamorphosis of form, surreal object logic, symbolic imagery, sharp illusionistic rendering used for impossible scenes, contrast of reality and irrationality;
 - **David Lynch** — dream logic, uncanny everyday space, silence/pause, sound as dramaturgy, darkness/light, symbolic staging, psychological geography and unresolved tension;
 - **Giorgio de Chirico** — metaphysical space, long shadows, empty plazas, displaced scale, architectural perspective, stillness, estrangement and spatial unease;
-- **Max Ernst** — collage logic, frottage/grattage thinking, hybrid forms, texture-driven invention, accidental structure and associative image construction.
+- **Max Ernst** — collage logic, frottage/grattage thinking, hybrid forms, texture-driven invention, accidental structure and associative image construction;
+- **Katsushika Hokusai** — decisive line, rhythmic contour, asymmetrical cropping, flat graphic mass, extreme scale contrast, dynamic natural forces, wave/motion structure, compressed perspective and the ability to make a still image feel kinetic and monumental.
 
 The atlas is intentionally extensible. Comparative study may include other strong schools and makers when they serve a specific lesson: surrealism, metaphysical painting, expressionism, symbolism, ukiyo-e, modernist/poster design, editorial/fashion photography, graphic novels, animation, architecture, production design and cinema.
 

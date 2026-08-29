@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 from typing import Mapping
@@ -189,3 +191,28 @@ def archive_salvador_shadow_event(
         )
 
     return None
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="salvador_shadow_archive")
+    parser.add_argument("--event-path", type=Path, required=True)
+    parser.add_argument("--archive-root", type=Path, required=True)
+    args = parser.parse_args(argv)
+    metadata = {
+        "event_name": os.environ.get("GITHUB_EVENT_NAME", ""),
+        "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+        "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+        "repository": os.environ.get("GITHUB_REPOSITORY", ""),
+        "actor": os.environ.get("GITHUB_ACTOR", ""),
+    }
+    result = archive_salvador_shadow_event(
+        args.event_path.read_bytes(),
+        args.archive_root,
+        metadata,
+    )
+    print("SALVADOR_SHADOW_IGNORED" if result is None else json.dumps(result, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

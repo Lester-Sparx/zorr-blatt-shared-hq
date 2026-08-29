@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'recovery/**'
+      - 'tests/test_zb_recovery_capsule.py'
       - '.github/workflows/zb-recovery-capsule-windows-smoke.yml'
 
 permissions:

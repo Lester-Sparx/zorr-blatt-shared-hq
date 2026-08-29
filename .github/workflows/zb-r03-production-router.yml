@@ -87,7 +87,6 @@ jobs:
       base_sha: ${{ steps.gate.outputs.base_sha }}
       authority_ref: ${{ steps.gate.outputs.authority_ref }}
       task_spec_b64: ${{ steps.gate.outputs.task_spec_b64 }}
-      candidate_pr_number: ${{ needs.lester.outputs.created_pr_number }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

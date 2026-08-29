@@ -14,6 +14,15 @@ from .models import (
     SourceType,
     TrainingProfile,
 )
+from .salvador_shadow import (
+    SalvadorContext,
+    ShadowLearningError,
+    ShadowObservation,
+    SkillState,
+    build_salvador_context,
+    make_progress_event,
+    normalized_error,
+)
 from .snapshot import CurrentSnapshot, SnapshotIntegrityError, build_current_snapshot
 
 __all__ = [
@@ -28,13 +37,20 @@ __all__ = [
     "Provenance",
     "RawObject",
     "RecordStatus",
+    "SalvadorContext",
     "SearchHit",
     "SearchIndex",
     "SearchIndexError",
+    "ShadowLearningError",
+    "ShadowObservation",
+    "SkillState",
     "SnapshotIntegrityError",
     "SourceRecord",
     "SourceType",
     "TrainingProfile",
     "build_context_packet",
     "build_current_snapshot",
+    "build_salvador_context",
+    "make_progress_event",
+    "normalized_error",
 ]

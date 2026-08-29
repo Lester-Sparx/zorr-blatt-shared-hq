@@ -1,36 +1,40 @@
 from pathlib import Path
-import re
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+BOOTSTRAP = ROOT / "config" / "sheriff" / "deploy" / "windows" / "BootstrapSheriffV1Host.ps1"
 DEPLOYER = ROOT / "config" / "sheriff" / "deploy" / "windows" / "ZbSheriffV1.ps1"
 
 
 class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.text = DEPLOYER.read_text(encoding="utf-8")
+        cls.bootstrap = BOOTSTRAP.read_text(encoding="utf-8")
+        cls.deployer = DEPLOYER.read_text(encoding="utf-8")
 
     def test_windows_10_uses_supported_podman_5_8_5(self):
-        self.assertIn('v5.8.5', self.text)
-        self.assertIn('podman-installer-windows-amd64.msi', self.text)
-        self.assertIn('a2d78a2460dc4745684ee443ced8878fbf3a2fe4d8c620a290500e85367d2a33', self.text)
-        self.assertIn('releases/download/v5.8.5/podman-installer-windows-amd64.msi', self.text)
-        self.assertRegex(self.text, r'Build\s+-lt\s+19043')
+        self.assertIn('v5.8.5', self.bootstrap)
+        self.assertIn('podman-installer-windows-amd64.msi', self.bootstrap)
+        self.assertIn('a2d78a2460dc4745684ee443ced8878fbf3a2fe4d8c620a290500e85367d2a33', self.bootstrap)
+        self.assertIn('releases/download/v5.8.5/podman-installer-windows-amd64.msi', self.bootstrap)
+        self.assertIn('$MinWindows10Build = 19043', self.bootstrap)
 
-    def test_windows_11_keeps_podman_6_path(self):
-        self.assertIn('v6.1.0', self.text)
-        self.assertIn('1958aac22abb3a9cf7b52626c71ba1a26015c323f0b5fa74671e303b22b043d3', self.text)
+    def test_windows_11_preserves_proven_podman_6_deployer(self):
+        self.assertIn('v6.1.0', self.deployer)
+        self.assertIn('1958aac22abb3a9cf7b52626c71ba1a26015c323f0b5fa74671e303b22b043d3', self.deployer)
+        self.assertIn('PODMAN_V6_WINDOWS_VERSION_UNSUPPORTED', self.deployer)
+        self.assertIn('$Windows11Build = 22000', self.bootstrap)
 
-    def test_old_fail_fast_guard_is_removed(self):
-        self.assertNotIn('PODMAN_V6_WINDOWS_VERSION_UNSUPPORTED', self.text)
+    def test_bootstrap_patches_only_windows_10_host_runtime_layer(self):
+        self.assertIn('PODMAN_V6_WINDOWS_VERSION_UNSUPPORTED', self.bootstrap)
+        self.assertIn('HOST_RUNTIME = PODMAN_5_8_5_WIN10', self.bootstrap)
+        self.assertIn('HOST_RUNTIME = PODMAN_6_1_0_WIN11', self.bootstrap)
+        self.assertIn('DEPLOYER_PATCH_CONTRACT_MISMATCH', self.bootstrap)
 
-    def test_runtime_selection_happens_before_installer_download(self):
-        select = self.text.find('Select-PodmanRuntime')
-        download = self.text.find('Download-Verified $PodmanInstallerUrl')
-        self.assertGreaterEqual(select, 0)
-        self.assertGreater(download, select)
+    def test_bootstrap_keeps_exact_proven_runtime_commit(self):
+        self.assertIn('47a92fc4a0d685e1a892285c568a59dfc5ccac82', self.bootstrap)
+        self.assertIn('ab816ff383c74d1c72ee36df31bc381cf062f52b', self.bootstrap)
 
 
 if __name__ == '__main__':

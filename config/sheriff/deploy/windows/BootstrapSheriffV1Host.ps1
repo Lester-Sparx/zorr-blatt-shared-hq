@@ -211,6 +211,97 @@ $PodmanInstallerSha256 = "1958aac22abb3a9cf7b52626c71ba1a26015c323f0b5fa74671e30
     }
 }
 
+function Patch-PodmanMachineFirstInit([string]$PathValue) {
+    $raw = [IO.File]::ReadAllText($PathValue)
+    $old = @'
+function Ensure-PodmanMachine([string]$PodmanExe) {
+    # Reuse path: podman machine / podman compose. No custom container daemon.
+    & $PodmanExe machine inspect *> $null
+    if ($LASTEXITCODE -ne 0) {
+        & $PodmanExe machine init
+        if ($LASTEXITCODE -ne 0) { throw "PODMAN_MACHINE_INIT_FAILED" }
+    }
+    & $PodmanExe machine start *> $null
+    if ($LASTEXITCODE -ne 0) {
+        & $PodmanExe info *> $null
+        if ($LASTEXITCODE -ne 0) { throw "PODMAN_MACHINE_START_FAILED" }
+    }
+    & $PodmanExe info *> $null
+    if ($LASTEXITCODE -ne 0) { throw "PODMAN_NOT_READY" }
+}
+'@
+    $new = @'
+function Ensure-PodmanMachine([string]$PodmanExe) {
+    # Windows PowerShell 5.1 turns native stderr into ErrorRecord under ErrorActionPreference=Stop.
+    # Use Start-Process redirection so an expected "no machine yet" state cannot abort first install.
+    function Invoke-PodmanMachineProcess([string[]]$Arguments) {
+        $stdoutPath = [IO.Path]::GetTempFileName()
+        $stderrPath = [IO.Path]::GetTempFileName()
+        try {
+            $process = Start-Process -FilePath $PodmanExe -ArgumentList $Arguments -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+            return [pscustomobject]@{
+                ExitCode = $process.ExitCode
+                StdOut = [IO.File]::ReadAllText($stdoutPath)
+                StdErr = [IO.File]::ReadAllText($stderrPath)
+            }
+        } finally {
+            Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    $list = Invoke-PodmanMachineProcess @("machine", "list", "--format", "json")
+    if ($list.ExitCode -ne 0) {
+        throw "PODMAN_MACHINE_LIST_FAILED:$($list.StdErr.Trim())"
+    }
+
+    $machines = @()
+    if (-not [string]::IsNullOrWhiteSpace($list.StdOut)) {
+        try {
+            $parsed = $list.StdOut | ConvertFrom-Json -ErrorAction Stop
+            if ($null -ne $parsed) { $machines = @($parsed) }
+        } catch {
+            throw "PODMAN_MACHINE_LIST_PARSE_FAILED"
+        }
+    }
+
+    $defaultMachine = $machines | Where-Object { $_.Name -eq "podman-machine-default" } | Select-Object -First 1
+    if ($null -eq $defaultMachine) {
+        $init = Invoke-PodmanMachineProcess @("machine", "init")
+        if ($init.ExitCode -ne 0) {
+            throw "PODMAN_MACHINE_INIT_FAILED:$($init.StdErr.Trim())"
+        }
+        Write-Output "PODMAN_MACHINE_FIRST_INIT_SAFE"
+    }
+
+    $start = Invoke-PodmanMachineProcess @("machine", "start")
+    if ($start.ExitCode -ne 0) {
+        $infoAfterStart = Invoke-PodmanMachineProcess @("info")
+        if ($infoAfterStart.ExitCode -ne 0) {
+            throw "PODMAN_MACHINE_START_FAILED:$($start.StdErr.Trim())"
+        }
+    }
+
+    $info = Invoke-PodmanMachineProcess @("info")
+    if ($info.ExitCode -ne 0) {
+        throw "PODMAN_NOT_READY:$($info.StdErr.Trim())"
+    }
+}
+'@
+
+    if (-not $raw.Contains($old)) {
+        throw "PODMAN_MACHINE_PATCH_CONTRACT_MISMATCH"
+    }
+    $raw = $raw.Replace($old, $new)
+    Write-Utf8NoBom $PathValue $raw
+
+    $patched = [IO.File]::ReadAllText($PathValue)
+    if ($patched.Contains('& $PodmanExe machine inspect *> $null') -or -not $patched.Contains('machine", "list", "--format", "json')) {
+        throw "PODMAN_MACHINE_PATCH_VERIFY_FAILED"
+    }
+    Write-Output "PODMAN_MACHINE_FIRST_INIT_PATCH = PASS"
+}
+
 function Patch-EvidenceTransport([string]$PathValue) {
     # Physical runtime proof must not depend on a separately installed/authenticated GitHub CLI.
     # If gh is unavailable, connected ChatGPT/GitHub relays the already-written evidence file.
@@ -286,6 +377,7 @@ if ($build -lt $Windows11Build) {
     Write-Output "HOST_RUNTIME = PODMAN_6_1_0_WIN11"
 }
 
+Patch-PodmanMachineFirstInit $Deployer
 Patch-EvidenceTransport $Deployer
 Write-Output "DEPLOYER_HOST_COMPAT = PASS"
 

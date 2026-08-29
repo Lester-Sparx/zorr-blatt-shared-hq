@@ -1,0 +1,3 @@
+078cb93695492979c495d6737a00ac5e13d4015e:.github/workflows/zb-recovery-capsule-windows-smoke.yml:private-key:71
+d2c6d51d60f464673d5baf423c02113aa6ae2641:recovery/zb_recovery.py:private-key:211
+f0179a72665760a0b8e9fa166bfe05d6aeb5daec:scripts/zb_r03_finalize.py:generic-api-key:28

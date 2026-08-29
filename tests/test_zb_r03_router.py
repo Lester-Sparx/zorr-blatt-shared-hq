@@ -7,8 +7,11 @@ from scripts.zb_r03_router import (
     ProtocolError,
     R03TaskSpec,
     admit_r03_event,
+    dispatch_payload,
     parse_task_spec_comment,
+    render_dispatch_record,
     replay_key,
+    revalidate_r03_repository_dispatch,
     resolve_task,
 )
 
@@ -60,6 +63,38 @@ class FakePort:
             "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/111",
             "user": {"login": "Lester-Sparx"},
         }
+
+    def list_tracker_comments(self):
+        return [
+            {
+                "body": body,
+                "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106",
+                "user": {"login": "github-actions[bot]"},
+            }
+            for body in self.tracker_bodies
+        ]
+
+
+class DispatchPort:
+    def __init__(self, *, tracker_bodies: list[str]):
+        self.tracker_bodies = tracker_bodies
+
+    def read_comment(self, comment_id: int):
+        if comment_id == 9001:
+            return {
+                "id": 9001,
+                "body": event_body(),
+                "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/111",
+                "user": {"login": "Lester-Sparx"},
+            }
+        if comment_id == 1234:
+            return {
+                "id": 1234,
+                "body": task_spec_body(),
+                "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/111",
+                "user": {"login": "Lester-Sparx"},
+            }
+        raise AssertionError("unexpected comment id")
 
     def list_tracker_comments(self):
         return [
@@ -166,6 +201,29 @@ class R03RouterTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(ProtocolError, "R03_REPLAY_BLOCKED"):
             admit_r03_event(event, expected_base_sha=BASE, port=port)
+
+    def test_repository_dispatch_requires_exact_trusted_dispatch_record_and_remote_readback(self):
+        root_event = {
+            "repository": {"full_name": "Lester-Sparx/zorr-blatt-shared-hq"},
+            "issue": {"number": 111, "pull_request": {"url": "x"}},
+            "comment": {"id": 9001, "user": {"login": "Lester-Sparx"}, "body": event_body()},
+        }
+        initial = admit_r03_event(root_event, expected_base_sha=BASE, port=FakePort(task_spec_body()))
+        record = render_dispatch_record(initial, root_comment_id=9001)
+        payload = dispatch_payload(initial, root_comment_id=9001)
+        validated = revalidate_r03_repository_dispatch(payload, port=DispatchPort(tracker_bodies=[record]))
+        self.assertEqual(validated, initial)
+
+        bad = dict(payload)
+        bad["task_spec_sha256"] = "f" * 64
+        with self.assertRaisesRegex(ProtocolError, "R03_REPOSITORY_DISPATCH_MISMATCH"):
+            revalidate_r03_repository_dispatch(bad, port=DispatchPort(tracker_bodies=[record]))
+
+        with self.assertRaisesRegex(ProtocolError, "R03_DISPATCH_RECORD_MISSING"):
+            revalidate_r03_repository_dispatch(payload, port=DispatchPort(tracker_bodies=[]))
+
+        with self.assertRaisesRegex(ProtocolError, "R03_DISPATCH_RECORD_AMBIGUOUS"):
+            revalidate_r03_repository_dispatch(payload, port=DispatchPort(tracker_bodies=[record, record]))
 
 
 if __name__ == "__main__":

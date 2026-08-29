@@ -69,7 +69,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 source/scripts/hq_archive_verify.py \
+          cd "$GITHUB_WORKSPACE/source"
+          python3 -m scripts.hq_archive_verify \
             --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
 
       - name: Append archive commit with Git-native retry

@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -25,7 +26,7 @@ class SheriffOssControlPlaneTest(unittest.TestCase):
         required = {
             "forgejo", "nats", "opa", "postgresql", "opentelemetry-collector",
             "prometheus", "loki", "grafana-oss", "sheriff-worker",
-            "glicko2-py", "nats-py", "psycopg",
+            "glicko2-py", "nats-py", "psycopg", "jsonschema",
         }
         self.assertTrue(required.issubset(components), required - set(components))
 
@@ -57,10 +58,22 @@ class SheriffOssControlPlaneTest(unittest.TestCase):
         self.assertNotIn("schedule:", lower)
         self.assertNotIn("sleep ", lower)
 
-    def test_nats_jetstream_is_durable_and_not_polling(self):
+        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        declared_images = {
+            item["runtimeRef"]
+            for item in manifest["components"]
+            if not item["runtimeRef"].startswith("local:") and "==" not in item["runtimeRef"]
+        }
+        compose_images = set(re.findall(r"^\s*image:\s*([^\s#]+)", text, flags=re.MULTILINE))
+        self.assertEqual(compose_images, declared_images)
+
+    def test_nats_jetstream_is_durable_authenticated_and_not_polling(self):
         text = NATS.read_text(encoding="utf-8").lower()
         self.assertIn("jetstream", text)
         self.assertIn("store_dir", text)
+        self.assertIn("authorization", text)
+        self.assertIn("user: sheriff", text)
+        self.assertIn("password: $nats_password", text)
         self.assertNotIn("poll", text)
 
     def test_rating_and_transport_reuse_open_source_libraries(self):
@@ -68,6 +81,7 @@ class SheriffOssControlPlaneTest(unittest.TestCase):
         self.assertIn("glicko2-py==0.1.0", text)
         self.assertIn("nats-py==", text)
         self.assertIn("psycopg", text)
+        self.assertIn("jsonschema==", text)
         self.assertNotIn("openai", text)
         self.assertNotIn("anthropic", text)
 

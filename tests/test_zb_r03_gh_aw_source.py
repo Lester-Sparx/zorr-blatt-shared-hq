@@ -22,7 +22,8 @@ class R03GhAwSourceTests(unittest.TestCase):
         text = self.source()
         self.assertIn("workflow_call:", text)
         self.assertIn("engine: copilot", text)
-        self.assertIn("model: auto", text)
+        self.assertIn("model: copilot/auto", text)
+        self.assertNotIn("\nmodels:\n", text.split("---", 2)[1])
         self.assertIn("strict: true", text)
         self.assertNotIn("schedule:", text)
         self.assertNotIn("issue_comment:", text)
@@ -137,11 +138,13 @@ class R03GhAwSourceTests(unittest.TestCase):
     def test_compiled_lock_is_installed_and_has_exact_compiler_metadata(self):
         if not LOCK.is_file():
             self.fail("R03_GH_AW_LOCK_MISSING")
-        first = LOCK.read_text(encoding="utf-8").splitlines()[0]
+        lock = LOCK.read_text(encoding="utf-8")
+        first = lock.splitlines()[0]
         self.assertIn('"compiler_version":"v0.86.2"', first)
         self.assertIn('"strict":true', first)
         self.assertIn('"agent_id":"copilot"', first)
-        self.assertIn('"agent_model":"auto"', first)
+        self.assertIn('"agent_model":"copilot/auto"', first)
+        self.assertIn("COPILOT_MODEL: copilot/auto", lock)
 
 
 if __name__ == "__main__":

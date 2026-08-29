@@ -15,6 +15,7 @@ from .models import (
     TrainingProfile,
 )
 from .salvador_shadow import (
+    RuleState,
     SalvadorContext,
     ShadowLearningError,
     ShadowObservation,
@@ -22,6 +23,7 @@ from .salvador_shadow import (
     build_salvador_context,
     make_progress_event,
     normalized_error,
+    promote_rule,
 )
 from .snapshot import CurrentSnapshot, SnapshotIntegrityError, build_current_snapshot
 
@@ -37,6 +39,7 @@ __all__ = [
     "Provenance",
     "RawObject",
     "RecordStatus",
+    "RuleState",
     "SalvadorContext",
     "SearchHit",
     "SearchIndex",
@@ -53,4 +56,5 @@ __all__ = [
     "build_salvador_context",
     "make_progress_event",
     "normalized_error",
+    "promote_rule",
 ]

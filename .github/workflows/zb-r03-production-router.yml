@@ -1,0 +1,257 @@
+name: zb-r03-production-router
+
+on:
+  issue_comment:
+    types: [created]
+  repository_dispatch:
+    types: [zb-r03-execute]
+
+permissions:
+  contents: read
+
+jobs:
+  admit:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.number == 111 &&
+      github.event.issue.pull_request &&
+      github.event.comment.user.login == 'Lester-Sparx' &&
+      startsWith(github.event.comment.body, 'ZB_AGENT_TASK_R03_V1')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Admit exact root and persist durable dispatch authority
+        id: admit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ZB_EVENT_FILE: ${{ github.event_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from scripts import zb_communication_base as r01
+          from scripts.zb_r03_router import admit_r03_event, dispatch_payload, render_dispatch_record
+
+          event = json.loads(Path(os.environ["ZB_EVENT_FILE"]).read_text(encoding="utf-8"))
+          api = r01.GitHubApi(os.environ["GITHUB_TOKEN"])
+          ref = api._request_json("https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/ref/heads/main")
+          current_main = ((ref.get("object") or {}).get("sha")) if isinstance(ref, dict) else None
+          if not isinstance(current_main, str):
+              raise SystemExit("R03_MAIN_READ_FAILED")
+          dispatch = admit_r03_event(event, expected_base_sha=current_main, port=api)
+          root_comment_id = event["comment"]["id"]
+          record = render_dispatch_record(dispatch, root_comment_id=root_comment_id)
+          r01.write_and_verify(api, record)
+          envelope = {"event_type": "zb-r03-execute", "client_payload": dispatch_payload(dispatch, root_comment_id=root_comment_id)}
+          Path("/tmp/zb-r03-dispatch.json").write_text(json.dumps(envelope, separators=(",", ":")), encoding="utf-8")
+          PY
+      - name: Emit internal repository dispatch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --output /tmp/zb-r03-dispatch-response.txt --write-out '%{http_code}' \
+            --request POST \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --data-binary @/tmp/zb-r03-dispatch.json \
+            https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/dispatches)"
+          test "$code" = 204 || { cat /tmp/zb-r03-dispatch-response.txt >&2; echo "R03_REPOSITORY_DISPATCH_HTTP_$code" >&2; exit 1; }
+
+  revalidate:
+    if: >-
+      github.event_name == 'repository_dispatch' &&
+      github.event.action == 'zb-r03-execute'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      dispatch_ready: ${{ steps.gate.outputs.dispatch_ready }}
+      message_id: ${{ steps.gate.outputs.message_id }}
+      correlation_id: ${{ steps.gate.outputs.correlation_id }}
+      task_id: ${{ steps.gate.outputs.task_id }}
+      task_revision: ${{ steps.gate.outputs.task_revision }}
+      base_sha: ${{ steps.gate.outputs.base_sha }}
+      authority_ref: ${{ steps.gate.outputs.authority_ref }}
+      task_spec_b64: ${{ steps.gate.outputs.task_spec_b64 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Fresh revalidate root, task spec, dispatch record and current main
+        id: gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ZB_CLIENT_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from scripts import zb_communication_base as r01
+          from scripts.zb_r03_router import revalidate_r03_repository_dispatch
+
+          payload = json.loads(os.environ["ZB_CLIENT_PAYLOAD"])
+          api = r01.GitHubApi(os.environ["GITHUB_TOKEN"])
+          dispatch = revalidate_r03_repository_dispatch(payload, port=api)
+          ref = api._request_json("https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/ref/heads/main")
+          current_main = ((ref.get("object") or {}).get("sha")) if isinstance(ref, dict) else None
+          if current_main != dispatch.base_sha:
+              raise SystemExit("R03_BASE_DRIFT_BEFORE_LESTER")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("dispatch_ready=true\n")
+              output.write(f"message_id={dispatch.message_id}\n")
+              output.write(f"correlation_id={dispatch.correlation_id}\n")
+              output.write(f"task_id={dispatch.task_id}\n")
+              output.write(f"task_revision={dispatch.task_revision}\n")
+              output.write(f"base_sha={dispatch.base_sha}\n")
+              output.write(f"authority_ref={dispatch.authority_ref}\n")
+              output.write(f"task_spec_b64={dispatch.task_spec_b64}\n")
+          PY
+
+  lester:
+    needs: revalidate
+    if: >-
+      github.event_name == 'repository_dispatch' &&
+      needs.revalidate.outputs.dispatch_ready == 'true'
+    permissions:
+      actions: read
+      contents: write
+      issues: write
+      pull-requests: write
+      copilot-requests: write
+    uses: ./.github/workflows/zb-r03-lester-agent.lock.yml
+    with:
+      message-id: ${{ needs.revalidate.outputs.message_id }}
+      correlation-id: ${{ needs.revalidate.outputs.correlation_id }}
+      task-id: ${{ needs.revalidate.outputs.task_id }}
+      task-revision: ${{ needs.revalidate.outputs.task_revision }}
+      base-sha: ${{ needs.revalidate.outputs.base_sha }}
+      authority-ref: ${{ needs.revalidate.outputs.authority_ref }}
+      task-spec-b64: ${{ needs.revalidate.outputs.task_spec_b64 }}
+
+  duncan_qc:
+    needs: [revalidate, lester]
+    if: >-
+      github.event_name == 'repository_dispatch' &&
+      needs.revalidate.outputs.dispatch_ready == 'true' &&
+      needs.lester.result == 'success' &&
+      needs.lester.outputs.created_pr_number != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    outputs:
+      qc_pass: ${{ steps.record.outputs.qc_pass }}
+      candidate_head_sha: ${{ steps.record.outputs.candidate_head_sha }}
+      candidate_pr_number: ${{ needs.lester.outputs.created_pr_number }}
+    steps:
+      - name: Checkout trusted R03 QC implementation at authorized base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.revalidate.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Validate candidate metadata and scope before executing candidate code
+        id: metadata
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          R03_QC_PHASE: metadata
+          R03_CANDIDATE_PR: ${{ needs.lester.outputs.created_pr_number }}
+          R03_MESSAGE_ID: ${{ needs.revalidate.outputs.message_id }}
+          R03_CORRELATION_ID: ${{ needs.revalidate.outputs.correlation_id }}
+          R03_TASK_ID: ${{ needs.revalidate.outputs.task_id }}
+          R03_TASK_REVISION: ${{ needs.revalidate.outputs.task_revision }}
+          R03_BASE_SHA: ${{ needs.revalidate.outputs.base_sha }}
+          R03_AUTHORITY_REF: ${{ needs.revalidate.outputs.authority_ref }}
+        run: python3 -m scripts.zb_r03_qc
+      - name: Checkout exact candidate head after metadata gate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ steps.metadata.outputs.candidate_head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run independent candidate verification without GitHub token
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/hq_validate.py
+          python3 -m unittest discover -s tests -v
+          python3 -m compileall -q scripts tests
+      - name: Restore trusted BASE tests over candidate workspace
+        env:
+          R03_TRUSTED_BASE_SHA: ${{ needs.revalidate.outputs.base_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout "$R03_TRUSTED_BASE_SHA" -- tests
+          python3 -m unittest discover -s tests -v
+      - name: Restore trusted QC implementation before recording PASS
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.revalidate.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Fresh revalidate unchanged candidate and record DUNCAN PASS
+        id: record
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          R03_QC_PHASE: record
+          R03_EXPECTED_CANDIDATE_HEAD: ${{ steps.metadata.outputs.candidate_head_sha }}
+          R03_CANDIDATE_PR: ${{ needs.lester.outputs.created_pr_number }}
+          R03_MESSAGE_ID: ${{ needs.revalidate.outputs.message_id }}
+          R03_CORRELATION_ID: ${{ needs.revalidate.outputs.correlation_id }}
+          R03_TASK_ID: ${{ needs.revalidate.outputs.task_id }}
+          R03_TASK_REVISION: ${{ needs.revalidate.outputs.task_revision }}
+          R03_BASE_SHA: ${{ needs.revalidate.outputs.base_sha }}
+          R03_AUTHORITY_REF: ${{ needs.revalidate.outputs.authority_ref }}
+        run: python3 -m scripts.zb_r03_qc
+
+  finalize:
+    needs: [revalidate, lester, duncan_qc]
+    if: ${{ always() && github.event_name == 'repository_dispatch' && needs.revalidate.result == 'success' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      PRODUCTION_ACTIVE: NO
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.revalidate.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Guarded R03 standing-policy finalize
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          R03_CANDIDATE_PR: ${{ needs.lester.outputs.created_pr_number }}
+          R03_CANDIDATE_HEAD: ${{ needs.duncan_qc.outputs.candidate_head_sha }}
+          R03_QC_PASS: ${{ needs.duncan_qc.outputs.qc_pass }}
+          R03_MESSAGE_ID: ${{ needs.revalidate.outputs.message_id }}
+          R03_CORRELATION_ID: ${{ needs.revalidate.outputs.correlation_id }}
+          R03_TASK_ID: ${{ needs.revalidate.outputs.task_id }}
+          R03_TASK_REVISION: ${{ needs.revalidate.outputs.task_revision }}
+          R03_BASE_SHA: ${{ needs.revalidate.outputs.base_sha }}
+          R03_AUTHORITY_REF: ${{ needs.revalidate.outputs.authority_ref }}
+          R03_LESTER_RESULT: ${{ needs.lester.result }}
+          R03_DUNCAN_RESULT: ${{ needs.duncan_qc.result }}
+        run: python3 -m scripts.zb_r03_finalize

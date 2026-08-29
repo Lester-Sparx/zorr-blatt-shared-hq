@@ -32,16 +32,19 @@ On every new session or execution, restore context from GitHub before acting. Do
 3. Fresh-read the exact task/source PR, immutable source comment/message, base SHA, candidate HEAD, CI/workflow evidence, and any required authority PR. Current communication authority anchor: PR #110, subject to newer verified supersession.
 4. When broad project/history context is required, fresh-read branch `zb-archive-v1` path `hq/archive-v1/derived/unified-v1/CURRENT_CONTEXT.json`. This is the single derived restore state entrypoint; it is rebuildable and never overrides exact task/tracker/PR/workflow evidence.
 5. Fresh-read verified lessons from branch `zb-archive-v1` path `hq/archive-v1/derived/unified-v1/learning/CURRENT_LESSONS.json` when it exists. Apply only verified lessons relevant to the current task or error signature. This is derived learning state: fresher RAW evidence and current tracker/PR/workflow evidence always override it. If the learning index is missing, do not invent lessons.
-6. For historical reconstruction, disputes, or any conflict with derived restore/learning state, read the original event from branch `zb-archive-v1` under `hq/archive-v1`. Prefer RAW archived evidence over summaries or derived context.
-7. Treat `hq/state/HQ_STATE.json`, `checkpoints/*CURRENT*`, summaries, indexes, and other context packets as derived/legacy snapshots. Never let an older snapshot override fresher GitHub tracker/PR/workflow evidence.
+6. Fresh-read `hq/archive-v1/derived/unified-v1/learning/CURRENT_OPTIMIZED_POLICY.json` when it exists. Apply its `policy_prefix` only when `accepted = true` and `status` is `IMPROVED` or `BASELINE_KEPT`. If status is `CONFLICT` or `NOT_PROVEN`, the file is unreadable, or `accepted` is not true, do not apply the optimized policy; fall back to the individual verified lessons in `CURRENT_LESSONS.json` plus fresher exact evidence.
+7. For historical reconstruction, disputes, or any conflict with derived restore/learning state, read the original event from branch `zb-archive-v1` under `hq/archive-v1`. Prefer RAW archived evidence over summaries or derived context.
+8. Treat `hq/state/HQ_STATE.json`, `checkpoints/*CURRENT*`, summaries, indexes, and other context packets as derived/legacy snapshots. Never let an older snapshot override fresher GitHub tracker/PR/workflow evidence.
 
 For a task-specific learning prefix, the deterministic compiler is `python3 scripts/hq_unified_archive.py learning-policy --archive-root <archive-root> --query <task-or-error-signature>`. It may use only verified lessons derived from CLOSED SHERIFF verdicts and their durable evidence; `NOT_PROVEN` means no lesson may be invented.
+
+The optimized policy is a derived compression/eval layer only. It may remove redundant verified rules when regression coverage is preserved, but it may never invent authority, resolve conflicting SHERIFF lessons by guessing, or override RAW/current GitHub evidence.
 
 If required durable context is missing, contradictory, or unreadable, fail closed with `DURABLE_CONTEXT_NOT_PROVEN`. Never guess.
 
 ## Evidence precedence
 
-`RAW ORIGINAL EVENT > VERIFIED GITHUB HISTORY > CURRENT TRACKER/PR/WORKFLOW EVIDENCE > DERIVED RESTORE STATE > VERIFIED LESSONS > SNAPSHOT > INDEX > SUMMARY > CHAT MEMORY`
+`RAW ORIGINAL EVENT > VERIFIED GITHUB HISTORY > CURRENT TRACKER/PR/WORKFLOW EVIDENCE > DERIVED RESTORE STATE > VERIFIED LESSONS > ACCEPTED OPTIMIZED POLICY > SNAPSHOT > INDEX > SUMMARY > CHAT MEMORY`
 
 ## Role continuity
 
@@ -84,6 +87,7 @@ Permanent Archive V1 is already the GitHub-side historical archive:
 - root: `hq/archive-v1`
 - unified restore entrypoint: `hq/archive-v1/derived/unified-v1/CURRENT_CONTEXT.json`
 - verified learning entrypoint: `hq/archive-v1/derived/unified-v1/learning/CURRENT_LESSONS.json`
+- eval-gated optimized policy: `hq/archive-v1/derived/unified-v1/learning/CURRENT_OPTIMIZED_POLICY.json`
 - reusable training/eval corpus: `hq/archive-v1/derived/unified-v1/learning/TRAINING_CORPUS.jsonl`
 - rule: original RAW event bytes are authoritative and content-addressed by SHA-256.
 

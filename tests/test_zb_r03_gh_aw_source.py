@@ -27,6 +27,15 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertNotIn("issue_comment:", text)
         self.assertNotIn("pull_request:", text)
 
+    def test_reusable_internal_dispatch_disables_only_gh_aw_actor_membership_gate(self):
+        text = self.source()
+        self.assertRegex(text, r"(?ms)^on:\s*\n\s{2}roles:\s*all\s*$.*?^\s{2}workflow_call:\s*$")
+        if not LOCK.is_file():
+            self.fail("R03_GH_AW_LOCK_MISSING")
+        lock = LOCK.read_text(encoding="utf-8")
+        self.assertNotIn("Check team membership for workflow", lock)
+        self.assertNotIn("GH_AW_REQUIRED_ROLES", lock)
+
     def test_checkout_is_pinned_to_exact_authorized_base_not_pr_context(self):
         text = self.source()
         self.assertIn("checkout:", text)

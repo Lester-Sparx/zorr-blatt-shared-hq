@@ -3,6 +3,7 @@ private: true
 name: ZB R03 LESTER Agent
 description: Reusable bounded coding agent for registered ZORR BLATT R03 tasks
 on:
+  roles: all
   workflow_call:
     inputs:
       message-id:

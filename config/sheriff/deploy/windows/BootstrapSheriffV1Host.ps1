@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet("Auto", "Resume")]
+    [string]$Stage = "Auto"
+)
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
@@ -18,6 +21,8 @@ $Podman5InstallerSha256 = "a2d78a2460dc4745684ee443ced8878fbf3a2fe4d8c620a290500
 $Root = Join-Path $env:LOCALAPPDATA "ZORR\SHERIFF_V1_HOST_BOOTSTRAP"
 $Deployer = Join-Path $Root "ZbSheriffV1.ps1"
 $DeployerUrl = "https://raw.githubusercontent.com/$Repository/$DeployerCommit/config/sheriff/deploy/windows/ZbSheriffV1.ps1"
+$ResumeTaskName = "ZORR SHERIFF V1 WSL Resume"
+$WslRebootMarker = Join-Path $Root "wsl-reboot-requested.marker"
 
 function Ensure-Directory([string]$PathValue) {
     if (-not (Test-Path -LiteralPath $PathValue -PathType Container)) {
@@ -30,19 +35,128 @@ function Write-Utf8NoBom([string]$PathValue, [string]$Text) {
     [IO.File]::WriteAllText($PathValue, $Text, $encoding)
 }
 
-function Assert-WslReady {
+function Test-IsAdministrator {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Invoke-ElevatedSelf {
+    if (Test-IsAdministrator) { return }
+    Write-Output "ELEVATION_REQUIRED_FOR_WSL"
+    $args = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '" -Stage ' + $Stage
+    $process = Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList $args -Wait -PassThru
+    exit $process.ExitCode
+}
+
+function Test-WslCommandReady {
     $wsl = Get-Command wsl.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($null -eq $wsl) {
-        throw "WSL_NOT_READY"
-    }
+    if ($null -eq $wsl) { return $false }
 
     & $wsl.Source --status *> $null
-    if ($LASTEXITCODE -ne 0) {
-        & $wsl.Source --list --quiet *> $null
-        if ($LASTEXITCODE -ne 0) {
-            throw "WSL_NOT_READY"
-        }
+    if ($LASTEXITCODE -eq 0) { return $true }
+
+    & $wsl.Source --list --quiet *> $null
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Assert-VirtualizationFirmware {
+    $processors = @(Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue)
+    $signals = @($processors | ForEach-Object { $_.VirtualizationFirmwareEnabled } | Where-Object { $null -ne $_ })
+    if ($signals.Count -gt 0 -and -not ($signals -contains $true)) {
+        throw "CPU_VIRTUALIZATION_DISABLED_IN_FIRMWARE"
     }
+    Write-Output "CPU_VIRTUALIZATION = PASS_OR_UNAVAILABLE"
+}
+
+function Register-WslResume {
+    $existing = Get-ScheduledTask -TaskName $ResumeTaskName -ErrorAction SilentlyContinue
+    if ($null -ne $existing) {
+        Unregister-ScheduledTask -TaskName $ResumeTaskName -Confirm:$false
+    }
+
+    $arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '" -Stage Resume'
+    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $arguments -WorkingDirectory $Root
+    $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+    $userId = if ($env:USERDOMAIN) { "$env:USERDOMAIN\$env:USERNAME" } else { $env:USERNAME }
+    $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Highest
+    $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero)
+    $task = New-ScheduledTask -Action $action -Trigger $trigger -Principal $principal -Settings $settings
+    Register-ScheduledTask -TaskName $ResumeTaskName -InputObject $task -Force | Out-Null
+    Write-Output "WSL_RESUME_TASK = REGISTERED"
+}
+
+function Unregister-WslResume {
+    $existing = Get-ScheduledTask -TaskName $ResumeTaskName -ErrorAction SilentlyContinue
+    if ($null -ne $existing) {
+        Unregister-ScheduledTask -TaskName $ResumeTaskName -Confirm:$false
+    }
+}
+
+function Enable-WslFeature([string]$FeatureName) {
+    $feature = Get-WindowsOptionalFeature -Online -FeatureName $FeatureName -ErrorAction Stop
+    if ([string]$feature.State -eq "Enabled") { return $false }
+
+    $result = Enable-WindowsOptionalFeature -Online -FeatureName $FeatureName -All -NoRestart -ErrorAction Stop
+    if ([string]$result.State -ne "Enabled" -and -not $result.RestartNeeded) {
+        throw "WINDOWS_FEATURE_ENABLE_FAILED:$FeatureName"
+    }
+    return $true
+}
+
+function Ensure-WslReady {
+    if (Test-WslCommandReady) {
+        Write-Output "WSL_STATUS = PASS"
+        return
+    }
+
+    Invoke-ElevatedSelf
+    Assert-VirtualizationFirmware
+
+    $changed = $false
+    if (Enable-WslFeature "Microsoft-Windows-Subsystem-Linux") { $changed = $true }
+    if (Enable-WslFeature "VirtualMachinePlatform") { $changed = $true }
+
+    $wsl = Get-Command wsl.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -ne $wsl) {
+        & $wsl.Source --install --no-distribution
+        $installExit = $LASTEXITCODE
+        Write-Output "WSL_INSTALL_EXIT = $installExit"
+    }
+
+    if ($changed -and $Stage -eq "Auto" -and -not (Test-Path -LiteralPath $WslRebootMarker)) {
+        Register-WslResume
+        Set-Content -LiteralPath $WslRebootMarker -Value ([DateTime]::UtcNow.ToString("o")) -Encoding ASCII
+        Write-Output "WSL_REBOOT_SCHEDULED = YES"
+        Write-Output "WINDOWS_WILL_RESTART_IN_30_SECONDS"
+        & shutdown.exe /r /t 30 /c "ZORR SHERIFF: WSL2 enabled. Installation resumes automatically after sign-in."
+        exit 3010
+    }
+
+    if ($Stage -eq "Resume") {
+        Write-Output "WSL_RESUME_STAGE = ACTIVE"
+    }
+
+    $wsl = Get-Command wsl.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $wsl) {
+        throw "WSL_NOT_READY_AFTER_REPAIR"
+    }
+
+    & $wsl.Source --update --web-download *> $null
+    if ($LASTEXITCODE -ne 0) {
+        & $wsl.Source --update *> $null
+    }
+
+    & $wsl.Source --set-default-version 2 *> $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "WSL2_DEFAULT_VERSION_FAILED"
+    }
+
+    if (-not (Test-WslCommandReady)) {
+        throw "WSL_NOT_READY_AFTER_REPAIR"
+    }
+
+    Unregister-WslResume
     Write-Output "WSL_STATUS = PASS"
 }
 
@@ -142,9 +256,14 @@ function Post-Evidence {
 Ensure-Directory $Root
 $build = [Environment]::OSVersion.Version.Build
 Write-Output "WINDOWS_BUILD = $build"
+Write-Output "BOOTSTRAP_STAGE = $Stage"
 
 if ($build -lt $MinWindows10Build) {
     throw "WINDOWS_BUILD_UNSUPPORTED:${build}:MIN=$MinWindows10Build"
+}
+
+if ($build -lt $Windows11Build) {
+    Ensure-WslReady
 }
 
 Invoke-WebRequest -UseBasicParsing -Uri $DeployerUrl -OutFile $Deployer
@@ -153,7 +272,6 @@ if (-not (Test-Path -LiteralPath $Deployer -PathType Leaf)) {
 }
 
 if ($build -lt $Windows11Build) {
-    Assert-WslReady
     Patch-ForWindows10 $Deployer
     Write-Output "HOST_RUNTIME = PODMAN_5_8_5_WIN10"
 } else {
@@ -177,4 +295,8 @@ if ($LASTEXITCODE -ne 0) {
     throw "VERIFY_FAILED:$LASTEXITCODE"
 }
 
+Unregister-WslResume
+if (Test-Path -LiteralPath $WslRebootMarker) {
+    Remove-Item -LiteralPath $WslRebootMarker -Force -ErrorAction SilentlyContinue
+}
 Write-Output "SHERIFF_V1_HOST_BOOTSTRAP = PASS"

@@ -49,7 +49,7 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertIn("ref: ${{ inputs.base-sha }}", text)
         self.assertIn("fetch-depth: 0", text)
 
-    def test_agent_uses_only_explicit_pat_for_copilot_inference(self):
+    def test_historical_agent_contract_is_not_wired_into_live_router(self):
         text = self.source()
         self.assertRegex(text, r"(?m)^permissions:\s*$")
         self.assertRegex(text, r"(?m)^\s{2}contents:\s*read\s*$")
@@ -60,10 +60,10 @@ class R03GhAwSourceTests(unittest.TestCase):
         if not ROUTER.is_file():
             self.fail("R03_PRODUCTION_ROUTER_MISSING")
         router = ROUTER.read_text(encoding="utf-8")
-        lester = router.split("\n  lester:\n", 1)[1].split("\n  duncan_qc:\n", 1)[0]
-        self.assertNotIn("copilot-requests: write", lester)
-        self.assertIn("secrets:\n      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}", lester)
-        self.assertNotIn("secrets: inherit", lester)
+        self.assertNotIn("zb-r03-lester-agent.lock.yml", router)
+        self.assertNotIn("COPILOT_GITHUB_TOKEN", router)
+        self.assertNotIn("lester:", router)
+        self.assertNotIn("duncan_qc:", router)
 
         if not LOCK.is_file():
             self.fail("R03_GH_AW_LOCK_MISSING")

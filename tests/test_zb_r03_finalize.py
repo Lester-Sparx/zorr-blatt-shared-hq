@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from scripts import zb_r03_finalize as finalize
 from scripts.zb_r03_finalize import FinalizeError, finalize_candidate, validate_standing_authorization
 from scripts.zb_r03_qc import expected_candidate_binding
 from scripts.zb_r03_router import resolve_task
@@ -155,6 +156,27 @@ class R03FinalizeTests(unittest.TestCase):
             with self.subTest(bad=bad):
                 with self.assertRaises(FinalizeError):
                     validate_standing_authorization(bad)
+
+    def test_upstream_failure_without_candidate_records_durable_blocked_state(self):
+        fn = getattr(finalize, "finalize_execution", None)
+        self.assertIsNotNone(fn, "R03_FINALIZE_EXECUTION_MISSING")
+        port = FakePort()
+        result = fn(
+            port,
+            candidate_pr_number=None,
+            candidate_head_sha=None,
+            expected_binding=binding(),
+            policy=resolve_task("ZB_CODE_CHANGE_R03", 1),
+            lester_result="failure",
+            duncan_result="skipped",
+            qc_pass=False,
+        )
+        self.assertIsNone(result)
+        self.assertEqual(port.merges, [])
+        self.assertIn("STATE = BLOCKED", port.tracker_writes[-1])
+        self.assertIn("RESULT_CODE = UPSTREAM_NOT_PASS", port.tracker_writes[-1])
+        self.assertIn("CANDIDATE_PR = NONE", port.tracker_writes[-1])
+        self.assertIn("PRODUCTION_ACTIVE = NO", port.console_writes[-1])
 
     def test_success_requires_exact_duncan_record_and_exact_head_then_merges_once(self):
         port = FakePort()

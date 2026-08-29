@@ -10,11 +10,12 @@ LOCK = ROOT / ".github" / "workflows" / "zb-r03-lester-agent.lock.yml"
 
 
 class R03CopilotModelSelectionTests(unittest.TestCase):
-    def test_source_uses_native_gh_aw_agent_alias(self):
+    def test_source_pins_concrete_gpt_5_mini(self):
         source = SOURCE.read_text(encoding="utf-8")
         frontmatter = source.split("---", 2)[1]
         self.assertIn("engine: copilot", frontmatter)
-        self.assertIn("model: agent", frontmatter)
+        self.assertIn("model: gpt-5-mini", frontmatter)
+        self.assertNotIn("model: agent", frontmatter)
         self.assertNotIn("model: copilot/auto", frontmatter)
         self.assertIn("\nmodels:\n", frontmatter)
         self.assertIn("default-ai-credits-pricing:", frontmatter)
@@ -22,18 +23,16 @@ class R03CopilotModelSelectionTests(unittest.TestCase):
         self.assertIn("output: 15.0", frontmatter)
         self.assertIn("strict: true", frontmatter)
 
-    def test_compiled_lock_passes_native_agent_alias_to_gh_aw_harness(self):
+    def test_compiled_lock_pins_concrete_gpt_5_mini(self):
         lock = LOCK.read_text(encoding="utf-8")
         metadata = lock.splitlines()[0]
-        self.assertIn('"agent_model":"agent"', metadata)
-        self.assertIn("COPILOT_MODEL: agent", lock)
+        self.assertIn('"agent_model":"gpt-5-mini"', metadata)
+        self.assertIn("COPILOT_MODEL: gpt-5-mini", lock)
+        self.assertNotIn('"agent_model":"agent"', metadata)
+        self.assertNotIn("COPILOT_MODEL: agent\n", lock)
         self.assertNotIn('"agent_model":"copilot/auto"', metadata)
         self.assertNotIn("COPILOT_MODEL: copilot/auto", lock)
         self.assertNotIn("COPILOT_MODEL: auto\n", lock)
-
-    def test_compiled_lock_contains_upstream_agent_resolution_chain(self):
-        lock = LOCK.read_text(encoding="utf-8")
-        self.assertIn('\\"agent\\":[\\"sonnet-6x\\",\\"gpt-5.4\\",\\"gpt-5.5\\",\\"gpt-5.6\\",\\"gpt-5.3\\",\\"gemini-pro\\",\\"any\\"]', lock)
 
 
 if __name__ == "__main__":

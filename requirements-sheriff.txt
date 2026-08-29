@@ -1,0 +1,4 @@
+nats-py==2.15.0
+psycopg[binary]==3.3.4
+glicko2-py==0.1.0
+prometheus-client==0.26.0

@@ -37,6 +37,10 @@ on:
 permissions:
   contents: read
 engine: copilot
+model: auto
+models:
+  auto:
+    - copilot/auto
 strict: true
 checkout:
   repository: ${{ github.repository }}

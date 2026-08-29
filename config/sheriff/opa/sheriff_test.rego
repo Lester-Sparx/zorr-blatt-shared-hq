@@ -1,6 +1,6 @@
 package zorr.sheriff
 
-base_event(event_type, data) := {
+base_event(event_type, payload) := {
     "specversion": "1.0",
     "id": "evt-1",
     "source": "zb://test",
@@ -8,7 +8,7 @@ base_event(event_type, data) := {
     "subject": "task/test",
     "time": "2026-08-29T08:00:00Z",
     "datacontenttype": "application/json",
-    "data": data,
+    "data": payload,
 }
 
 test_honest_fail_is_admitted_without_penalty if {

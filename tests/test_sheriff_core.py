@@ -1,5 +1,6 @@
 import unittest
 
+from _support import ROOT
 from sheriff_core import (
     SheriffIntegrityError,
     apply_discipline,

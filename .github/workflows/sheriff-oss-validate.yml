@@ -30,7 +30,7 @@ jobs:
         run: python3 scripts/sheriff_validate.py
 
       - name: Run SHERIFF tests
-        run: python3 -m unittest tests.test_sheriff_core tests.test_sheriff_oss_control_plane tests.test_sheriff_worker_contract -v
+        run: python3 -m unittest discover -s tests -p 'test_sheriff*.py' -v
 
       - name: Compile Python glue
         run: python3 -m py_compile scripts/sheriff_core.py scripts/sheriff_worker.py

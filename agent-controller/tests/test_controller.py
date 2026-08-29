@@ -9,11 +9,11 @@ from zb_local_controller.github_cli import GitHubCLIError, GitHubIssue
 PNG = b"\x89PNG\r\n\x1a\n" + b"result-bytes"
 
 
-def body(task_id, state="ASSIGNED"):
+def body(task_id, state="ASSIGNED", task_kind="PRODUCTION_IMAGE_EDIT"):
     return f"""ZB_AGENT_TASK_V0
 TASK_ID = {task_id}
 AGENT = SALVADOR
-TASK_KIND = PRODUCTION_IMAGE_EDIT
+TASK_KIND = {task_kind}
 STATE = {state}
 REFERENCE = LOCAL_INBOX
 
@@ -92,10 +92,10 @@ def add_ref(root: Path, task_id: str):
     (d / "ref.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"ref")
 
 
-def make_controller(tmp_path, gh, backend):
+def make_controller(tmp_path, gh, backend, task_kind="PRODUCTION_IMAGE_EDIT"):
     inbox = tmp_path / "inbox"; inbox.mkdir(exist_ok=True)
     results = tmp_path / "results"; results.mkdir(exist_ok=True)
-    c = Controller(gh, inbox, results, {("SALVADOR", "PRODUCTION_IMAGE_EDIT"): backend})
+    c = Controller(gh, inbox, results, {("SALVADOR", task_kind): backend})
     return c, inbox, results
 
 
@@ -314,3 +314,166 @@ def test_running_execution_times_out_without_replacement_submission(tmp_path):
 
     assert backend.submit_calls == 1
     assert any("STATE = FAILED" in p and "ERROR_CODE = EXECUTION_TIMEOUT" in p for _, p in gh.posts)
+
+
+CANON_METADATA = {
+    "taskKind": "CANON_REFERENCE_EDIT",
+    "workflowVersion": "salvador-canon-reference-edit-v1",
+    "canonPromptVersion": "salvador-canon-v1",
+    "modelId": "local-model.safetensors",
+    "workingWidth": 512,
+    "workingHeight": 768,
+    "sourceSha256": "a" * 64,
+    "seed": 123,
+    "denoise": 0.35,
+}
+
+
+class CanonFakeBackend(FakeBackend):
+    def __init__(self, *args, metadata=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.metadata = dict(metadata or CANON_METADATA)
+
+    def execution_metadata(self, execution_id):
+        return dict(self.metadata)
+
+
+def test_canon_backend_metadata_persists_to_journal_and_result(tmp_path):
+    task_id = "ZB-SALVADOR-CANON-META-001"
+    issue = GitHubIssue(18, "canon", body(task_id, task_kind="CANON_REFERENCE_EDIT"))
+    gh = FakeGitHub([issue])
+    backend = CanonFakeBackend(prompt_id="canon-prompt-1", polls=[BackendPollResult("RUNNING"), BackendPollResult("COMPLETE")])
+    c, inbox, results = make_controller(tmp_path, gh, backend, task_kind="CANON_REFERENCE_EDIT")
+    add_ref(inbox, task_id)
+
+    c.run_once()
+    journal = json.loads((results / task_id / "execution.json").read_text())
+    assert journal["executionId"] == "canon-prompt-1"
+    assert journal["backendMetadata"] == CANON_METADATA
+
+    c.run_once()
+    meta = json.loads((results / task_id / "result.json").read_text())
+    for key, value in CANON_METADATA.items():
+        assert meta[key] == value
+    assert meta["promptId"] == "canon-prompt-1"
+    assert meta["resultSha256"] == meta["sha256"]
+
+
+def test_canon_restart_uses_original_journal_provenance_without_resubmit(tmp_path):
+    task_id = "ZB-SALVADOR-CANON-RESTART-001"
+    issue = GitHubIssue(19, "canon", body(task_id, task_kind="CANON_REFERENCE_EDIT"))
+    gh = FakeGitHub([issue])
+    backend_a = CanonFakeBackend(prompt_id="canon-prompt-1", polls=[BackendPollResult("RUNNING")])
+    c1, inbox, results = make_controller(tmp_path, gh, backend_a, task_kind="CANON_REFERENCE_EDIT")
+    add_ref(inbox, task_id)
+    c1.run_once()
+    assert backend_a.submit_calls == 1
+
+    changed = dict(CANON_METADATA)
+    changed["modelId"] = "different-model.safetensors"
+    backend_b = CanonFakeBackend(prompt_id="must-not-submit", polls=[BackendPollResult("COMPLETE")], metadata=changed)
+    c2 = Controller(gh, inbox, results, {("SALVADOR", "CANON_REFERENCE_EDIT"): backend_b})
+    c2.run_once()
+
+    assert backend_b.submit_calls == 0
+    meta = json.loads((results / task_id / "result.json").read_text())
+    assert meta["modelId"] == "local-model.safetensors"
+    assert meta["promptId"] == "canon-prompt-1"
+
+
+def test_canon_result_without_persisted_provenance_fails_closed(tmp_path):
+    task_id = "ZB-SALVADOR-CANON-NOMETA-001"
+    issue = GitHubIssue(20, "canon", body(task_id, task_kind="CANON_REFERENCE_EDIT"))
+    gh = FakeGitHub([issue])
+    backend = FakeBackend(prompt_id="canon-prompt-1", polls=[BackendPollResult("COMPLETE")])
+    c, inbox, results = make_controller(tmp_path, gh, backend, task_kind="CANON_REFERENCE_EDIT")
+    add_ref(inbox, task_id)
+    c.run_once()
+    assert not (results / task_id / "result.json").exists()
+    assert any("STATE = FAILED" in event and "ERROR_CODE = SALVADOR_RESULT_INVALID" in event for _, event in gh.posts)
+
+
+def test_full_mocked_canon_reference_edit_lifecycle_and_duplicate_suppression(tmp_path):
+    from io import BytesIO
+    from PIL import Image
+    from zb_local_controller.backends.canon_reference_edit import CanonReferenceEditBackend
+
+    class CanonLifecycleTransport:
+        def __init__(self):
+            self.calls = []
+            self.submit_count = 0
+
+        def request_json(self, method, path, payload=None):
+            self.calls.append((method, path, payload))
+            if (method, path) == ("GET", "/system_stats"):
+                return {"system": {}}
+            if (method, path) == ("GET", "/object_info"):
+                nodes = {
+                    name: {"input": {"required": {}}}
+                    for name in {
+                        "CheckpointLoaderSimple", "CLIPTextEncode", "LoadImage", "VAEEncode",
+                        "KSampler", "VAEDecode", "SaveImage",
+                    }
+                }
+                nodes["CheckpointLoaderSimple"] = {
+                    "input": {"required": {"ckpt_name": [["local-model.safetensors"]]}}
+                }
+                return nodes
+            if (method, path) == ("POST", "/prompt"):
+                self.submit_count += 1
+                return {"prompt_id": "canon-mock-prompt-1"}
+            if (method, path) == ("GET", "/history/canon-mock-prompt-1"):
+                return {
+                    "canon-mock-prompt-1": {
+                        "status": {"completed": True, "status_str": "success"},
+                        "outputs": {"8": {"images": [{"filename": "out.png", "subfolder": "", "type": "output"}]}},
+                    }
+                }
+            raise AssertionError((method, path))
+
+        def request_bytes(self, path):
+            self.calls.append(("GET_BYTES", path, None))
+            buf = BytesIO()
+            Image.new("RGB", (32, 24), "white").save(buf, format="PNG")
+            return buf.getvalue()
+
+    task_id = "ZB-SALVADOR-CANON-E2E-001"
+    issue = GitHubIssue(21, "canon", body(task_id, task_kind="CANON_REFERENCE_EDIT"))
+    gh = FakeGitHub([issue])
+    transport = CanonLifecycleTransport()
+    root = Path(__file__).resolve().parents[1]
+    backend = CanonReferenceEditBackend(
+        base_url="http://127.0.0.1:8188",
+        workflow_path=root / "src/zb_local_controller/workflows/salvador-canon-reference-edit-v1.json",
+        canon_prompt_path=root / "src/zb_local_controller/prompts/salvador-canon-reference-edit-v1.txt",
+        comfyui_input_root=tmp_path / "comfy-input",
+        model_name="local-model.safetensors",
+        denoise=0.35,
+        max_long_side=768,
+        negative_prompt="redesign, changed pose, changed composition, extra limbs, text, watermark",
+        transport=transport,
+    )
+    c, inbox, results = make_controller(tmp_path, gh, backend, task_kind="CANON_REFERENCE_EDIT")
+    ref_dir = inbox / task_id
+    ref_dir.mkdir(parents=True)
+    Image.new("RGB", (640, 480), "white").save(ref_dir / "reference.png")
+
+    first = c.run_once()
+    assert first.submitted == 1
+    assert transport.submit_count == 1
+    assert len(gh.posts) == 2
+    assert "STATE = RUNNING" in gh.posts[0][1]
+    assert "EXECUTION_ID = canon-mock-prompt-1" in gh.posts[0][1]
+    assert "STATE = RESULT_READY" in gh.posts[1][1]
+    assert "EXECUTION_ID = canon-mock-prompt-1" in gh.posts[1][1]
+    meta = json.loads((results / task_id / "result.json").read_text())
+    image_bytes = (results / task_id / "result.png").read_bytes()
+    assert meta["taskKind"] == "CANON_REFERENCE_EDIT"
+    assert meta["promptId"] == "canon-mock-prompt-1"
+    assert meta["resultSha256"] == hashlib.sha256(image_bytes).hexdigest()
+    assert f"RESULT_SHA256 = {meta['resultSha256']}" in gh.posts[1][1]
+
+    second = c.run_once()
+    assert second.submitted == 0
+    assert transport.submit_count == 1
+    assert len(gh.posts) == 2

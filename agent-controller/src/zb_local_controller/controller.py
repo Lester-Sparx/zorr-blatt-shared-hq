@@ -16,6 +16,19 @@ from .local_paths import ReferenceValidationError, resolve_reference, result_pat
 from .task_contract import TaskContractError, parse_task
 
 
+_PROVENANCE_KEYS = {
+    "taskKind",
+    "workflowVersion",
+    "canonPromptVersion",
+    "modelId",
+    "workingWidth",
+    "workingHeight",
+    "sourceSha256",
+    "seed",
+    "denoise",
+}
+
+
 @dataclass(frozen=True)
 class RunSummary:
     discovered: int = 0
@@ -69,7 +82,8 @@ class Controller:
                 return state, execution
         return None, None
 
-    def _existing_result_metadata(self, task_id: str) -> dict[str, Any] | None:
+    def _existing_result_metadata(self, task: Any) -> dict[str, Any] | None:
+        task_id = task.task_id
         image_path, meta_path = result_paths(self.result_root, task_id)
         if not image_path.is_file() or not meta_path.is_file():
             return None
@@ -78,17 +92,48 @@ class Controller:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
         except Exception:
             return None
+        digest = hashlib.sha256(content).hexdigest()
         if not (
             bool(content)
             and meta.get("taskId") == task_id
             and meta.get("state") == "RESULT_READY"
-            and meta.get("sha256") == hashlib.sha256(content).hexdigest()
+            and meta.get("sha256") == digest
         ):
+            return None
+        if task.task_kind != "CANON_REFERENCE_EDIT":
+            return meta
+
+        if not _PROVENANCE_KEYS.issubset(meta) or meta.get("taskKind") != "CANON_REFERENCE_EDIT":
+            return None
+        for key in ("workflowVersion", "canonPromptVersion", "modelId"):
+            if not isinstance(meta.get(key), str) or not meta[key].strip():
+                return None
+        for key in ("workingWidth", "workingHeight"):
+            value = meta.get(key)
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                return None
+        source_sha = meta.get("sourceSha256")
+        if not isinstance(source_sha, str) or len(source_sha) != 64:
+            return None
+        try:
+            int(source_sha, 16)
+        except ValueError:
+            return None
+        seed = meta.get("seed")
+        if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+            return None
+        denoise = meta.get("denoise")
+        if isinstance(denoise, bool) or not isinstance(denoise, (int, float)) or not 0.25 <= float(denoise) <= 0.45:
+            return None
+        execution_id = meta.get("executionId")
+        if not isinstance(execution_id, str) or not execution_id:
+            return None
+        if meta.get("promptId") != execution_id or meta.get("resultSha256") != digest:
             return None
         return meta
 
-    def _valid_existing_result(self, task_id: str) -> bool:
-        return self._existing_result_metadata(task_id) is not None
+    def _valid_existing_result(self, task: Any) -> bool:
+        return self._existing_result_metadata(task) is not None
 
     def _execution_journal_path(self, task_id: str) -> Path:
         _, meta_path = result_paths(self.result_root, task_id)
@@ -106,7 +151,7 @@ class Controller:
             return None
         return data
 
-    def _persist_execution_journal(self, task: Any, execution_id: str) -> None:
+    def _persist_execution_journal(self, task: Any, execution_id: str, backend_metadata: Any = None) -> None:
         path = self._execution_journal_path(task.task_id)
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(".json.tmp")
@@ -114,6 +159,7 @@ class Controller:
             "taskId": task.task_id,
             "executionId": execution_id,
             "startedAt": self._clock(),
+            "backendMetadata": dict(backend_metadata or {}),
         }
         tmp.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
         os.replace(tmp, path)
@@ -126,7 +172,7 @@ class Controller:
         except OSError:
             pass
 
-    def _persist_result(self, task: Any, execution_id: str, content: bytes) -> str:
+    def _persist_result(self, task: Any, execution_id: str, content: bytes, backend_metadata: Any = None) -> str:
         if not content:
             raise BackendError("BACKEND_OUTPUT_INVALID")
         image_path, meta_path = result_paths(self.result_root, task.task_id)
@@ -146,6 +192,17 @@ class Controller:
             "bytes": len(content),
             "createdAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         }
+        if task.task_kind == "CANON_REFERENCE_EDIT":
+            source = dict(backend_metadata or {})
+            if not source or not _PROVENANCE_KEYS.issubset(source) or source.get("taskKind") != "CANON_REFERENCE_EDIT":
+                try:
+                    image_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                raise BackendError("SALVADOR_RESULT_INVALID")
+            metadata.update({key: source[key] for key in _PROVENANCE_KEYS})
+            metadata["promptId"] = execution_id
+            metadata["resultSha256"] = digest
         meta_tmp.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         os.replace(meta_tmp, meta_path)
         return digest
@@ -179,8 +236,12 @@ class Controller:
             return posted
         if poll.state != "COMPLETE":
             raise BackendError("BACKEND_POLL_INVALID")
+        journal = self._load_execution_journal(task.task_id)
+        backend_metadata = journal.get("backendMetadata", {}) if isinstance(journal, dict) else {}
+        if task.task_kind == "CANON_REFERENCE_EDIT" and not backend_metadata:
+            raise BackendError("SALVADOR_RESULT_INVALID")
         content = backend.collect(execution_id)
-        digest = self._persist_result(task, execution_id, content)
+        digest = self._persist_result(task, execution_id, content, backend_metadata)
         posted = self._post(issue.number, task.task_id, "RESULT_READY", execution_id, digest)
         if posted:
             self._active_task_id = None
@@ -217,7 +278,7 @@ class Controller:
                         if isinstance(started_at, (int, float)):
                             self._execution_started_at[candidate.task_id] = float(started_at)
                         else:
-                            self._persist_execution_journal(candidate, execution_id)
+                            self._persist_execution_journal(candidate, execution_id, journal.get("backendMetadata"))
                     break
 
         for issue in issues:
@@ -233,7 +294,7 @@ class Controller:
                 skipped += 1
                 continue
 
-            existing_result = self._existing_result_metadata(task.task_id)
+            existing_result = self._existing_result_metadata(task)
             if existing_result is not None:
                 execution_id = existing_result.get("executionId")
                 if isinstance(execution_id, str) and execution_id:
@@ -303,7 +364,9 @@ class Controller:
                 backend.ensure_ready()
                 execution_id = backend.submit(task, reference)
                 self._executions[task.task_id] = execution_id
-                self._persist_execution_journal(task, execution_id)
+                metadata_fn = getattr(backend, "execution_metadata", None)
+                backend_metadata = metadata_fn(execution_id) if callable(metadata_fn) else {}
+                self._persist_execution_journal(task, execution_id, backend_metadata)
                 submitted += 1
                 if not self._post(issue.number, task.task_id, "RUNNING", execution_id):
                     processed += 1

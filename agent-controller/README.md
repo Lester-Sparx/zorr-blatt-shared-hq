@@ -39,32 +39,23 @@ python -m zb_local_controller --once
 
 Task Scheduler installation and live ComfyUI/model setup are deliberately deferred until after mocked Tasks 1–6 are accepted.
 
-## Read-only owner console
+## SALVADOR v1 CANON_REFERENCE_EDIT — implemented, not activated
 
-Install the local `zb` PowerShell command once:
+`CANON_REFERENCE_EDIT` is a separate production-capable local ComfyUI path beside the existing disposable `PRODUCTION_IMAGE_EDIT` / `ImageInvert` smoke path. The production path is reference-first img2img only: one existing drawn character reference is deterministically staged and normalized without crop or upscale, then processed by the repository-owned canon prompt and SD1.5-class img2img workflow.
 
-```powershell
-cd D:\BLATT2\zb-local-agent-controller
-powershell -ExecutionPolicy Bypass -File .\scripts\install-zb-console.ps1
+The exact checkpoint filename is deployment-owned configuration (`canonModelName`). The example configuration intentionally leaves it empty, so the production backend fails closed and remains deactivated until an operator selects an already-installed compatible model after the independent QC gate. No model is downloaded or auto-selected by the controller.
+
+Operator flow:
+
+```text
+1. Put exactly one drawn reference in D:\BLATT2\ZB_AGENT_INBOX\<TASK_ID>\ where <TASK_ID> is the task's strict machine ID.
+2. Configure the exact already-installed SD1.5-class checkpoint filename as canonModelName in local deployment config.
+3. Create a GitHub task with TASK_KIND = CANON_REFERENCE_EDIT.
+4. Run controller from the agent-controller working directory with that local config.
+5. RUNNING requires a real prompt_id; RESULT_READY requires local result files/checksum/provenance.
+6. Implementation merge is not production activation.
 ```
 
-Use it from any working directory:
+The task text cannot choose a filesystem path or checkpoint filename. Chat attachment -> Windows inbox transport is not part of SALVADOR v1.
 
-```powershell
-zb
-zb why
-zb agents
-zb gates
-zb scout
-zb output
-zb watch
-```
-
-Console v0 is read-only. It reads the latest valid `ZB_OWNER_VIEW_V0`
-snapshot from Shared HQ issue #39 and validated local results under the
-configured result root. It cannot post comments, submit jobs, merge or
-approve changes, activate production, mutate canon, or create OWNER LOCK.
-
-`zb output` opens only a `result.png` whose PNG signature and SHA-256 match
-its parseable `result.json`. A local result never establishes production or
-canon approval by itself.
+`PRODUCTION_ACTIVATION = NO` until the separately owned QC/live-smoke/owner activation gates are completed.

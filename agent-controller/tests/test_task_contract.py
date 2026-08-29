@@ -69,3 +69,29 @@ def test_rejects_empty_direction():
 
 def test_rejects_path_unsafe_task_id():
     assert_code(VALID.replace("TASK_ID = ZB-SALVADOR-20260826T160000Z-001", "TASK_ID = ..\\outside"), "INVALID_TASK_ID")
+
+
+def test_accepts_canon_reference_edit():
+    task = parse_task("""ZB_AGENT_TASK_V0
+TASK_ID = ZB-SALVADOR-CANON-001
+AGENT = SALVADOR
+TASK_KIND = CANON_REFERENCE_EDIT
+STATE = ASSIGNED
+REFERENCE = LOCAL_INBOX
+
+Preserve locked face/body canon and redraw in production graphite.
+""")
+    assert task.task_kind == "CANON_REFERENCE_EDIT"
+
+
+def test_existing_production_image_edit_remains_allowed():
+    task = parse_task("""ZB_AGENT_TASK_V0
+TASK_ID = ZB-SMOKE-OLD
+AGENT = SALVADOR
+TASK_KIND = PRODUCTION_IMAGE_EDIT
+STATE = ASSIGNED
+REFERENCE = LOCAL_INBOX
+
+Disposable smoke only.
+""")
+    assert task.task_kind == "PRODUCTION_IMAGE_EDIT"

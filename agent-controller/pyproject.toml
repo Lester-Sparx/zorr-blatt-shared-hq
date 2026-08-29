@@ -7,10 +7,7 @@ name = "zb-local-agent-controller"
 version = "0.0.1"
 description = "Zero-budget local ZORR BLATT agent controller"
 requires-python = ">=3.12"
-dependencies = []
-
-[project.scripts]
-zb = "zb_local_controller.console:main"
+dependencies = ["Pillow>=11"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]

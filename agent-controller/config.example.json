@@ -5,5 +5,12 @@
   "comfyuiUrl": "http://127.0.0.1:8188",
   "workflowPath": "src\\zb_local_controller\\workflows\\salvador-production-image-edit.json",
   "pollIntervalSeconds": 15,
-  "maxExecutionSeconds": 900
+  "maxExecutionSeconds": 900,
+  "comfyuiInputRoot": "D:\\BLATT2\\ComfyUI_windows_portable\\ComfyUI\\input",
+  "canonReferenceWorkflowPath": "src\\zb_local_controller\\workflows\\salvador-canon-reference-edit-v1.json",
+  "canonPromptPath": "src\\zb_local_controller\\prompts\\salvador-canon-reference-edit-v1.txt",
+  "canonModelName": "",
+  "canonDenoise": 0.35,
+  "canonMaxLongSide": 768,
+  "canonNegativePrompt": "redesign, changed pose, changed composition, extra limbs, text, watermark"
 }

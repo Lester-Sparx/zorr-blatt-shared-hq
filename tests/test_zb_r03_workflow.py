@@ -24,37 +24,27 @@ class R03ProductionWorkflowTests(unittest.TestCase):
         self.assertNotIn("workflow_dispatch:", text)
         self.assertNotIn("pull_request_target:", text)
 
-    def test_root_admission_is_exact_pr111_actor_marker_and_writes_dispatch_before_api_handoff(self):
+    def test_root_admission_is_exact_pr111_actor_and_uses_trusted_dispatch_helpers_before_api_handoff(self):
         text = self.workflow()
         self.assertIn("github.event.issue.number == 111", text)
         self.assertIn("github.event.issue.pull_request", text)
         self.assertIn("github.event.comment.user.login == 'Lester-Sparx'", text)
         self.assertIn("startsWith(github.event.comment.body, 'ZB_AGENT_TASK_R03_V1')", text)
         self.assertIn("admit_r03_event", text)
-        self.assertIn("ZB_R03_DISPATCH_V1", text)
-        self.assertIn("STATE = DISPATCHED", text)
+        self.assertIn("render_dispatch_record", text)
+        self.assertIn("r01.write_and_verify(api, record)", text)
+        self.assertIn("dispatch_payload(dispatch, root_comment_id=root_comment_id)", text)
         self.assertIn("/repos/Lester-Sparx/zorr-blatt-shared-hq/dispatches", text)
-        self.assertIn('"event_type":"zb-r03-execute"', text)
+        self.assertIn('"event_type": "zb-r03-execute"', text)
 
-    def test_repository_dispatch_handoff_uses_no_pat_and_is_payload_bounded(self):
+    def test_repository_dispatch_handoff_uses_no_pat_and_payload_is_built_only_by_typed_helper(self):
         text = self.workflow()
         self.assertIn("contents: write", text)
         self.assertIn("GITHUB_TOKEN: ${{ github.token }}", text)
+        self.assertIn('"client_payload": dispatch_payload(dispatch, root_comment_id=root_comment_id)', text)
         self.assertNotIn("COPILOT_GITHUB_TOKEN", text)
         self.assertNotIn("GH_AW_CI_TRIGGER_TOKEN", text)
         self.assertNotIn("secrets: inherit", text)
-        for token in (
-            "root_comment_id",
-            "message_id",
-            "correlation_id",
-            "task_id",
-            "task_revision",
-            "base_sha",
-            "task_spec_comment_id",
-            "task_spec_sha256",
-            "replay_key",
-        ):
-            self.assertIn(token, text)
 
     def test_execution_run_revalidates_remote_authority_before_lester(self):
         text = self.workflow()
@@ -63,6 +53,11 @@ class R03ProductionWorkflowTests(unittest.TestCase):
         self.assertIn("github.event.action == 'zb-r03-execute'", text)
         self.assertIn("dispatch_ready", text)
         self.assertIn("needs.revalidate.outputs.dispatch_ready == 'true'", text)
+
+    def test_revalidate_job_has_no_forward_reference_to_lester(self):
+        text = self.workflow()
+        revalidate = text.split("\n  revalidate:\n", 1)[1].split("\n  lester:\n", 1)[0]
+        self.assertNotIn("needs.lester", revalidate)
 
     def test_lester_is_reusable_lock_only_on_repository_dispatch_and_receives_exact_bindings(self):
         text = self.workflow()
@@ -80,7 +75,7 @@ class R03ProductionWorkflowTests(unittest.TestCase):
         self.assertIn("finalize:", text)
         self.assertIn("needs: [revalidate, lester, duncan_qc]", text)
         self.assertIn("needs.lester.outputs.created_pr_number", text)
-        self.assertIn("PRODUCTION_ACTIVE = NO", text)
+        self.assertIn("PRODUCTION_ACTIVE: NO", text)
 
 
 if __name__ == "__main__":

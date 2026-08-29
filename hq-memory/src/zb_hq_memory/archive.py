@@ -79,7 +79,28 @@ class ArchiveStore:
             raise ArchiveIntegrityError("RAW_HASH_MISMATCH")
         return RawObject(sha256=digest, path=path, size=len(data))
 
+    def _verify_record_source(self, record: DurableRecord) -> None:
+        location = record.source.source_location
+        if not location.startswith("raw:"):
+            return
+
+        location_hash = location.removeprefix("raw:")
+        expected_hash = record.source.source_hash
+        if location_hash != expected_hash:
+            raise ArchiveIntegrityError("SOURCE_RAW_BINDING_MISMATCH")
+
+        raw_path = self.raw_root / expected_hash[:2] / f"{expected_hash}.bin"
+        if not raw_path.is_file():
+            raise ArchiveIntegrityError("SOURCE_RAW_MISSING")
+        try:
+            raw_bytes = raw_path.read_bytes()
+        except OSError as exc:
+            raise ArchiveIntegrityError("SOURCE_RAW_READ_FAILED") from exc
+        if hashlib.sha256(raw_bytes).hexdigest() != expected_hash:
+            raise ArchiveIntegrityError("SOURCE_RAW_HASH_MISMATCH")
+
     def append_record(self, record: DurableRecord) -> Path:
+        self._verify_record_source(record)
         canonical = self._canonical_record(record)
         target = self.records_root / record.record_type.lower() / f"{record.record_id}.json"
 
@@ -116,7 +137,11 @@ class ArchiveStore:
         return record
 
     def iter_records(self) -> tuple[DurableRecord, ...]:
-        records = [self._load_record(path) for path in sorted(self.records_root.glob("*/*.json"))]
+        records: list[DurableRecord] = []
+        for path in sorted(self.records_root.glob("*/*.json")):
+            record = self._load_record(path)
+            self._verify_record_source(record)
+            records.append(record)
         ids = [record.record_id for record in records]
         if len(ids) != len(set(ids)):
             raise ArchiveIntegrityError("RECORD_ID_COLLISION")
@@ -128,4 +153,6 @@ class ArchiveStore:
             raise ArchiveIntegrityError("RECORD_NOT_FOUND")
         if len(matches) != 1:
             raise ArchiveIntegrityError("RECORD_ID_COLLISION")
-        return self._load_record(matches[0])
+        record = self._load_record(matches[0])
+        self._verify_record_source(record)
+        return record

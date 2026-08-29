@@ -6,7 +6,7 @@ from pathlib import Path
 import sqlite3
 from typing import Iterable
 
-from .models import DurableRecord, RecordStatus
+from .models import DurableRecord, ProgressEvent, RecordStatus
 
 
 class SearchIndexError(RuntimeError):
@@ -15,10 +15,12 @@ class SearchIndexError(RuntimeError):
 
 _STATUS_RANK = {
     RecordStatus.LOCKED: 0,
-    RecordStatus.OPEN: 1,
-    RecordStatus.QUARANTINE: 2,
-    RecordStatus.SUPERSEDED: 3,
-    RecordStatus.DROP: 4,
+    RecordStatus.PROVEN: 1,
+    RecordStatus.APPROVED: 1,
+    RecordStatus.OPEN: 2,
+    RecordStatus.QUARANTINE: 3,
+    RecordStatus.SUPERSEDED: 4,
+    RecordStatus.DROP: 5,
 }
 
 
@@ -32,6 +34,8 @@ class SearchHit:
     source_id: str
     authority: str
     score: float
+    skill_id: str | None = None
+    version: str | None = None
 
 
 class SearchIndex:
@@ -64,7 +68,9 @@ class SearchIndex:
                         text TEXT NOT NULL,
                         source_id TEXT NOT NULL,
                         authority TEXT NOT NULL,
-                        created_at TEXT NOT NULL
+                        created_at TEXT NOT NULL,
+                        skill_id TEXT,
+                        version TEXT
                     )
                     """
                 )
@@ -72,8 +78,10 @@ class SearchIndex:
                     "CREATE VIRTUAL TABLE records_fts USING fts5(record_id UNINDEXED, entity_id, text)"
                 )
                 for record in sorted(records, key=lambda item: (item.created_at, item.record_id)):
+                    skill_id = record.skill_id if isinstance(record, ProgressEvent) else None
+                    version = record.metric_set_version if isinstance(record, ProgressEvent) else None
                     connection.execute(
-                        "INSERT INTO records VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT INTO records VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             record.record_id,
                             record.entity_id,
@@ -83,6 +91,8 @@ class SearchIndex:
                             record.source.source_id,
                             record.source.authority,
                             record.created_at.isoformat(),
+                            skill_id,
+                            version,
                         ),
                     )
                     connection.execute(
@@ -112,6 +122,8 @@ class SearchIndex:
             source_id=str(row[5]),
             authority=str(row[6]),
             score=float(score),
+            skill_id=None if row[7] is None else str(row[7]),
+            version=None if row[8] is None else str(row[8]),
         )
 
     @staticmethod
@@ -135,7 +147,7 @@ class SearchIndex:
         try:
             with sqlite3.connect(self.db_path) as connection:
                 exact_sql = (
-                    "SELECT record_id, entity_id, status, record_type, text, source_id, authority "
+                    "SELECT record_id, entity_id, status, record_type, text, source_id, authority, skill_id, version "
                     "FROM records WHERE (record_id = ? OR entity_id = ?)" + status_clause
                 )
                 exact_rows = connection.execute(exact_sql, (text, text, *status_values)).fetchall()
@@ -146,7 +158,7 @@ class SearchIndex:
                 phrase = '"' + text.replace('"', '""') + '"'
                 fts_sql = (
                     "SELECT r.record_id, r.entity_id, r.status, r.record_type, r.text, r.source_id, r.authority, "
-                    "bm25(records_fts) "
+                    "r.skill_id, r.version, bm25(records_fts) "
                     "FROM records_fts JOIN records r ON r.record_id = records_fts.record_id "
                     "WHERE records_fts MATCH ?"
                 )
@@ -160,5 +172,5 @@ class SearchIndex:
         except sqlite3.Error as exc:
             raise SearchIndexError("INDEX_SEARCH_FAILED") from exc
 
-        hits = [self._hit(tuple(row[:7]), float(row[7])) for row in rows]
+        hits = [self._hit(tuple(row[:9]), float(row[9])) for row in rows]
         return self._sort(hits)

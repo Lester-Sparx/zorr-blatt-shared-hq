@@ -175,6 +175,26 @@ If process/automation work is taking more effort than the product task it is sup
 
 Do not build machinery to manage machinery.
 
+## 21. MATH / GEOMETRY / TIMING LAW — DO NOT EYEBALL QUANTITATIVE CONSTRAINTS
+
+Whenever a ZORR task depends on proportions, scale, transforms, distances, angles, camera placement/FOV/framing, timing, interpolation, trajectories, collision/clearance, kinematics, coordinate conversion, exposure math, or any other quantitative spatial/temporal relation:
+
+1. define the coordinate system, variables and units before judging the result;
+2. derive or compute the relevant values instead of replacing them with visual guesswork;
+3. preserve exact accepted locks/canon values unless an explicit authorized change supersedes them;
+4. define tolerances or acceptance thresholds where exact equality is not meaningful;
+5. make the calculation reproducible in code/test/data when practical;
+6. verify collision, clearance, trajectory and timing constraints numerically when they affect mechanics or staging;
+7. for character construction, proportions and landmarks must be expressed as measurable relationships when a mathematical model exists;
+8. artistic judgement may choose style, emphasis and composition, but it must not silently override quantitative constraints that are already defined;
+9. when the source data is insufficient to calculate a value, report `NOT PROVEN` rather than inventing a plausible number.
+
+The required pattern is:
+
+`DEFINE -> MEASURE -> CALCULATE -> APPLY -> VERIFY -> RECORD`
+
+Math is a production tool, not decoration: use it wherever it can prevent drift, inconsistency or repeated visual trial-and-error.
+
 ## ZORR MODE shorthand
 
 When SPARX writes `ZORR MODE`, treat it as an instruction to:

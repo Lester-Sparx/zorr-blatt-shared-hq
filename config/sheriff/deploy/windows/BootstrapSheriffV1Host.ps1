@@ -30,6 +30,22 @@ function Write-Utf8NoBom([string]$PathValue, [string]$Text) {
     [IO.File]::WriteAllText($PathValue, $Text, $encoding)
 }
 
+function Assert-WslReady {
+    $wsl = Get-Command wsl.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $wsl) {
+        throw "WSL_NOT_READY"
+    }
+
+    & $wsl.Source --status *> $null
+    if ($LASTEXITCODE -ne 0) {
+        & $wsl.Source --list --quiet *> $null
+        if ($LASTEXITCODE -ne 0) {
+            throw "WSL_NOT_READY"
+        }
+    }
+    Write-Output "WSL_STATUS = PASS"
+}
+
 function Patch-ForWindows10([string]$PathValue) {
     $raw = [IO.File]::ReadAllText($PathValue)
 
@@ -81,6 +97,48 @@ $PodmanInstallerSha256 = "1958aac22abb3a9cf7b52626c71ba1a26015c323f0b5fa74671e30
     }
 }
 
+function Patch-EvidenceTransport([string]$PathValue) {
+    # Physical runtime proof must not depend on a separately installed/authenticated GitHub CLI.
+    # If gh is unavailable, connected ChatGPT/GitHub relays the already-written evidence file.
+    $raw = [IO.File]::ReadAllText($PathValue)
+    $old = @'
+function Post-Evidence {
+    $gh = Get-Command gh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $gh) { throw "GH_CLI_NOT_READY" }
+    & $gh.Source auth status *> $null
+    if ($LASTEXITCODE -ne 0) { throw "GH_AUTH_NOT_READY" }
+    & $gh.Source issue comment $ActivationIssue --repo $Repository --body-file $ResultPath *> $null
+    if ($LASTEXITCODE -ne 0) { throw "GITHUB_EVIDENCE_POST_FAILED" }
+}
+'@
+    $new = @'
+function Post-Evidence {
+    $gh = Get-Command gh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $gh) {
+        Write-Output "GITHUB_EVIDENCE_POST = DEFERRED_TO_CONNECTED_CHAT"
+        return
+    }
+    & $gh.Source auth status *> $null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Output "GITHUB_EVIDENCE_POST = DEFERRED_TO_CONNECTED_CHAT"
+        return
+    }
+    & $gh.Source issue comment $ActivationIssue --repo $Repository --body-file $ResultPath *> $null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Output "GITHUB_EVIDENCE_POST = DEFERRED_TO_CONNECTED_CHAT"
+        return
+    }
+    Write-Output "GITHUB_EVIDENCE_POST = PASS"
+}
+'@
+    if (-not $raw.Contains($old)) {
+        throw "EVIDENCE_TRANSPORT_PATCH_CONTRACT_MISMATCH"
+    }
+    $raw = $raw.Replace($old, $new)
+    Write-Utf8NoBom $PathValue $raw
+    Write-Output "PHYSICAL_RUNTIME_DOES_NOT_REQUIRE_GH_CLI"
+}
+
 Ensure-Directory $Root
 $build = [Environment]::OSVersion.Version.Build
 Write-Output "WINDOWS_BUILD = $build"
@@ -95,6 +153,7 @@ if (-not (Test-Path -LiteralPath $Deployer -PathType Leaf)) {
 }
 
 if ($build -lt $Windows11Build) {
+    Assert-WslReady
     Patch-ForWindows10 $Deployer
     Write-Output "HOST_RUNTIME = PODMAN_5_8_5_WIN10"
 } else {
@@ -105,6 +164,7 @@ if ($build -lt $Windows11Build) {
     Write-Output "HOST_RUNTIME = PODMAN_6_1_0_WIN11"
 }
 
+Patch-EvidenceTransport $Deployer
 Write-Output "DEPLOYER_HOST_COMPAT = PASS"
 
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install

@@ -159,19 +159,54 @@ jobs:
       issues: write
       pull-requests: read
     outputs:
-      qc_pass: ${{ steps.qc.outputs.qc_pass }}
-      candidate_head_sha: ${{ steps.qc.outputs.candidate_head_sha }}
+      qc_pass: ${{ steps.record.outputs.qc_pass }}
+      candidate_head_sha: ${{ steps.record.outputs.candidate_head_sha }}
       candidate_pr_number: ${{ needs.lester.outputs.created_pr_number }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Checkout trusted R03 QC implementation at authorized base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ needs.revalidate.outputs.base_sha }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
-      - name: Independent DUNCAN exact candidate QC
-        id: qc
+      - name: Validate candidate metadata and scope before executing candidate code
+        id: metadata
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          R03_QC_PHASE: metadata
+          R03_CANDIDATE_PR: ${{ needs.lester.outputs.created_pr_number }}
+          R03_MESSAGE_ID: ${{ needs.revalidate.outputs.message_id }}
+          R03_CORRELATION_ID: ${{ needs.revalidate.outputs.correlation_id }}
+          R03_TASK_ID: ${{ needs.revalidate.outputs.task_id }}
+          R03_TASK_REVISION: ${{ needs.revalidate.outputs.task_revision }}
+          R03_BASE_SHA: ${{ needs.revalidate.outputs.base_sha }}
+          R03_AUTHORITY_REF: ${{ needs.revalidate.outputs.authority_ref }}
+        run: python3 -m scripts.zb_r03_qc
+      - name: Checkout exact candidate head after metadata gate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ steps.metadata.outputs.candidate_head_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Run independent candidate verification without GitHub token
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/hq_validate.py
+          python3 -m unittest discover -s tests -v
+          python3 -m compileall -q scripts tests
+      - name: Restore trusted QC implementation before recording PASS
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.revalidate.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Fresh revalidate unchanged candidate and record DUNCAN PASS
+        id: record
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          R03_QC_PHASE: record
+          R03_EXPECTED_CANDIDATE_HEAD: ${{ steps.metadata.outputs.candidate_head_sha }}
           R03_CANDIDATE_PR: ${{ needs.lester.outputs.created_pr_number }}
           R03_MESSAGE_ID: ${{ needs.revalidate.outputs.message_id }}
           R03_CORRELATION_ID: ${{ needs.revalidate.outputs.correlation_id }}

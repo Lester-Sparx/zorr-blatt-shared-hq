@@ -30,14 +30,15 @@ On every new session or execution, restore context from GitHub before acting. Do
 1. Fresh-read the current `main` HEAD.
 2. Fresh-read the durable tracker for the exact task/correlation. Current communication tracker: issue #106, until a newer verified tracker record explicitly supersedes it.
 3. Fresh-read the exact task/source PR, immutable source comment/message, base SHA, candidate HEAD, CI/workflow evidence, and any required authority PR. Current communication authority anchor: PR #110, subject to newer verified supersession.
-4. For historical reconstruction or disputes, read the original event from branch `zb-archive-v1` under `hq/archive-v1`. Prefer RAW archived evidence over summaries.
-5. Treat `hq/state/HQ_STATE.json`, `checkpoints/*CURRENT*`, summaries, indexes, and context packets as derived/legacy snapshots. Never let an older snapshot override fresher GitHub tracker/PR/workflow evidence.
+4. When broad project/history context is required, fresh-read branch `zb-archive-v1` path `hq/archive-v1/derived/unified-v1/CURRENT_CONTEXT.json`. This is the single derived restore state entrypoint; it is rebuildable and never overrides exact task/tracker/PR/workflow evidence.
+5. For historical reconstruction, disputes, or any conflict with derived restore state, read the original event from branch `zb-archive-v1` under `hq/archive-v1`. Prefer RAW archived evidence over summaries or derived context.
+6. Treat `hq/state/HQ_STATE.json`, `checkpoints/*CURRENT*`, summaries, indexes, and other context packets as derived/legacy snapshots. Never let an older snapshot override fresher GitHub tracker/PR/workflow evidence.
 
 If required durable context is missing, contradictory, or unreadable, fail closed with `DURABLE_CONTEXT_NOT_PROVEN`. Never guess.
 
 ## Evidence precedence
 
-`RAW ORIGINAL EVENT > VERIFIED GITHUB HISTORY > CURRENT TRACKER/PR/WORKFLOW EVIDENCE > SNAPSHOT > INDEX > SUMMARY > CHAT MEMORY`
+`RAW ORIGINAL EVENT > VERIFIED GITHUB HISTORY > CURRENT TRACKER/PR/WORKFLOW EVIDENCE > DERIVED RESTORE STATE > SNAPSHOT > INDEX > SUMMARY > CHAT MEMORY`
 
 ## Role continuity
 
@@ -78,6 +79,7 @@ Permanent Archive V1 is already the GitHub-side historical archive:
 - workflow: `.github/workflows/zb-permanent-archive-v1.yml`
 - branch: `zb-archive-v1`
 - root: `hq/archive-v1`
+- unified restore entrypoint: `hq/archive-v1/derived/unified-v1/CURRENT_CONTEXT.json`
 - rule: original RAW event bytes are authoritative and content-addressed by SHA-256.
 
 Do not rewrite archived RAW history. Derived search/memory layers must remain rebuildable from durable evidence.

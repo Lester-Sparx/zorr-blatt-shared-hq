@@ -40,6 +40,17 @@ class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
         self.assertNotIn('$build:MIN', self.bootstrap)
         self.assertIn('${build}:MIN', self.bootstrap)
 
+    def test_win10_preflights_wsl_before_podman_machine(self):
+        self.assertIn('function Assert-WslReady', self.bootstrap)
+        self.assertIn('WSL_NOT_READY', self.bootstrap)
+        self.assertIn('WSL_STATUS = PASS', self.bootstrap)
+        self.assertLess(self.bootstrap.find('Assert-WslReady'), self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install'))
+
+    def test_github_cli_is_not_a_physical_runtime_gate(self):
+        self.assertIn('function Patch-EvidenceTransport', self.bootstrap)
+        self.assertIn('GITHUB_EVIDENCE_POST = DEFERRED_TO_CONNECTED_CHAT', self.bootstrap)
+        self.assertIn('PHYSICAL_RUNTIME_DOES_NOT_REQUIRE_GH_CLI', self.bootstrap)
+
 
 if __name__ == '__main__':
     unittest.main()

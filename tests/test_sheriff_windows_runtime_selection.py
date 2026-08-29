@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -48,7 +49,13 @@ class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
         self.assertIn('--install', self.bootstrap)
         self.assertIn('--no-distribution', self.bootstrap)
         self.assertIn('WSL_STATUS = PASS', self.bootstrap)
-        self.assertLess(self.bootstrap.find('Ensure-WslReady'), self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install'))
+        invocation = re.search(
+            r'if \(\$build -lt \$Windows11Build\) \{\s*Ensure-WslReady\s*\}',
+            self.bootstrap,
+        )
+        self.assertIsNotNone(invocation, 'Win10 execution path must invoke Ensure-WslReady')
+        install = self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install')
+        self.assertGreater(install, invocation.start())
 
     def test_wsl_repair_self_elevates_without_manual_admin_commands(self):
         self.assertIn('function Test-IsAdministrator', self.bootstrap)

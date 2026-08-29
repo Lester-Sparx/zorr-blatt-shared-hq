@@ -7,7 +7,7 @@ from scripts.zb_r03_qc import expected_candidate_binding
 from scripts.zb_r03_router import resolve_task
 
 
-BASE = "1" * 40
+BASE = "1bb4ada5270b4d0fc48eba0fb152259d08b15085"
 HEAD = "2" * 40
 MERGE = "3" * 40
 AUTH_ID = 5457544639

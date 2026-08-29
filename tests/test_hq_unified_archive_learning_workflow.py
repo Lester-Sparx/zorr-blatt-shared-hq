@@ -22,6 +22,16 @@ class UnifiedArchiveLearningWorkflowTests(unittest.TestCase):
         self.assertIn("fresher", agents.lower())
         self.assertIn("evidence", agents.lower())
 
+    def test_restart_map_consumes_only_accepted_optimized_policy(self) -> None:
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("CURRENT_OPTIMIZED_POLICY.json", agents)
+        self.assertIn("accepted = true", agents.lower())
+        self.assertIn("BASELINE_KEPT", agents)
+        self.assertIn("IMPROVED", agents)
+        self.assertIn("CONFLICT", agents)
+        self.assertIn("do not apply", agents.lower())
+        self.assertIn("CURRENT_LESSONS.json", agents)
+
 
 if __name__ == "__main__":
     unittest.main()

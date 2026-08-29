@@ -148,7 +148,8 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertIn('"agent_id":"copilot"', first)
         self.assertIn('"agent_model":"copilot/auto"', first)
         self.assertIn("COPILOT_MODEL: copilot/auto", lock)
-        self.assertIn('"defaultAiCreditsPricing"', lock)
+        self.assertIn("defaultAiCreditsPricing", lock)
+        self.assertIn('defaultAiCreditsPricing\\\":{\\\"input\\\":3,\\\"output\\\":15}', lock)
 
 
 if __name__ == "__main__":

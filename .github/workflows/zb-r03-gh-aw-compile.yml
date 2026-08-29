@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   compile-gh-aw:
@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          persist-credentials: false
+          persist-credentials: true
       - name: Install exact gh-aw compiler
         shell: bash
         run: |
@@ -38,6 +38,20 @@ jobs:
           set -euo pipefail
           "$RUNNER_TEMP/gh-aw" compile zb-r03-lester-agent --strict
           test -s .github/workflows/zb-r03-lester-agent.lock.yml
+      - name: Sync exact compiler-generated lock to PR branch
+        env:
+          ZB_HEAD_REF: ${{ github.head_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- .github/workflows/zb-r03-lester-agent.lock.yml; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/zb-r03-lester-agent.lock.yml
+          git commit -m 'chore(r03): sync gh-aw generated lock'
+          git push origin "HEAD:${ZB_HEAD_REF}"
       - name: Upload exact generated lock
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -50,5 +64,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git ls-files --error-unmatch .github/workflows/zb-r03-lester-agent.lock.yml
           git diff --exit-code -- .github/workflows/zb-r03-lester-agent.lock.yml

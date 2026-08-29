@@ -1,0 +1,49 @@
+name: r03-lock-refresh-temp
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/r03-lock-refresh-temp.yml'
+      - '.github/workflows/zb-r03-lester-agent.md'
+      - '.github/workflows/zb-r03-lester-agent.lock.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.event.pull_request.number == 165 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/r03-concrete-gpt5-mini'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/r03-concrete-gpt5-mini
+          persist-credentials: true
+          fetch-depth: 1
+      - name: Install exact gh-aw compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="$RUNNER_TEMP/gh-aw"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            'https://github.com/github/gh-aw/releases/download/v0.86.2/linux-amd64' \
+            --output "$asset"
+          actual="$(sha256sum "$asset" | awk '{print $1}')"
+          expected='b8fd100d1d56a77b842ad28375ff361215a5aa1277db6b9a05d70054cde7260e'
+          test "$actual" = "$expected"
+          chmod 0555 "$asset"
+      - name: Compile and commit exact generated lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/gh-aw" compile zb-r03-lester-agent --strict
+          test -s .github/workflows/zb-r03-lester-agent.lock.yml
+          git add .github/workflows/zb-r03-lester-agent.lock.yml
+          if git diff --cached --quiet; then
+            echo 'LOCK_ALREADY_CURRENT'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore: refresh generated R03 gh-aw lock'
+          git push origin HEAD:fix/r03-concrete-gpt5-mini

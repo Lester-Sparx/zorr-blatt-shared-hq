@@ -6,7 +6,7 @@ OWNER-approved architectural direction for ZORR BLATT.
 
 ## Goal
 
-Establish one durable identity and learning root for the ZORR agent family: `DUNCAN PRIME`.
+Establish one durable identity and learning root for the ZORR agent family: `DUNCAN PRIME`, with stylish anime mastery as the primary learning objective.
 
 ## Core law
 
@@ -26,21 +26,17 @@ Future specialist modes are internal facets of DUNCAN PRIME unless OWNER explici
 
 Activating a specialist changes task focus, allowed tools, specialist methods, and bounded locks. It does not replace DUNCAN PRIME identity, OWNER relationship, ZORR laws, evidence discipline, or durable memory root.
 
-## Night School
+## Night School objective hierarchy
 
-Night School trains DUNCAN PRIME, not a separate specialist root. Shared verified learning may improve SALVADOR and other specialist facets through the common root. Specialist training data may return to the common root only after provenance and verification.
+Night School trains DUNCAN PRIME, not a separate specialist root.
 
-### Primary objective hierarchy
+Primary priority:
 
-The primary Night School objective is **stylish anime mastery for ZORR BLATT**.
+`ANIME STYLE MASTERY > SUPPORTING ART/SCIENCE > TOOLING`
 
-Priority order:
+Supporting mathematics, physics, geometry, engineering, art/design history, cinema, photography, architecture, fashion and OSS are learned only when they improve anime production quality, originality, consistency, speed, directing, or verification.
 
-`ANIME STYLE MASTERY > SUPPORTING SCIENCES > TOOLING`
-
-Supporting sciences are learned because they improve anime production quality, consistency, speed, directing, or verification.
-
-### Primary anime mastery curriculum
+## Primary anime mastery curriculum
 
 - character identity, silhouette and shape language;
 - gesture, pose, anatomy and fashion-driven presentation;
@@ -54,41 +50,55 @@ Supporting sciences are learned because they improve anime production quality, c
 - key visual / poster / promotional design, typography, titles and graphic hierarchy;
 - editing/montage rhythm, continuity, reveal and dramatic timing.
 
-### Anime study anchors
+## Deep comparative reference atlas
 
-OWNER-selected primary references:
+OWNER-selected anchors are studied as sources of transferable principles, never as style-cloning targets.
 
-- **JoJo's Bizarre Adventure** — analyze bold silhouette, fashion-driven posing, graphic anatomy, high-contrast composition, unconventional color relationships, iconic pose language and aggressive visual identity;
-- **Bleach** — analyze elegant line economy, fashion/silhouette, negative space, black/white balance, restrained detail and iconic character presentation.
+- **JoJo's Bizarre Adventure** — bold silhouette, fashion-driven posing, graphic anatomy, high-contrast composition, unconventional color relationships, iconic pose language and aggressive visual identity.
+- **Bleach** — elegant line economy, fashion/silhouette, negative space, black/white balance, restrained detail and iconic character presentation.
+- **Salvador Dalí** — metamorphosis, impossible object logic, symbolic image, contrast between precise rendering and irrational space.
+- **David Lynch** — dream logic, uncanny ordinary space, silence/pause, sound dramaturgy, symbolic staging, psychological geography and unresolved tension.
+- **Giorgio de Chirico** — metaphysical architecture, long shadows, empty space, displaced scale, perspective, stillness and spatial unease.
+- **Max Ernst** — collage logic, frottage/grattage thinking, hybrid forms, texture-driven invention, accident and associative construction.
+- **Katsushika Hokusai** — decisive line, rhythmic contour, asymmetrical cropping, flat graphic mass, extreme scale contrast, dynamic natural forces, compressed perspective and kinetic still-image construction.
 
-Comparative references may include `Redline`, `Cowboy Bebop`, `Samurai Champloo`, `Akira`, `Ghost in the Shell`, `Neon Genesis Evangelion`, `Mononoke`, `Mob Psycho 100`, `Chainsaw Man`, `Jujutsu Kaisen`, or other relevant productions selected for a specific lesson.
+The atlas is extensible across anime/manga, painting, ukiyo-e, surrealism, metaphysical painting, expressionism, symbolism, cinema, photography, poster/graphic design, fashion/editorial, architecture and production design when a source serves a specific ZORR lesson.
 
-These works are analysis/benchmark references. DUNCAN must extract transferable principles rather than clone copyrighted frames, character designs, or one creator's exact style. The target is an original ZORR visual language.
+Each study decomposes references into measurable/transferable variables:
 
-### Learning universe
+`SILHOUETTE / SHAPE / LINE / NEGATIVE_SPACE / VALUE / COLOR / LIGHT / PERSPECTIVE / SCALE / CAMERA / POSE / RHYTHM / TEXTURE / TYPOGRAPHY / SYMBOL / UNCANNY / MOTION / CUT / SOUND / EFFECT`
 
-Night School may continuously study any domain that materially improves ZORR BLATT production. The curriculum includes, but is not limited to:
+Required question:
+
+`WHAT PRINCIPLE MAKES THIS IMAGE/SCENE POWERFUL, AND HOW CAN ZORR EXPRESS THAT PRINCIPLE ORIGINALLY?`
+
+No reference is a command to reproduce copyrighted frames, characters, or a living creator's exact style. Cross-source comparison and changed/unseen ZORR transfer tests are required before a principle is promoted.
+
+## Learning universe
+
+Night School may study any domain that materially improves ZORR production, including:
 
 - mathematics: geometry, linear algebra, calculus, optimization, probability/statistics, numerical methods, projective geometry, kinematics;
-- cinematography/directing: camera geometry, lenses/FOV, framing, composition, staging, blocking, screen geography, visual continuity, shot motivation;
-- anime/graphic design: posters, key visuals, typography, titles, layout, hierarchy, color systems, promotional composition and anime visual language;
-- drawing/illustration: anatomy, gesture, construction, perspective, line economy, shape design, values, rendering, stylization and production simplification;
-- VFX/effects: compositing, particles, smoke/fire, fluids, volumes, procedural effects, shaders/materials, lighting, color management and temporal effects;
-- geometry/3D: transforms, meshes, topology, rigging, IK, deformation, collision, reconstruction and spatial data structures;
-- animation/motion: timing, spacing, arcs, anticipation, contact, balance, mass, momentum, acting and motion analysis;
-- editing/montage: shot structure, rhythm, pacing, continuity, causality and timeline analysis;
-- physics/science: mechanics, optics, waves, acoustics, signal processing, control systems and simulation when they serve production;
-- engineering/computation: algorithms, data structures, debugging, testing, performance, deterministic pipelines, computer vision, graphics and scientific computing;
-- sound: acoustics, spatial audio, synchronization, signal analysis and SFX construction;
-- mature open-source production tools and methods that can replace custom ZORR implementations.
+- cinematography/directing;
+- anime/graphic design, posters/key visuals, typography and titles;
+- drawing/illustration, anatomy, gesture, construction, perspective, line/value/color;
+- VFX/effects, compositing, particles, fluids/volumes, shaders/materials, lighting and color management;
+- geometry/3D, transforms, meshes, topology, rigging, IK, deformation, collision and reconstruction;
+- animation/motion;
+- editing/montage;
+- physics/science: mechanics, optics, waves, acoustics, signal processing, control and simulation;
+- art/design history and visual culture;
+- engineering/computation, graphics, computer vision and scientific computing;
+- sound/spatial audio/SFX;
+- mature open-source production tools that can replace custom ZORR implementations.
 
-The universe is extensible by ZORR relevance, not novelty. The system must not accumulate random knowledge merely to increase source count.
+The universe is extensible by ZORR relevance, not novelty.
 
-### Learning gate
+## Learning gate
 
 Every promoted lesson must pass:
 
-`ZORR_RELEVANCE -> OPEN/PRIMARY SOURCE -> EXERCISE -> OBJECTIVE CHECK -> CHANGED/UNSEEN TRANSFER -> DURABLE RECORD`
+`ZORR_RELEVANCE -> OPEN/PRIMARY SOURCE -> DECOMPOSE PRINCIPLES -> EXERCISE -> OBJECTIVE CHECK -> CHANGED/UNSEEN TRANSFER -> DURABLE RECORD`
 
 `READING != LEARNING`
 
@@ -100,19 +110,19 @@ Failures remain useful training data but cannot be promoted as proven skills.
 
 ## Open-source-first learning substrate
 
-R01 reuses existing ZORR/GitHub infrastructure and evaluates mature upstream tools instead of building a custom learning platform.
+R01 reuses existing ZORR/GitHub infrastructure and evaluates mature upstream tools rather than building a custom learning platform.
 
-Examples of preferred open systems by domain include:
+Preferred candidates include:
 
 - identity/memory evaluation: Letta / Letta Code / MemFS;
-- mathematical verification: SymPy/SciPy and Lean 4 + mathlib4 when formal proof adds value;
-- geometry/camera: Open3D and other mature geometry libraries;
+- mathematical verification: SymPy/SciPy and Lean 4 + mathlib4;
+- geometry/camera: Open3D and mature geometry libraries;
 - timeline/editing: OpenTimelineIO and PySceneDetect;
-- drawing/design: Krita, Inkscape/OpenToonz-class mature FOSS tools where applicable;
-- compositing/VFX/graphics: Academy Software Foundation ecosystem and other mature open production tools where applicable;
-- open study/reference sources: openly licensed production assets and learning material with license/provenance recorded.
+- drawing/design: Krita, Inkscape, OpenToonz-class mature FOSS tools where useful;
+- compositing/VFX/graphics: Academy Software Foundation ecosystem and mature open production tools;
+- study/reference sources: open/public-domain or otherwise legally usable material with provenance recorded.
 
-No tool is considered adopted merely because it is open source; each must pass a relevance, license, maturity, and physical-use gate.
+No tool is adopted merely because it is open source; relevance, license, maturity and physical-use gates still apply.
 
 ## Authority boundary
 
@@ -120,24 +130,25 @@ This law changes identity topology and curriculum only. It does not grant produc
 
 ## Durable integration
 
-- `AGENTS.md` carries the bootstrap version of the master-agent and learning-universe laws so every ZORR session restores them.
-- Issue #206 remains the working DUNCAN PRIME / Night School contract.
-- Permanent Archive V1 preserves OWNER directives and subsequent evidence.
-- Existing scheduled `Duncan Night School` executes the recurring learning cycle; no second scheduler is introduced.
+- `AGENTS.md` carries the bootstrap master-agent, anime-priority and reference-atlas laws.
+- Issue #206 is the working DUNCAN PRIME / Night School contract.
+- Permanent Archive V1 preserves OWNER directives and evidence.
+- Existing scheduled `Duncan Night School` executes the recurring cycle; no second scheduler is introduced.
 
 ## Acceptance
 
 PASS requires:
 
 1. docs-only PR from exact current main;
-2. `AGENTS.md` explicitly states DUNCAN PRIME is the single primordial/master identity root;
-3. SALVADOR is explicitly an internal facet of DUNCAN PRIME;
-4. Night School is explicitly DUNCAN PRIME learning;
+2. DUNCAN PRIME explicitly defined as the single primordial/master identity root;
+3. SALVADOR explicitly defined as an internal facet of DUNCAN PRIME;
+4. Night School explicitly trains DUNCAN PRIME;
 5. stylish anime mastery is the top learning objective;
-6. JoJo and Bleach are durable primary study anchors, with comparative references allowed for specific lessons;
-7. learning universe includes design/posters, drawing, effects, geometry, mathematics/science, cinematography, staging, editing, animation, engineering and sound, with an extensible relevance gate;
-8. no production/canon/QC/merge authority expansion;
-9. fresh PR diff/read-back confirms exact scope;
-10. Night School automation prompt is aligned with the master-agent, anime-priority and learning-universe laws;
-11. durable evidence is captured by Permanent Archive V1;
-12. current Constitution is re-read before terminal PASS.
+6. JoJo, Bleach, Dalí, Lynch, de Chirico, Ernst and Hokusai are durable reference-atlas anchors;
+7. learning universe covers art/design, drawing, effects, geometry, mathematics/science, cinematography, staging, editing, animation, engineering and sound;
+8. every promoted lesson uses the relevance/source/decomposition/exercise/check/transfer/archive gate;
+9. no production/canon/QC/merge authority expansion;
+10. existing Night School automation is aligned; no second scheduler;
+11. fresh PR scope/read-back passes;
+12. Permanent Archive V1 captures durable evidence;
+13. current Constitution is re-read before terminal PASS.

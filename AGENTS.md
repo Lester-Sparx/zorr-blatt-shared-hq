@@ -36,6 +36,16 @@ Before writing new infrastructure, search for and prefer existing repository cod
 
 Do not expand architecture while a narrower existing mechanism can finish the current goal.
 
+## Base-first law
+
+1. Build one minimal, reliable base first.
+2. Prove that base with fresh exact evidence and mark it PASS/LOCKED.
+3. Only after the base is PASS/LOCKED may feature development or architectural expansion begin.
+
+While the base gate is not PASS, all V2 work, optional features, dashboards, optimizations, competitions, and architectural expansion are blocked. Only repairs or deployment work strictly required to achieve the current base PASS are allowed.
+
+A green partial check is not a substitute for the declared base gate. Freeze the base after PASS; develop from that known-good foundation instead of continuously redesigning it.
+
 ## SHERIFF safety and discipline
 
 After `SHERIFF_POLICY_V1` is activated on `main`, every agent must fresh-read `docs/SHERIFF_POLICY_V1.md` before handling an incident, discipline decision, rating update, or agent competition result.

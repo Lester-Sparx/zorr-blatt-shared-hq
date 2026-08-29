@@ -68,6 +68,20 @@ class R03ProductionWorkflowTests(unittest.TestCase):
         self.assertIn("candidate_pr_number: ${{ needs.lester.outputs.created_pr_number }}", text)
         self.assertNotIn("uses: ./.github/workflows/zb-r03-lester-agent.md", text)
 
+    def test_duncan_is_metadata_then_exact_checkout_tests_then_fresh_record(self):
+        text = self.workflow()
+        duncan = text.split("\n  duncan_qc:\n", 1)[1].split("\n  finalize:\n", 1)[0]
+        self.assertIn("R03_QC_PHASE: metadata", duncan)
+        self.assertIn("id: metadata", duncan)
+        self.assertIn("ref: ${{ steps.metadata.outputs.candidate_head_sha }}", duncan)
+        self.assertIn("python3 scripts/hq_validate.py", duncan)
+        self.assertIn("python3 -m unittest discover -s tests -v", duncan)
+        self.assertIn("python3 -m compileall -q scripts tests", duncan)
+        self.assertIn("R03_QC_PHASE: record", duncan)
+        self.assertIn("R03_EXPECTED_CANDIDATE_HEAD: ${{ steps.metadata.outputs.candidate_head_sha }}", duncan)
+        self.assertIn("qc_pass: ${{ steps.record.outputs.qc_pass }}", duncan)
+        self.assertIn("candidate_head_sha: ${{ steps.record.outputs.candidate_head_sha }}", duncan)
+
     def test_duncan_and_finalize_are_downstream_same_execution_run(self):
         text = self.workflow()
         self.assertIn("duncan_qc:", text)

@@ -1,0 +1,90 @@
+name: sheriff-runtime-e2e
+
+on:
+  pull_request:
+    paths:
+      - "config/sheriff/**"
+      - "schemas/SHERIFF_AGENT_EVENT_V1.schema.json"
+      - "scripts/sheriff_*.py"
+      - "requirements-sheriff.txt"
+      - ".github/workflows/sheriff-runtime-e2e.yml"
+      - "tests/test_sheriff_runtime_e2e_contract.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse Compose
+        run: docker compose -f config/sheriff/docker-compose.yml config
+
+      - name: Start full SHERIFF stack
+        run: docker compose -f config/sheriff/docker-compose.yml up -d --build
+
+      - name: Verify all services are running
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f config/sheriff/docker-compose.yml ps
+          running="$(docker compose -f config/sheriff/docker-compose.yml ps --status running --services)"
+          for svc in forgejo nats opa postgres otel-collector prometheus loki grafana sheriff-worker; do
+            grep -qx "$svc" <<<"$running" || { echo "SERVICE_NOT_RUNNING=$svc"; exit 1; }
+          done
+
+      - name: Wait for real service health
+        run: >-
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps
+          -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro"
+          sheriff-worker python /tmp/sheriff_runtime_e2e.py health
+
+      - name: Honest FAIL produces zero discipline penalty
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py publish honest
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py assert honest
+
+      - name: Prove JetStream retains work while SHERIFF is down
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f config/sheriff/docker-compose.yml stop sheriff-worker
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py publish correctness
+          sleep 2
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py assert-absent correctness
+          docker compose -f config/sheriff/docker-compose.yml start sheriff-worker
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py assert correctness
+
+      - name: Restart and replay are idempotent
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f config/sheriff/docker-compose.yml restart sheriff-worker
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py health
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py publish correctness
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py assert replay
+
+      - name: FALSE PASS creates critical hold
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py publish falsepass
+          docker compose -f config/sheriff/docker-compose.yml run --rm --no-deps -v "$PWD/scripts/sheriff_runtime_e2e.py:/tmp/sheriff_runtime_e2e.py:ro" sheriff-worker python /tmp/sheriff_runtime_e2e.py assert falsepass
+
+      - name: Runtime E2E PASS marker
+        run: echo "SHERIFF_V1_RUNTIME_E2E = PASS"
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f config/sheriff/docker-compose.yml logs --no-color --tail=300
+
+      - name: Teardown
+        if: always()
+        run: docker compose -f config/sheriff/docker-compose.yml down -v --remove-orphans

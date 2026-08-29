@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   compile-gh-aw:
@@ -18,8 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: true
+          persist-credentials: false
       - name: Install exact gh-aw compiler
         shell: bash
         run: |
@@ -47,15 +46,6 @@ jobs:
           path: .github/workflows/zb-r03-lester-agent.lock.yml
           retention-days: 7
           if-no-files-found: error
-      - name: Seed generated lock Git object
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/workflows/zb-r03-lester-agent.lock.yml
-          git commit -m 'TEMP seed generated R03 lock object'
-          git push origin HEAD:${GITHUB_HEAD_REF}
       - name: Verify committed lock matches pinned recompilation
         shell: bash
         run: |

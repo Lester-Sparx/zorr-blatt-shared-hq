@@ -10,15 +10,21 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   compile-gh-aw:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.number == 136 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/r03-internal-dispatch-activation'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          persist-credentials: false
+          ref: fix/r03-internal-dispatch-activation
+          fetch-depth: 0
       - name: Install exact gh-aw compiler
         shell: bash
         run: |
@@ -38,17 +44,17 @@ jobs:
           set -euo pipefail
           "$RUNNER_TEMP/gh-aw" compile zb-r03-lester-agent --strict
           test -s .github/workflows/zb-r03-lester-agent.lock.yml
-      - name: Upload exact generated lock
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: zb-r03-gh-aw-lock-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .github/workflows/zb-r03-lester-agent.lock.yml
-          retention-days: 7
-          if-no-files-found: error
-      - name: Verify committed lock matches pinned recompilation
+      - name: Commit only exact generated lock to PR branch
         shell: bash
         run: |
           set -euo pipefail
-          git ls-files --error-unmatch .github/workflows/zb-r03-lester-agent.lock.yml
-          git diff --exit-code -- .github/workflows/zb-r03-lester-agent.lock.yml
+          git diff --exit-code -- . ':!.github/workflows/zb-r03-lester-agent.lock.yml' || { echo 'R03_SYNC_UNEXPECTED_DIFF' >&2; exit 1; }
+          if git diff --quiet -- .github/workflows/zb-r03-lester-agent.lock.yml; then
+            echo 'R03_SYNC_LOCK_ALREADY_EXACT'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- .github/workflows/zb-r03-lester-agent.lock.yml
+          git commit -m 'build(r03): regenerate trusted internal dispatch lock'
+          git push origin HEAD:fix/r03-internal-dispatch-activation

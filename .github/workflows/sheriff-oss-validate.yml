@@ -1,0 +1,42 @@
+name: sheriff-oss-validate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'config/sheriff/**'
+      - 'schemas/SHERIFF_AGENT_EVENT_V1.schema.json'
+      - 'scripts/sheriff_core.py'
+      - 'scripts/sheriff_worker.py'
+      - 'scripts/sheriff_validate.py'
+      - 'requirements-sheriff.txt'
+      - 'tests/test_sheriff_core.py'
+      - 'tests/test_sheriff_oss_control_plane.py'
+      - 'tests/test_sheriff_worker_contract.py'
+      - '.github/workflows/sheriff-oss-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate OSS manifest and topology
+        run: python3 scripts/sheriff_validate.py
+
+      - name: Run SHERIFF tests
+        run: python3 -m unittest tests.test_sheriff_core tests.test_sheriff_oss_control_plane tests.test_sheriff_worker_contract -v
+
+      - name: Compile Python glue
+        run: python3 -m py_compile scripts/sheriff_core.py scripts/sheriff_worker.py
+
+      - name: Parse Docker Compose
+        run: docker compose -f config/sheriff/docker-compose.yml config
+
+      - name: Run opa test
+        run: docker run --rm -v "$PWD/config/sheriff/opa:/policy:ro" openpolicyagent/opa:1.0.1-static test /policy

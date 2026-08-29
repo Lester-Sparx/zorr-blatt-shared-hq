@@ -73,10 +73,22 @@ class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
         self.assertIn('/r', self.bootstrap)
         self.assertIn('/t', self.bootstrap)
         self.assertIn('WSL_REBOOT_SCHEDULED = YES', self.bootstrap)
+        cleanup = re.search(
+            r'if \(\$Stage -eq "Resume"\) \{\s*Unregister-WslResume\s*\}',
+            self.bootstrap,
+        )
+        self.assertIsNotNone(cleanup, 'Resume task must remove itself before continuing')
+        ensure_call = self.bootstrap.find('    Ensure-WslReady', cleanup.end())
+        self.assertGreater(ensure_call, cleanup.end())
 
     def test_virtualization_is_checked_before_wsl2_machine_use(self):
         self.assertIn('VirtualizationFirmwareEnabled', self.bootstrap)
         self.assertIn('CPU_VIRTUALIZATION_DISABLED_IN_FIRMWARE', self.bootstrap)
+        ensure_body = self.bootstrap.find('function Ensure-WslReady')
+        firmware_call = self.bootstrap.find('    Assert-VirtualizationFirmware', ensure_body)
+        install = self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install')
+        self.assertGreater(firmware_call, ensure_body)
+        self.assertGreater(install, firmware_call)
 
     def test_github_cli_is_not_a_physical_runtime_gate(self):
         self.assertIn('function Patch-EvidenceTransport', self.bootstrap)

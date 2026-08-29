@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/schemas/SHERIFF_VERDICT_V1.schema.json",
+  "title": "ZORR BLATT SHERIFF Verdict V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "verdictId",
+    "agentId",
+    "logicalRole",
+    "taskRef",
+    "incidentClass",
+    "evidence",
+    "errorSignature",
+    "rootCause",
+    "selfCaught",
+    "repeatOf",
+    "decision",
+    "remediation",
+    "regressionTest",
+    "lessonRef",
+    "status",
+    "sheriffId",
+    "issuedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "SHERIFF_VERDICT_V1"
+    },
+    "verdictId": {
+      "type": "string",
+      "pattern": "^SV1-[A-Z0-9][A-Z0-9._-]{2,127}$"
+    },
+    "agentId": {
+      "type": "string",
+      "enum": ["LESTER", "DUNCAN", "DJANGO", "JINGO", "SHERIFF"]
+    },
+    "logicalRole": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "taskRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "incidentClass": {
+      "type": "string",
+      "enum": [
+        "I0_SELF_CAUGHT",
+        "I1_CORRECTNESS",
+        "I2_PROCESS",
+        "I3_CRITICAL_INTEGRITY",
+        "I4_SAFETY_SECURITY"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      }
+    },
+    "errorSignature": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "rootCause": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "selfCaught": {
+      "type": "boolean"
+    },
+    "repeatOf": {
+      "type": ["string", "null"],
+      "maxLength": 128
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disciplineDelta", "meritDelta", "executionGate", "ownerActionRequired", "reason"],
+      "properties": {
+        "disciplineDelta": {
+          "type": "integer",
+          "minimum": -40,
+          "maximum": 0
+        },
+        "meritDelta": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 25
+        },
+        "executionGate": {
+          "type": "string",
+          "enum": ["NONE", "HOLD", "HARD_HOLD"]
+        },
+        "ownerActionRequired": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    },
+    "remediation": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      }
+    },
+    "regressionTest": {
+      "type": ["string", "null"],
+      "maxLength": 1024
+    },
+    "lessonRef": {
+      "type": ["string", "null"],
+      "maxLength": 1024
+    },
+    "status": {
+      "type": "string",
+      "enum": ["OPEN", "REMEDIATED", "CLOSED"]
+    },
+    "sheriffId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

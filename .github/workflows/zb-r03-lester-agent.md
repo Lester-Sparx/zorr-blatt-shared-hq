@@ -36,7 +36,6 @@ on:
         type: string
 permissions:
   contents: read
-  copilot-requests: write
 engine: copilot
 model: auto
 strict: true

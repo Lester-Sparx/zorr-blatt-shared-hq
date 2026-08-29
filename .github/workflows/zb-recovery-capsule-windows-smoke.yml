@@ -1,0 +1,77 @@
+name: zb-recovery-capsule-windows-smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'recovery/**'
+      - '.github/workflows/zb-recovery-capsule-windows-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-clean-host:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Task runtime
+        shell: powershell
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'task_windows_amd64.zip'
+          $target = Join-Path $env:RUNNER_TEMP 'zb-task-bin'
+          Invoke-WebRequest -Uri 'https://github.com/go-task/task/releases/download/v3.53.1/task_windows_amd64.zip' -OutFile $archive
+          $actual = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLowerInvariant()
+          if ($actual -ne '27c0cd248c12cba03d8958d954a3df981c900be885ec9ce5f6a3cdc4e9a19316') { throw "TASK_SHA256_MISMATCH:$actual" }
+          Expand-Archive -Path $archive -DestinationPath $target -Force
+          Add-Content -Path $env:GITHUB_PATH -Value $target
+
+      - name: Verify reusable GitHub credential identity
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { throw 'RECOVERY_CREDENTIAL_UNAVAILABLE' }
+          gh auth status
+          $actor = (gh api user --jq '.login' | Out-String).Trim()
+          if ($actor -ne 'Lester-Sparx') { throw "RECOVERY_ACTOR_MISMATCH:$actor" }
+          Write-Host "RECOVERY_ACTOR = $actor"
+
+      - name: Run actual one-click recovery entrypoint
+        shell: cmd
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: recovery\START_RECOVERY.cmd
+
+      - name: Verify generated state against fresh live GitHub
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          $statePath = 'recovery/.runtime/RECOVERY_STATE.json'
+          $packetPath = 'recovery/.runtime/RESUME_PACKET.md'
+          if (-not (Test-Path -LiteralPath $statePath -PathType Leaf)) { throw 'RECOVERY_STATE_MISSING' }
+          if (-not (Test-Path -LiteralPath $packetPath -PathType Leaf)) { throw 'RESUME_PACKET_MISSING' }
+          $state = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json
+          if ($state.schema -ne 'ZB_RECOVERY_STATE_V1') { throw 'RECOVERY_SCHEMA_MISMATCH' }
+          if ($state.actor -ne 'Lester-Sparx') { throw 'RECOVERY_STATE_ACTOR_MISMATCH' }
+          if ($state.repository -ne 'Lester-Sparx/zorr-blatt-shared-hq') { throw 'RECOVERY_STATE_REPO_MISMATCH' }
+          if (-not $state.permissions.admin -or -not $state.permissions.push -or -not $state.permissions.pull) { throw 'RECOVERY_PERMISSION_MISMATCH' }
+          $main = (gh api repos/Lester-Sparx/zorr-blatt-shared-hq/branches/main --jq '.commit.sha' | Out-String).Trim()
+          $archive = (gh api repos/Lester-Sparx/zorr-blatt-shared-hq/branches/zb-archive-v1 --jq '.commit.sha' | Out-String).Trim()
+          $bus = (gh api repos/Lester-Sparx/zorr-blatt-shared-hq/pulls/111 --jq '.head.sha' | Out-String).Trim()
+          if ($state.main_sha -ne $main) { throw 'RECOVERY_MAIN_STALE' }
+          if ($state.archive_sha -ne $archive) { throw 'RECOVERY_ARCHIVE_STALE' }
+          if ($state.bus.head_sha -ne $bus) { throw 'RECOVERY_BUS_STALE' }
+          $combined = (Get-Content -LiteralPath $statePath -Raw) + "`n" + (Get-Content -LiteralPath $packetPath -Raw)
+          foreach ($marker in @('ghp_', 'github_pat_', '-----BEGIN PRIVATE KEY-----', '-----BEGIN RSA PRIVATE KEY-----', '-----BEGIN OPENSSH PRIVATE KEY-----')) {
+            if ($combined.Contains($marker)) { throw "RECOVERY_SECRET_LEAK:$marker" }
+          }
+          Write-Host "WINDOWS_CLEAN_HOST_RECOVERY_PASS = YES"
+          Write-Host "MAIN_SHA = $main"
+          Write-Host "ARCHIVE_SHA = $archive"
+          Write-Host "BUS_HEAD_SHA = $bus"

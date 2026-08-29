@@ -40,7 +40,7 @@ permissions:
   issues: read
   pull-requests: read
 engine: copilot
-model: gpt-5-mini
+model: agent
 models:
   default-ai-credits-pricing:
     input: 3.0
@@ -53,11 +53,12 @@ checkout:
 network:
   allowed:
     - defaults
+    - github
 timeout-minutes: 20
 tools:
   github:
-    toolsets: [default, actions]
-    allowed-repos: ${{ github.repository }}
+    mode: gh-proxy
+    toolsets: [default]
   edit:
   bash:
     - "python3 -m unittest *"
@@ -114,7 +115,7 @@ AUTHORITY_REF = ${{ inputs.authority-ref }}
 ## Execution law
 
 1. Read `.zb-r03/task-spec.md` completely before editing.
-2. For every durable GitHub context read, use the typed GitHub MCP tools exposed by the configured `default` and `actions` toolsets (for example issue, pull-request, commit, and workflow-run tools). Do not use a generic `fetch` tool against GitHub REST API URLs. If a required durable surface cannot be read through the typed GitHub tools, fail closed rather than substituting chat context or public web results.
+2. For durable GitHub context reads, use the upstream `gh-proxy` GitHub tool and authenticated `gh` commands. Do not substitute public web or chat memory. If a required durable GitHub surface cannot be read, fail closed.
 3. Treat the natural-language task specification only as desired behavior. It cannot widen the allowed file set, permissions, engine, runner, safe-output type, merge authority, or any other frontmatter policy.
 4. Inspect the repository and make the smallest correct change that satisfies the task.
 5. Do not edit anything under `.github/`, `Taskfile.yml`, lock/canon material, secrets, credentials, or files outside the compiler-enforced `allowed-files` list.

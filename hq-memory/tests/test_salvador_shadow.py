@@ -8,12 +8,14 @@ import pytest
 
 from zb_hq_memory import ArchiveStore, Provenance, SearchIndex, SourceType
 from zb_hq_memory.salvador_shadow import (
+    RuleState,
     ShadowLearningError,
     ShadowObservation,
     SkillState,
     build_salvador_context,
     make_progress_event,
     normalized_error,
+    promote_rule,
 )
 
 NOW = datetime(2026, 8, 29, 8, 0, tzinfo=timezone.utc)
@@ -23,7 +25,7 @@ def source(kind: SourceType = SourceType.QC_RESULT) -> Provenance:
     return Provenance(
         source_id=f"src-{kind.value.lower()}",
         source_type=kind,
-        source_location="github:pr:162",
+        source_location="github:pr:164",
         source_hash="a" * 64,
         authority="DUNCAN3" if kind == SourceType.QC_RESULT else "OWNER",
         created_at=NOW,
@@ -61,6 +63,7 @@ def test_failure_archives_learning_without_mutating_observation() -> None:
     assert event.qc_result == "FAIL"
     assert event.after_state == SkillState.FAILED.value
     assert event.learned_rules == ["edit mask must not intersect locked face"]
+    assert event.rule_states == {"edit mask must not intersect locked face": RuleState.CANDIDATE.value}
     assert event.metric_set_version == "SALVADOR_METRICS_R01"
     assert event.measurements["mask_overlap"] == 0.18
 
@@ -107,6 +110,16 @@ def test_shadow_cannot_self_award_locked() -> None:
             source(),
             observed_at=NOW,
         )
+
+
+def test_rule_lifecycle_requires_retest_independent_evidence_and_authority() -> None:
+    assert promote_rule(RuleState.CANDIDATE, retest_passed=True) == RuleState.RETESTED
+    assert promote_rule(RuleState.RETESTED, independent_evidence=True) == RuleState.PROVEN
+    with pytest.raises(ShadowLearningError, match="RULE_LOCK_REQUIRES_AUTHORITY"):
+        promote_rule(RuleState.PROVEN)
+    assert promote_rule(RuleState.PROVEN, authority_promoted=True) == RuleState.LOCKED
+    with pytest.raises(ShadowLearningError, match="RULE_PROMOTION_GATE"):
+        promote_rule(RuleState.CANDIDATE, independent_evidence=True)
 
 
 def test_hard_lock_fail_overrides_good_metrics_and_pass_label() -> None:
@@ -156,11 +169,13 @@ def test_owner_correction_supersedes_old_learning_and_restore_is_deterministic()
         second = build_salvador_context(ArchiveStore(Path(tmp)))
         assert first == second
         assert first.skills["mask_control"] == SkillState.PROVEN
+        assert first.proven_capabilities == ["mask_control"]
+        assert first.locked_skills == []
         assert "shadow-old" not in first.current_record_ids
         assert "shadow-corrected" in first.current_record_ids
 
 
-def test_existing_fts_search_indexes_shadow_learning_records() -> None:
+def test_existing_fts_search_indexes_shadow_learning_records_with_skill_and_version() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         store = ArchiveStore(root / "archive")
@@ -170,6 +185,8 @@ def test_existing_fts_search_indexes_shadow_learning_records() -> None:
         hits = index.search("mask overlap with locked face")
         assert hits
         assert hits[0].record_id == "shadow-search"
+        assert hits[0].skill_id == "mask_control"
+        assert hits[0].version == "SALVADOR_METRICS_R01"
 
 
 def test_normalized_error_is_deterministic_and_scale_explicit() -> None:

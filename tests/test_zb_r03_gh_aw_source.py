@@ -126,8 +126,8 @@ class R03GhAwSourceTests(unittest.TestCase):
         if not COMPILE_WORKFLOW.is_file():
             self.skipTest("compile workflow is added after source GREEN")
         text = COMPILE_WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("v0.86.2/linux-amd64", text)
-        self.assertIn("b8fd100d1d56a77b842ad28375ff361215a5aa1277db6b9a05d70054cde7260e", text)
+        self.assertIn("v0.87.2/linux-amd64", text)
+        self.assertIn("97c1a5e2246fb580381679d23eb687663fcffc43cfc59be1ad797785f3e4be68", text)
         self.assertIn("compile zb-r03-lester-agent --strict", text)
         self.assertIn("contents: read", text)
         self.assertNotIn("contents: write", text)
@@ -144,7 +144,7 @@ class R03GhAwSourceTests(unittest.TestCase):
             self.fail("R03_GH_AW_LOCK_MISSING")
         lock = LOCK.read_text(encoding="utf-8")
         first = lock.splitlines()[0]
-        self.assertIn('"compiler_version":"v0.86.2"', first)
+        self.assertIn('"compiler_version":"v0.87.2"', first)
         self.assertIn('"strict":true', first)
         self.assertIn('"agent_id":"copilot"', first)
         self.assertIn('"agent_model":"gpt-5-mini"', first)
@@ -152,6 +152,18 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertNotIn("COPILOT_MODEL: copilot/auto", lock)
         self.assertIn("defaultAiCreditsPricing", lock)
         self.assertIn('defaultAiCreditsPricing\\\":{\\\"input\\\":3,\\\"output\\\":15}', lock)
+
+    def test_compiled_copilot_contract_has_no_system_ripgrep_bootstrap(self):
+        if not LOCK.is_file():
+            self.fail("R03_GH_AW_LOCK_MISSING")
+        lock = LOCK.read_text(encoding="utf-8")
+        for forbidden in (
+            "Install ripgrep",
+            "install_ripgrep.sh",
+            "apt-get install -y ripgrep",
+            "ripgrep not found; installing with apt-get",
+        ):
+            self.assertNotIn(forbidden, lock)
 
 
 if __name__ == "__main__":

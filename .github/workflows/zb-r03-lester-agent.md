@@ -73,6 +73,7 @@ safe-outputs:
     auto-close-issue: false
     base-branch: main
     title-prefix: "[ZB R03] "
+    protected-files: blocked
     allowed-files:
       - scripts/**
       - tests/**

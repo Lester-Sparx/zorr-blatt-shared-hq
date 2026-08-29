@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -23,13 +24,25 @@ class UnifiedArchiveSelfHealTests(unittest.TestCase):
         body: str,
         comment_id: int,
     ) -> dict[str, object]:
-        raw = (
-            '{"action":"created","issue":{"number":111,"title":"ZB bus","pull_request":{},'
-            '"html_url":"https://github.com/Lester-Sparx/zorr-blatt-shared-hq/pull/111"},'
-            f'"comment":{{"id":{comment_id},"created_at":"{created_at}",'
-            '"html_url":"https://github.com/Lester-Sparx/zorr-blatt-shared-hq/pull/111#issuecomment-'
-            f'{comment_id}","body":{body!r}}}}}'
-        ).replace("'", '"').encode("utf-8")
+        payload = {
+            "action": "created",
+            "issue": {
+                "number": 111,
+                "title": "ZB bus",
+                "pull_request": {},
+                "html_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/pull/111",
+            },
+            "comment": {
+                "id": comment_id,
+                "created_at": created_at,
+                "html_url": (
+                    "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/pull/111#issuecomment-"
+                    f"{comment_id}"
+                ),
+                "body": body,
+            },
+        }
+        raw = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         digest = hashlib.sha256(raw).hexdigest()
         record = derive_record(
             raw,
@@ -47,13 +60,13 @@ class UnifiedArchiveSelfHealTests(unittest.TestCase):
             old = self._write_event(
                 root,
                 created_at="2026-08-29T10:00:00Z",
-                body="VISUAL_REFERENCE = OLD_REF\\nSTATE = ACTIVE",
+                body="VISUAL_REFERENCE = OLD_REF\nSTATE = ACTIVE",
                 comment_id=1,
             )
             new = self._write_event(
                 root,
                 created_at="2026-08-29T11:00:00Z",
-                body="VISUAL_REFERENCE = NEW_REF\\nSTATE = ACTIVE",
+                body="VISUAL_REFERENCE = NEW_REF\nSTATE = ACTIVE",
                 comment_id=2,
             )
 

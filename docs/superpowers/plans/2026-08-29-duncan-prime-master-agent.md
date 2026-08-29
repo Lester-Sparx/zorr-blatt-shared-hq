@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make DUNCAN PRIME the durable primordial/master identity root and define SALVADOR as an internal specialist facet.
+**Goal:** Make DUNCAN PRIME the durable primordial/master identity root, define SALVADOR as an internal specialist facet, and bind Night School to a broad ZORR-relevant learning universe.
 
-**Architecture:** Keep the change documentation-only and reuse existing ZORR bootstrap/Archive mechanisms. Put the durable bootstrap law in `AGENTS.md`, keep the detailed design in a dedicated spec, mirror the working contract in issue #206, and let Permanent Archive V1 capture the resulting GitHub evidence.
+**Architecture:** Keep the change documentation/contract-only and reuse existing ZORR bootstrap, GitHub, Permanent Archive V1, PR #111, and the existing scheduled `Duncan Night School`. Put the durable bootstrap law in `AGENTS.md`, detailed design in the spec, working contract in issue #206, and update the existing Night School prompt rather than introducing new infrastructure.
 
-**Tech Stack:** Markdown, GitHub PR workflow, existing Permanent Archive V1.
+**Tech Stack:** Markdown, GitHub PR workflow, Permanent Archive V1, existing ChatGPT scheduled task.
 
 **Spec:** `docs/superpowers/specs/2026-08-29-duncan-prime-master-agent-design.md`
 
@@ -17,24 +17,28 @@
 - No merge/QC authority expansion from the identity law itself.
 - SALVADOR is an internal DUNCAN PRIME facet, not an independent personality root.
 - Night School trains DUNCAN PRIME.
-- Reuse existing GitHub/Archive infrastructure; no new service, database, bus, or scheduler.
+- Learning is broad but relevance-gated: random accumulation is forbidden.
+- Every promoted lesson requires source + exercise + objective check + changed/unseen transfer + durable record.
+- Reuse existing GitHub/Archive/scheduler infrastructure; no new service, database, bus, or scheduler.
 
 ---
 
-### Task 1: Bootstrap identity law
+### Task 1: Bootstrap identity + learning law
 
 **Files:**
 - Modify: `AGENTS.md`
 
 **Interfaces:**
 - Consumes: current ZORR bootstrap law and issue #206 working contract.
-- Produces: durable identity topology restored by every ZORR session.
+- Produces: durable identity topology and learning-universe law restored by every ZORR session.
 
-- [ ] **Step 1:** Add a `DUNCAN PRIME — primordial master-agent identity law` section to `AGENTS.md`.
+- [ ] **Step 1:** Add a `DUNCAN PRIME — primordial master-agent identity law` section.
 - [ ] **Step 2:** State explicitly that SALVADOR is an internal specialist facet/mode of DUNCAN PRIME.
 - [ ] **Step 3:** State that verified specialist experience may return to DUNCAN PRIME only with provenance/verification.
-- [ ] **Step 4:** Preserve existing role authority boundaries.
-- [ ] **Step 5:** Fetch `AGENTS.md` from the candidate branch and verify exact wording.
+- [ ] **Step 4:** Add the learning universe: mathematics, cinematography/directing, anime/graphic design/posters, drawing, VFX/effects, geometry/3D, animation/motion, editing, physics/science, engineering/computation, sound and mature OSS/tool knowledge.
+- [ ] **Step 5:** Add the required learning gate `ZORR_RELEVANCE -> OPEN/PRIMARY SOURCE -> EXERCISE -> OBJECTIVE CHECK -> CHANGED/UNSEEN TRANSFER -> DURABLE RECORD`.
+- [ ] **Step 6:** Preserve existing role authority boundaries.
+- [ ] **Step 7:** Fetch `AGENTS.md` from the candidate branch and verify exact wording.
 
 ### Task 2: Durable working contract
 
@@ -42,15 +46,32 @@
 - GitHub issue #206 body.
 
 **Interfaces:**
-- Consumes: OWNER directive in the current conversation.
-- Produces: working Night School contract aligned with the master-agent law.
+- Consumes: OWNER directives in the current conversation.
+- Produces: working Night School contract aligned with the master-agent and learning-universe laws.
 
-- [ ] **Step 1:** Replace the weak `may inherit` wording with explicit internal-facet topology.
+- [ ] **Step 1:** Replace weak `may inherit` wording with explicit internal-facet topology.
 - [ ] **Step 2:** Record `DUNCAN PRIME -> specialist facet -> verified experience -> DUNCAN PRIME` return flow.
 - [ ] **Step 3:** Record that Night School trains DUNCAN PRIME, not an independent SALVADOR root.
-- [ ] **Step 4:** Fresh-read issue #206 and require exact match.
+- [ ] **Step 4:** Expand Night School domains to include design/posters, drawing, effects, geometry and production-relevant sciences.
+- [ ] **Step 5:** Preserve read/learn/transfer evidence gates and authority limits.
+- [ ] **Step 6:** Fresh-read issue #206 and require exact match.
 
-### Task 3: PR verification and archive evidence
+### Task 3: Align existing Night School automation
+
+**Files:**
+- Existing scheduled task `Duncan Night School` only.
+
+**Interfaces:**
+- Consumes: issue #206 and DUNCAN PRIME learning universe.
+- Produces: recurring execution aligned with the durable contract.
+
+- [ ] **Step 1:** Update the existing task prompt; do not create a second scheduler.
+- [ ] **Step 2:** Require DUNCAN PRIME restore before every learning cycle.
+- [ ] **Step 3:** Include all declared learning domains and relevance gate.
+- [ ] **Step 4:** Require sourced OSS-first study, exercises, verification, regression, transfer, archive and morning report.
+- [ ] **Step 5:** Preserve `PRIME_CORE_CHANGED=NO`, no production mutation and no self-awarded LOCKED/QC.
+
+### Task 4: PR verification and archive evidence
 
 **Files:**
 - Candidate PR only; no production code.
@@ -60,8 +81,8 @@
 - Produces: reviewable docs-only diff and durable archive evidence.
 
 - [ ] **Step 1:** Open a PR against `main` from `duncan-prime-master-law-r01`.
-- [ ] **Step 2:** Fetch changed filenames and diff; require docs-only scope.
-- [ ] **Step 3:** Require no changes to production code, workflows, canon, or runtime.
-- [ ] **Step 4:** Persist a `DUNCAN_PRIME_MASTER_LAW_R01` evidence comment to PR #111 or the candidate PR.
+- [ ] **Step 2:** Fetch changed filenames and diff; require only `AGENTS.md` + design/spec/plan docs.
+- [ ] **Step 3:** Require no changes to production code, workflows, canon, runtime or model weights.
+- [ ] **Step 4:** Persist a `DUNCAN_PRIME_MASTER_LAW_R01` evidence comment.
 - [ ] **Step 5:** Verify Permanent Archive V1 captured the evidence event.
 - [ ] **Step 6:** Re-read current Constitution before any terminal PASS claim.

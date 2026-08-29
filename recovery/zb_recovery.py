@@ -189,3 +189,132 @@ def collect_recovery_state(
         "bus_comments": comments,
         "open_prs": open_prs,
     }
+
+
+_STATE_KEYS = (
+    "schema",
+    "actor",
+    "repository",
+    "permissions",
+    "main_sha",
+    "archive_sha",
+    "checkpoint_blob_sha",
+    "checkpoint",
+    "bus",
+    "bus_comments",
+    "open_prs",
+)
+_SENSITIVE_KEY_PARTS = ("token", "secret", "private_key", "authorization", "password")
+_SENSITIVE_VALUE_MARKERS = (
+    "ghp_",
+    "github_pat_",
+    "-----BEGIN PRIVATE KEY-----",
+    "-----BEGIN RSA PRIVATE KEY-----",
+    "-----BEGIN OPENSSH PRIVATE KEY-----",
+)
+
+
+def _safe_value(value: object) -> object:
+    if isinstance(value, dict):
+        clean: dict[str, object] = {}
+        for key, item in value.items():
+            if not isinstance(key, str):
+                continue
+            lowered = key.lower()
+            if any(part in lowered for part in _SENSITIVE_KEY_PARTS):
+                continue
+            clean[key] = _safe_value(item)
+        return clean
+    if isinstance(value, list):
+        return [_safe_value(item) for item in value]
+    if isinstance(value, str):
+        if any(marker in value for marker in _SENSITIVE_VALUE_MARKERS):
+            return "[REDACTED_SECRET_MATERIAL]"
+        return value
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return str(value)
+
+
+def _safe_state(state: Mapping[str, object]) -> dict[str, object]:
+    return {
+        key: _safe_value(state[key])
+        for key in _STATE_KEYS
+        if key in state
+    }
+
+
+def render_recovery_state_json(state: Mapping[str, object]) -> str:
+    return json.dumps(_safe_state(state), ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+
+
+def render_resume_packet(
+    manifest: Mapping[str, object],
+    state: Mapping[str, object],
+) -> str:
+    safe = _safe_state(state)
+    actor = _string(safe.get("actor"), "RECOVERY_STATE_INVALID")
+    repository = _string(safe.get("repository"), "RECOVERY_STATE_INVALID")
+    main_sha = _require_sha(safe.get("main_sha"), "RECOVERY_STATE_INVALID")
+    archive_sha = _require_sha(safe.get("archive_sha"), "RECOVERY_STATE_INVALID")
+    checkpoint_blob_sha = _require_sha(
+        safe.get("checkpoint_blob_sha"), "RECOVERY_STATE_INVALID"
+    )
+    checkpoint = _dict(safe.get("checkpoint"), "RECOVERY_STATE_INVALID")
+    checkpoint_id = _string(checkpoint.get("checkpointId"), "RECOVERY_STATE_INVALID")
+    bus = _dict(safe.get("bus"), "RECOVERY_STATE_INVALID")
+    bus_number = bus.get("number")
+    if not isinstance(bus_number, int):
+        raise RecoveryError("RECOVERY_STATE_INVALID")
+    bus_head_sha = _require_sha(bus.get("head_sha"), "RECOVERY_STATE_INVALID")
+    comments = _list(safe.get("bus_comments"), "RECOVERY_STATE_INVALID")
+    open_prs = _list(safe.get("open_prs"), "RECOVERY_STATE_INVALID")
+
+    lines = [
+        "# ZORR BLATT — EMERGENCY RECOVERY RESUME PACKET",
+        "",
+        "NO CHAT IS PROJECT MEMORY. GITHUB DURABLE EVIDENCE IS PROJECT MEMORY.",
+        "",
+        f"GITHUB_ACTOR = {actor}",
+        f"REPOSITORY = {repository}",
+        f"MAIN_SHA = {main_sha}",
+        f"ARCHIVE_SHA = {archive_sha}",
+        f"CHECKPOINT_ID = {checkpoint_id}",
+        f"CHECKPOINT_BLOB_SHA = {checkpoint_blob_sha}",
+        f"COMMUNICATION_BUS_PR = {bus_number}",
+        f"COMMUNICATION_BUS_HEAD = {bus_head_sha}",
+        "",
+        "## Active pull requests",
+    ]
+    for item in open_prs:
+        pr = _dict(item, "RECOVERY_STATE_INVALID")
+        number = pr.get("number")
+        if not isinstance(number, int):
+            raise RecoveryError("RECOVERY_STATE_INVALID")
+        head_sha = _require_sha(pr.get("head_sha"), "RECOVERY_STATE_INVALID")
+        lines.append(f"ACTIVE_PR_{number}_HEAD = {head_sha}")
+        lines.append(f"ACTIVE_PR_{number}_TITLE = {_string(pr.get('title'), 'RECOVERY_STATE_INVALID')}")
+
+    lines.extend(["", "## Latest permanent-bus evidence"])
+    for item in comments:
+        comment = _dict(item, "RECOVERY_STATE_INVALID")
+        comment_id = comment.get("id")
+        if not isinstance(comment_id, int):
+            raise RecoveryError("RECOVERY_STATE_INVALID")
+        body = _string(comment.get("body"), "RECOVERY_STATE_INVALID")
+        lines.append(f"BUS_COMMENT_{comment_id} = {body}")
+
+    lines.extend(
+        [
+            "",
+            "## Mandatory continuation law",
+            "1. Verify authenticated actor before any mutation.",
+            "2. Fresh-read repository, main, zb-archive-v1, checkpoint, PR #111, and active PR heads before any mutation.",
+            "3. Treat this packet as a bootstrap index, not authority over newer GitHub evidence.",
+            "4. Never infer missing privileges; fail closed.",
+            "5. Continue from the newest mutually consistent immutable GitHub evidence.",
+            "",
+            "This packet cannot grant privileges. The receiving client must already have an authorized GitHub connector or MCP connection.",
+        ]
+    )
+    return "\n".join(lines) + "\n"

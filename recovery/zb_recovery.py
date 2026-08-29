@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+from pathlib import Path
 from typing import Callable, Mapping
 
 
@@ -318,3 +319,23 @@ def render_resume_packet(
         ]
     )
     return "\n".join(lines) + "\n"
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
+
+
+def write_outputs(
+    manifest: Mapping[str, object],
+    state: Mapping[str, object],
+    output_dir: Path,
+) -> tuple[Path, Path]:
+    output_dir = Path(output_dir)
+    state_path = output_dir / "RECOVERY_STATE.json"
+    packet_path = output_dir / "RESUME_PACKET.md"
+    _atomic_write(state_path, render_recovery_state_json(state))
+    _atomic_write(packet_path, render_resume_packet(manifest, state))
+    return state_path, packet_path

@@ -1,0 +1,414 @@
+{
+  "after": "d805242a8ba6e2b169c1216acd3df86b8f9ddd84",
+  "base_ref": null,
+  "before": "3091648c3cb5ee729793db8648435cfeab206cbf",
+  "commits": [
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "7607a56afab3195f4159449e2564d4bcb9e3091f",
+      "message": "test: define SALVADOR permanent-archive shadow contract",
+      "timestamp": "2026-08-29T11:29:31+03:00",
+      "tree_id": "3a13a9a2f67b5db012c445c9694d50119794b250",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/7607a56afab3195f4159449e2564d4bcb9e3091f"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "2af7943b97a2e9907f12af73fdf9863ed6765abf",
+      "message": "feat: archive SALVADOR runtime as non-promoting shadow observation",
+      "timestamp": "2026-08-29T11:30:17+03:00",
+      "tree_id": "116bb76bc489fbde98e5b4ca70f6ff2101c1e008",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/2af7943b97a2e9907f12af73fdf9863ed6765abf"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "28d361bb569018cb306337d6c383e228f879c4b8",
+      "message": "test: same-runtime evaluator evidence cannot self-promote",
+      "timestamp": "2026-08-29T11:30:55+03:00",
+      "tree_id": "e811c30268e1e857935a3f48cda484e3b845f5ff",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/28d361bb569018cb306337d6c383e228f879c4b8"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "eaaf1fdda5fd89a29ae23afc0d6b4e843d672ca6",
+      "message": "feat: reduce same-runtime JINGO evidence to PARTIAL only",
+      "timestamp": "2026-08-29T11:32:45+03:00",
+      "tree_id": "35a67263ae0db8ab806fc3815c851e7a97a65b47",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/eaaf1fdda5fd89a29ae23afc0d6b4e843d672ca6"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "ec59a64845467d3fb1a35f966397696420d66876",
+      "message": "test: critical SALVADOR failure overrides aggregate pass count",
+      "timestamp": "2026-08-29T11:33:33+03:00",
+      "tree_id": "54ee2e06c079e91a97a691189711c2e568ec0f27",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/ec59a64845467d3fb1a35f966397696420d66876"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "2907ac7579c3dcbe2b1474ff18f0cf9c32c15031",
+      "message": "fix: critical shadow evidence overrides aggregate score",
+      "timestamp": "2026-08-29T11:34:09+03:00",
+      "tree_id": "e5db58d0d145cf007d059d5f6ed12169a0c8bf26",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/2907ac7579c3dcbe2b1474ff18f0cf9c32c15031"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "da0da91a4cd0705c4d495705dfe6e4a263d529d8",
+      "message": "test: reconstruct SALVADOR state from append-only shadow history",
+      "timestamp": "2026-08-29T11:34:59+03:00",
+      "tree_id": "82942a89a40bceacd19d047957da60e8a4426cfa",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/da0da91a4cd0705c4d495705dfe6e4a263d529d8"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "2156ac87c1f904f10d92f252c7f97c0f159dd0cc",
+      "message": "feat: rebuild SALVADOR state from append-only derived history",
+      "timestamp": "2026-08-29T11:35:47+03:00",
+      "tree_id": "eb55edb2dc01861c2a7adb73f060068c088fbae4",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/2156ac87c1f904f10d92f252c7f97c0f159dd0cc"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "d5aec33c7798478905c489cb16ccb5b9d52783ef",
+      "message": "test: activate shadow reducer through existing Permanent Archive workflow",
+      "timestamp": "2026-08-29T11:36:42+03:00",
+      "tree_id": "24db5169bf0a00c5484d148f299fb372ce9e729a",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/d5aec33c7798478905c489cb16ccb5b9d52783ef"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "a4840f335876e703f533df2d751811c2d9a5d554",
+      "message": "feat: expose shadow reducer as stdlib archive CLI",
+      "timestamp": "2026-08-29T11:37:42+03:00",
+      "tree_id": "db3f6ec2f499e0f8eb5e763b0826f792029e5a4f",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/a4840f335876e703f533df2d751811c2d9a5d554"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "4e7e5c4573363784a77b3358767d3ab55d6d8d51",
+      "message": "feat: derive SALVADOR shadow state in Permanent Archive V1",
+      "timestamp": "2026-08-29T11:37:56+03:00",
+      "tree_id": "6602d0982121b9ae69eaf126b356864271c7df05",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/4e7e5c4573363784a77b3358767d3ab55d6d8d51"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "02b667a230aea2f6a3bec8357e240c9a9654d848",
+      "message": "test: replay old shadow event remains idempotent after newer state",
+      "timestamp": "2026-08-29T11:38:56+03:00",
+      "tree_id": "ec422d47c567c9c4ff5e25c2b1605aaea6f7ac3e",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/02b667a230aea2f6a3bec8357e240c9a9654d848"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "75760f616130fab9f16193de3666e0a5982d57fa",
+      "message": "fix: make shadow replay deterministic by event sequence",
+      "timestamp": "2026-08-29T11:39:46+03:00",
+      "tree_id": "fea3649b1d2a6c1b63bdcd152f7224327406b4f4",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/75760f616130fab9f16193de3666e0a5982d57fa"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "noreply@github.com",
+        "name": "GitHub",
+        "username": "web-flow"
+      },
+      "distinct": true,
+      "id": "d805242a8ba6e2b169c1216acd3df86b8f9ddd84",
+      "message": "Merge SALVADOR shadow archive activation\n\nExact DUNCAN3-passed SALVADOR shadow archive candidate, freshly integrated against current main.",
+      "timestamp": "2026-08-29T14:56:51+03:00",
+      "tree_id": "0d38c1e0097012ec4c404cac92ed7a83de2d0278",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/d805242a8ba6e2b169c1216acd3df86b8f9ddd84"
+    }
+  ],
+  "compare": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/compare/3091648c3cb5...d805242a8ba6",
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "head_commit": {
+    "author": {
+      "email": "sparxphenomena@gmail.com",
+      "name": "Lester-Sparx",
+      "username": "Lester-Sparx"
+    },
+    "committer": {
+      "email": "noreply@github.com",
+      "name": "GitHub",
+      "username": "web-flow"
+    },
+    "distinct": true,
+    "id": "d805242a8ba6e2b169c1216acd3df86b8f9ddd84",
+    "message": "Merge SALVADOR shadow archive activation\n\nExact DUNCAN3-passed SALVADOR shadow archive candidate, freshly integrated against current main.",
+    "timestamp": "2026-08-29T14:56:51+03:00",
+    "tree_id": "0d38c1e0097012ec4c404cac92ed7a83de2d0278",
+    "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/d805242a8ba6e2b169c1216acd3df86b8f9ddd84"
+  },
+  "pusher": {
+    "email": "sparxphenomena@gmail.com",
+    "name": "Lester-Sparx"
+  },
+  "ref": "refs/heads/main",
+  "repository": {
+    "allow_forking": true,
+    "archive_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/{archive_format}{/ref}",
+    "archived": false,
+    "assignees_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/assignees{/user}",
+    "blobs_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/blobs{/sha}",
+    "branches_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/branches{/branch}",
+    "clone_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq.git",
+    "collaborators_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/collaborators{/collaborator}",
+    "comments_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/comments{/number}",
+    "commits_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/commits{/sha}",
+    "compare_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/compare/{base}...{head}",
+    "contents_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/contents/{+path}",
+    "contributors_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/contributors",
+    "created_at": 1787656939,
+    "default_branch": "main",
+    "deployments_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/deployments",
+    "description": null,
+    "disabled": false,
+    "downloads_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/downloads",
+    "events_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/events",
+    "fork": false,
+    "forks": 0,
+    "forks_count": 0,
+    "forks_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/forks",
+    "full_name": "Lester-Sparx/zorr-blatt-shared-hq",
+    "git_commits_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/commits{/sha}",
+    "git_refs_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/refs{/sha}",
+    "git_tags_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/tags{/sha}",
+    "git_url": "git://github.com/Lester-Sparx/zorr-blatt-shared-hq.git",
+    "has_discussions": false,
+    "has_downloads": true,
+    "has_issues": true,
+    "has_pages": true,
+    "has_projects": true,
+    "has_pull_requests": true,
+    "has_wiki": false,
+    "homepage": null,
+    "hooks_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/hooks",
+    "html_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq",
+    "id": 1346039873,
+    "is_template": false,
+    "issue_comment_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/comments{/number}",
+    "issue_events_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/events{/number}",
+    "issues_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues{/number}",
+    "keys_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/keys{/key_id}",
+    "labels_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/labels{/name}",
+    "language": "Python",
+    "languages_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/languages",
+    "license": null,
+    "master_branch": "main",
+    "merges_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/merges",
+    "milestones_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/milestones{/number}",
+    "mirror_url": null,
+    "name": "zorr-blatt-shared-hq",
+    "node_id": "R_kgDOUDrwQQ",
+    "notifications_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/notifications{?since,all,participating}",
+    "open_issues": 85,
+    "open_issues_count": 85,
+    "owner": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/320954677?v=4",
+      "email": "sparxphenomena@gmail.com",
+      "events_url": "https://api.github.com/users/Lester-Sparx/events{/privacy}",
+      "followers_url": "https://api.github.com/users/Lester-Sparx/followers",
+      "following_url": "https://api.github.com/users/Lester-Sparx/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Lester-Sparx/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/Lester-Sparx",
+      "id": 320954677,
+      "login": "Lester-Sparx",
+      "name": "Lester-Sparx",
+      "node_id": "U_kgDOEyFhNQ",
+      "organizations_url": "https://api.github.com/users/Lester-Sparx/orgs",
+      "received_events_url": "https://api.github.com/users/Lester-Sparx/received_events",
+      "repos_url": "https://api.github.com/users/Lester-Sparx/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/Lester-Sparx/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Lester-Sparx/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/Lester-Sparx",
+      "user_view_type": "public"
+    },
+    "private": false,
+    "pull_request_creation_policy": "all",
+    "pulls_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/pulls{/number}",
+    "pushed_at": 1788004611,
+    "releases_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/releases{/id}",
+    "size": 1922,
+    "ssh_url": "git@github.com:Lester-Sparx/zorr-blatt-shared-hq.git",
+    "stargazers": 0,
+    "stargazers_count": 0,
+    "stargazers_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/stargazers",
+    "statuses_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/statuses/{sha}",
+    "subscribers_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/subscribers",
+    "subscription_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/subscription",
+    "svn_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq",
+    "tags_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/tags",
+    "teams_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/teams",
+    "topics": [],
+    "trees_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/trees{/sha}",
+    "updated_at": "2026-08-29T11:36:36Z",
+    "url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq",
+    "visibility": "public",
+    "watchers": 0,
+    "watchers_count": 0,
+    "web_commit_signoff_required": false
+  },
+  "sender": {
+    "avatar_url": "https://avatars.githubusercontent.com/u/320954677?v=4",
+    "events_url": "https://api.github.com/users/Lester-Sparx/events{/privacy}",
+    "followers_url": "https://api.github.com/users/Lester-Sparx/followers",
+    "following_url": "https://api.github.com/users/Lester-Sparx/following{/other_user}",
+    "gists_url": "https://api.github.com/users/Lester-Sparx/gists{/gist_id}",
+    "gravatar_id": "",
+    "html_url": "https://github.com/Lester-Sparx",
+    "id": 320954677,
+    "login": "Lester-Sparx",
+    "node_id": "U_kgDOEyFhNQ",
+    "organizations_url": "https://api.github.com/users/Lester-Sparx/orgs",
+    "received_events_url": "https://api.github.com/users/Lester-Sparx/received_events",
+    "repos_url": "https://api.github.com/users/Lester-Sparx/repos",
+    "site_admin": false,
+    "starred_url": "https://api.github.com/users/Lester-Sparx/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/Lester-Sparx/subscriptions",
+    "type": "User",
+    "url": "https://api.github.com/users/Lester-Sparx",
+    "user_view_type": "public"
+  }
+}

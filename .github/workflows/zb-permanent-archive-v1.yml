@@ -62,6 +62,19 @@ jobs:
               --actor "$GITHUB_ACTOR"
           fi
 
+      - name: Rebuild verified agent learning state
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+            python3 source/scripts/hq_unified_archive.py sync-lessons \
+              --verdict-root "$GITHUB_WORKSPACE/source/hq/sheriff/verdicts" \
+              --repo-root "$GITHUB_WORKSPACE/source" \
+              --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
+          else
+            echo "Verified learning sync runs only on trusted main push."
+          fi
+
       - name: Derive SALVADOR shadow learning
         shell: bash
         run: |

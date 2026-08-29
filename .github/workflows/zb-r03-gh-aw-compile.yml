@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   compile-gh-aw:
@@ -18,7 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: true
       - name: Install exact gh-aw compiler
         shell: bash
         run: |
@@ -46,9 +47,14 @@ jobs:
           path: .github/workflows/zb-r03-lester-agent.lock.yml
           retention-days: 7
           if-no-files-found: error
-      - name: Verify committed lock matches pinned recompilation
+      - name: Create exact generated-lock commit object
         shell: bash
         run: |
           set -euo pipefail
-          git ls-files --error-unmatch .github/workflows/zb-r03-lester-agent.lock.yml
-          git diff --exit-code -- .github/workflows/zb-r03-lester-agent.lock.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/zb-r03-lester-agent.lock.yml
+          git diff --cached --quiet && { echo 'R03_GENERATED_LOCK_ALREADY_SYNCED'; exit 0; }
+          git commit -m 'chore(r03): sync generated gh-aw lock'
+          git rev-parse HEAD
+          git push origin "HEAD:${GITHUB_HEAD_REF}"

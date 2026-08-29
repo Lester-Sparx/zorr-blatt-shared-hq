@@ -6,6 +6,7 @@ on:
       - '.github/workflows/r03-lock-refresh-temp.yml'
       - '.github/workflows/zb-r03-lester-agent.md'
       - '.github/workflows/zb-r03-lester-agent.lock.yml'
+      - '.r03-tmp/generated-lock.yml'
 
 permissions:
   contents: write
@@ -32,18 +33,21 @@ jobs:
           expected='b8fd100d1d56a77b842ad28375ff361215a5aa1277db6b9a05d70054cde7260e'
           test "$actual" = "$expected"
           chmod 0555 "$asset"
-      - name: Compile and commit exact generated lock
+      - name: Compile and stage exact generated lock as ordinary blob
         shell: bash
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/gh-aw" compile zb-r03-lester-agent --strict
           test -s .github/workflows/zb-r03-lester-agent.lock.yml
-          git add .github/workflows/zb-r03-lester-agent.lock.yml
+          mkdir -p .r03-tmp
+          cp .github/workflows/zb-r03-lester-agent.lock.yml .r03-tmp/generated-lock.yml
+          git restore .github/workflows/zb-r03-lester-agent.lock.yml
+          git add .r03-tmp/generated-lock.yml
           if git diff --cached --quiet; then
-            echo 'LOCK_ALREADY_CURRENT'
+            echo 'STAGED_BLOB_ALREADY_CURRENT'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'chore: refresh generated R03 gh-aw lock'
+          git commit -m 'chore: stage generated R03 lock blob'
           git push origin HEAD:fix/r03-concrete-gpt5-mini

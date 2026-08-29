@@ -1,0 +1,79 @@
+name: ZB Permanent Archive V1
+
+on:
+  issues:
+    types: [opened, edited, deleted, transferred, pinned, unpinned, closed, reopened, assigned, unassigned, labeled, unlabeled, locked, unlocked, milestoned, demilestoned]
+  issue_comment:
+    types: [created, edited, deleted]
+  pull_request_target:
+    types: [opened, edited, closed, reopened, synchronize, converted_to_draft, locked, unlocked, enqueued, dequeued, milestoned, demilestoned, ready_for_review, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled, assigned, unassigned, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
+  push:
+    branches-ignore:
+      - zb-archive-v1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout trusted archive code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+          path: source
+          persist-credentials: false
+
+      - name: Checkout durable archive branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: zb-archive-v1
+          path: archive
+          fetch-depth: 0
+
+      - name: Preserve raw GitHub event
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source/scripts/hq_archive_ingest.py \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
+
+      - name: Verify complete archive before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source/scripts/hq_archive_verify.py \
+            --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
+
+      - name: Append archive commit with Git-native retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/archive"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- hq/archive-v1
+          if git diff --cached --quiet; then
+            echo "Archive event is already durable; nothing to commit."
+            exit 0
+          fi
+          git commit -m "archive: ${GITHUB_EVENT_NAME} ${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
+
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if git push origin HEAD:zb-archive-v1; then
+              exit 0
+            fi
+            echo "Concurrent archive update detected; retry ${attempt}/8"
+            git fetch origin zb-archive-v1
+            git rebase origin/zb-archive-v1
+          done
+
+          echo "ARCHIVE_PUSH_RETRY_EXHAUSTED" >&2
+          exit 1

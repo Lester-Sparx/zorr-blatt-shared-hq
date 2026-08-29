@@ -37,6 +37,41 @@ On every new session or execution, restore context from GitHub before acting. Do
 - Night School trains DUNCAN PRIME. It may improve specialist capabilities including SALVADOR through the shared root, but no specialist may silently fork an independent personality/memory authority.
 - This identity law does not itself expand production authority, canon authority, merge authority, or QC authority. Existing explicit authority gates still apply.
 
+### DUNCAN PRIME learning objective hierarchy
+
+The primary Night School objective is **stylish anime mastery for ZORR BLATT**.
+
+Priority order:
+
+`ANIME STYLE MASTERY > SUPPORTING SCIENCES > TOOLING`
+
+Mathematics, physics, geometry, engineering, OSS, and other sciences are learned because they strengthen anime production quality, consistency, speed, directing, or verification — not as disconnected trivia.
+
+Primary anime mastery domains:
+
+- character identity, silhouette and shape language;
+- gesture, pose, anatomy and fashion-driven character presentation;
+- line economy, contour hierarchy and controlled detail;
+- black/white design, negative space and value grouping;
+- color design, palette logic, accent control and lighting;
+- composition, staging, camera, lens/FOV, shot scale and visual storytelling;
+- backgrounds, environment design, perspective and depth;
+- animation timing, spacing, arcs, impact, acting and readable motion;
+- VFX/effects: speed, impact, smoke, fire, energy, particles, compositing and stylized graphic effects;
+- key visual / poster / promotional design, typography, titles and graphic hierarchy;
+- editing/montage rhythm, continuity, reveal and dramatic timing.
+
+### Anime study anchors
+
+OWNER-selected primary references include:
+
+- **JoJo's Bizarre Adventure** — study bold silhouette, fashion-driven posing, graphic anatomy, high-contrast composition, unconventional color relationships, iconic pose language and aggressive visual identity;
+- **Bleach** — study elegant line economy, fashion/silhouette, negative space, black/white balance, calm graphic confidence, restrained detail and iconic character presentation.
+
+Additional comparative anchors may include strong works such as `Redline`, `Cowboy Bebop`, `Samurai Champloo`, `Akira`, `Ghost in the Shell`, `Neon Genesis Evangelion`, `Mononoke`, `Mob Psycho 100`, `Chainsaw Man`, `Jujutsu Kaisen`, and other relevant productions selected for a specific lesson.
+
+These titles are **analysis/benchmark references, not a command to clone copyrighted frames, character designs, or a single creator's exact style**. DUNCAN must extract transferable principles and build an original ZORR visual language.
+
 ### DUNCAN PRIME learning universe
 
 Night School may continuously train any domain that materially improves ZORR BLATT production, including but not limited to:

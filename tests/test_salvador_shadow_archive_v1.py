@@ -19,6 +19,20 @@ class SalvadorShadowArchiveV1Tests(unittest.TestCase):
             "actor": "Lester-Sparx",
         }
 
+    @staticmethod
+    def evaluator_event(body: str, comment_id: int = 5436515963) -> bytes:
+        return json.dumps(
+            {
+                "action": "created",
+                "issue": {"number": 98},
+                "comment": {
+                    "id": comment_id,
+                    "user": {"login": "Lester-Sparx"},
+                    "body": body,
+                },
+            }
+        ).encode("utf-8")
+
     def test_result_ready_is_archived_without_skill_promotion(self) -> None:
         payload = {
             "action": "created",
@@ -73,18 +87,9 @@ NO PROMOTION
 NO CERTIFICATION
 NO HOLDOUT CLAIM
 """
-        payload = {
-            "action": "created",
-            "issue": {"number": 98},
-            "comment": {
-                "id": 5436515963,
-                "user": {"login": "Lester-Sparx"},
-                "body": body,
-            },
-        }
         with tempfile.TemporaryDirectory() as tmp:
             result = archive_salvador_shadow_event(
-                json.dumps(payload).encode("utf-8"), Path(tmp), self.metadata()
+                self.evaluator_event(body), Path(tmp), self.metadata()
             )
             self.assertIsNotNone(result)
             record = json.loads((Path(tmp) / result["shadow_relpath"]).read_text(encoding="utf-8"))
@@ -97,6 +102,36 @@ NO HOLDOUT CLAIM
             self.assertEqual(record["state_after"], "PARTIAL")
             self.assertFalse(record["certification"])
             self.assertFalse(record["holdout"])
+            self.assertFalse(record["promotion_allowed"])
+
+    def test_critical_failure_overrides_high_pass_count(self) -> None:
+        body = """JINGO_TARGETED_STRESS_R02_EVALUATION
+
+LOGICAL_EVALUATOR = JINGO
+CLASS = TRAINING DIAGNOSIS / SAME-RUNTIME
+PROMOTION = NO
+CERTIFICATION = NO
+HOLDOUT = NO
+GENERALIZATION_CLAIM = NO
+
+=== SALVADOR ===
+SALVADOR RESULT
+PASS = 4/5
+MAJOR = 0
+CRITICAL = 1
+UNSUPPORTED GUESS = 0
+
+NO PROMOTION
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            result = archive_salvador_shadow_event(
+                self.evaluator_event(body, 5436515964), Path(tmp), self.metadata()
+            )
+            self.assertIsNotNone(result)
+            record = json.loads((Path(tmp) / result["shadow_relpath"]).read_text(encoding="utf-8"))
+            self.assertEqual(record["measurements"]["pass"], 4)
+            self.assertEqual(record["measurements"]["critical"], 1)
+            self.assertEqual(record["state_after"], "FAILED")
             self.assertFalse(record["promotion_allowed"])
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 from pathlib import Path
+from types import SimpleNamespace
 import tempfile
 import unittest
 
@@ -11,6 +12,7 @@ from recovery.zb_recovery import (
     collect_recovery_state,
     render_recovery_state_json,
     render_resume_packet,
+    run_gh_json,
     write_outputs,
 )
 
@@ -163,6 +165,63 @@ class ZbRecoveryCapsuleTests(unittest.TestCase):
             self.assertNotIn("ghp_TEST_SENTINEL", packet_path.read_text(encoding="utf-8"))
             self.assertFalse((output_dir / "RECOVERY_STATE.json.tmp").exists())
             self.assertFalse((output_dir / "RESUME_PACKET.md.tmp").exists())
+
+    def test_gh_json_adapter_matches_existing_shell_false_pattern(self) -> None:
+        calls: list[tuple[list[str], dict[str, object]]] = []
+
+        def runner(args: list[str], **kwargs: object):
+            calls.append((args, kwargs))
+            return SimpleNamespace(returncode=0, stdout='{"login":"Lester-Sparx"}', stderr="")
+
+        self.assertEqual(run_gh_json("user", runner=runner), {"login": "Lester-Sparx"})
+        self.assertEqual(calls[0][0], ["gh", "api", "user"])
+        self.assertIs(calls[0][1]["shell"], False)
+        self.assertIs(calls[0][1]["capture_output"], True)
+        self.assertIs(calls[0][1]["text"], True)
+
+    def test_gh_json_adapter_fails_closed_on_invalid_json(self) -> None:
+        def runner(args: list[str], **kwargs: object):
+            return SimpleNamespace(returncode=0, stdout="not-json", stderr="")
+
+        with self.assertRaisesRegex(RecoveryError, "RECOVERY_GH_OUTPUT_INVALID"):
+            run_gh_json("user", runner=runner)
+
+    def test_one_folder_entrypoint_taskfile_and_mcp_config_are_secret_free(self) -> None:
+        start_cmd = Path("recovery/START_RECOVERY.cmd").read_text(encoding="utf-8")
+        taskfile = Path("recovery/Taskfile.yml").read_text(encoding="utf-8")
+        mcp = json.loads(Path("recovery/mcp.github.oauth.json").read_text(encoding="utf-8"))
+        fallback = Path("recovery/GITHUB_APP_FALLBACK.env.example").read_text(encoding="utf-8")
+        manifest = json.loads(Path("recovery/recovery_manifest.json").read_text(encoding="utf-8"))
+
+        self.assertIn("task", start_cmd.lower())
+        self.assertIn("recovery/Taskfile.yml", start_cmd.replace("\\", "/"))
+        self.assertNotIn("ghp_", start_cmd.lower())
+        self.assertNotIn("github_pat_", start_cmd.lower())
+
+        for task in ("doctor:", "recover:", "mcp:"):
+            self.assertIn(task, taskfile)
+        self.assertIn("deps: [doctor]", taskfile)
+        self.assertIn("python -m recovery.zb_recovery", taskfile)
+        self.assertIn("github-mcp-server stdio", taskfile)
+
+        self.assertEqual(mcp["mcpServers"]["github"]["command"], "github-mcp-server")
+        self.assertEqual(mcp["mcpServers"]["github"]["args"], ["stdio"])
+        self.assertNotIn("env", mcp["mcpServers"]["github"])
+
+        self.assertEqual(
+            fallback.splitlines(),
+            [
+                "GITHUB_APP_ID=",
+                "GITHUB_APP_INSTALLATION_ID=",
+                "GITHUB_APP_PRIVATE_KEY_PATH=",
+            ],
+        )
+        mcp_component = manifest["components"]["github_mcp_server"]
+        self.assertEqual(mcp_component["version"], "1.0.5")
+        self.assertEqual(
+            mcp_component["windows_x86_64_sha256"],
+            "92523838eaaac426aeb4ffc4540c5d3c49a6c1f627ff5f61ce585553240c2e09",
+        )
 
 
 if __name__ == "__main__":

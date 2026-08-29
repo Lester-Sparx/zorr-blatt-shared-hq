@@ -16,6 +16,7 @@ TRANSPORT_ACTOR = "Lester-Sparx"
 STATE_WRITER = "github-actions[bot]"
 ROOT_MARKER = "ZB_AGENT_TASK_R03_V1"
 TASK_SPEC_MARKER = "ZB_TASK_SPEC_V1"
+DISPATCH_MARKER = "ZB_R03_DISPATCH_V1"
 BUS_ISSUE_URL = f"https://api.github.com/repos/{REPOSITORY}/issues/{BUS_PR}"
 TRACKER_ISSUE_URL = f"https://api.github.com/repos/{REPOSITORY}/issues/{TRACKER_ISSUE}"
 REGISTRY_PATH = Path(__file__).resolve().parents[1] / "config" / "zb-r03" / "tasks.json"
@@ -34,6 +35,19 @@ _ROOT_FIELDS = (
 )
 _SPEC_FIELDS = ("TASK_SPEC_ID", "TASK_ID", "TASK_REVISION", "BASE_SHA")
 _REPLAY_STATES = frozenset({"DISPATCHED", "IN_PROGRESS", "PASS", "FAIL", "BLOCKED"})
+_DISPATCH_PAYLOAD_KEYS = frozenset(
+    {
+        "root_comment_id",
+        "message_id",
+        "correlation_id",
+        "task_id",
+        "task_revision",
+        "base_sha",
+        "task_spec_comment_id",
+        "task_spec_sha256",
+        "replay_key",
+    }
+)
 
 
 class ProtocolError(ValueError):
@@ -83,17 +97,19 @@ class R03Dispatch:
 
 
 def _require_identifier(value: str, code: str) -> str:
-    if not _IDENTIFIER.fullmatch(value):
+    if not isinstance(value, str) or not _IDENTIFIER.fullmatch(value):
         raise ProtocolError(code)
     return value
 
 
-def _positive_int(value: str, code: str) -> int:
+def _positive_int(value: Any, code: str) -> int:
     try:
         parsed = int(value)
     except (TypeError, ValueError) as exc:
         raise ProtocolError(code) from exc
-    if parsed <= 0 or str(parsed) != value:
+    if parsed <= 0 or isinstance(value, bool):
+        raise ProtocolError(code)
+    if isinstance(value, str) and str(parsed) != value:
         raise ProtocolError(code)
     return parsed
 
@@ -244,28 +260,37 @@ def replay_key(message_id: str, task_id: str, task_revision: int, base_sha: str,
     return f"{message_id}|{task_id}|{task_revision}|{base_sha}|{task_spec_sha256}"
 
 
+def _trusted_comment(comment: Any) -> bool:
+    if not isinstance(comment, dict) or comment.get("issue_url") != TRACKER_ISSUE_URL:
+        return False
+    user = comment.get("user") or {}
+    return isinstance(user, dict) and user.get("login") == STATE_WRITER
+
+
+def _body_fields(body: Any) -> dict[str, str]:
+    if not isinstance(body, str):
+        return {}
+    fields: dict[str, str] = {}
+    for line in body.splitlines()[1:]:
+        if " = " in line:
+            name, value = line.split(" = ", 1)
+            if name in fields:
+                return {}
+            fields[name] = value
+    return fields
+
+
 def _trusted_replay_exists(key: str, port: GitHubPort) -> bool:
     for comment in port.list_tracker_comments():
-        if not isinstance(comment, dict) or comment.get("issue_url") != TRACKER_ISSUE_URL:
+        if not _trusted_comment(comment):
             continue
-        user = comment.get("user") or {}
-        if not isinstance(user, dict) or user.get("login") != STATE_WRITER:
-            continue
-        body = comment.get("body")
-        if not isinstance(body, str):
-            continue
-        fields: dict[str, str] = {}
-        for line in body.splitlines()[1:]:
-            if " = " in line:
-                name, value = line.split(" = ", 1)
-                if name not in fields:
-                    fields[name] = value
+        fields = _body_fields(comment.get("body"))
         if fields.get("REPLAY_KEY") == key and fields.get("STATE") in _REPLAY_STATES:
             return True
     return False
 
 
-def admit_r03_event(event: Any, *, expected_base_sha: str, port: GitHubPort) -> R03Dispatch:
+def _build_dispatch(event: Any, *, expected_base_sha: str, port: GitHubPort, check_replay: bool) -> R03Dispatch:
     if not isinstance(event, dict):
         raise ProtocolError("R03_EVENT_REJECTED")
     repository = event.get("repository") or {}
@@ -307,7 +332,7 @@ def admit_r03_event(event: Any, *, expected_base_sha: str, port: GitHubPort) -> 
     spec_sha256 = hashlib.sha256(spec_bytes).hexdigest()
     encoded = base64.b64encode(spec_bytes).decode("ascii")
     key = replay_key(root["message_id"], root["task_id"], root["task_revision"], root["base_sha"], spec_sha256)
-    if _trusted_replay_exists(key, port):
+    if check_replay and _trusted_replay_exists(key, port):
         raise ProtocolError("R03_REPLAY_BLOCKED")
 
     return R03Dispatch(
@@ -324,3 +349,84 @@ def admit_r03_event(event: Any, *, expected_base_sha: str, port: GitHubPort) -> 
         task=task,
         replay_key=key,
     )
+
+
+def admit_r03_event(event: Any, *, expected_base_sha: str, port: GitHubPort) -> R03Dispatch:
+    return _build_dispatch(event, expected_base_sha=expected_base_sha, port=port, check_replay=True)
+
+
+def render_dispatch_record(dispatch: R03Dispatch, *, root_comment_id: int) -> str:
+    if not isinstance(root_comment_id, int) or isinstance(root_comment_id, bool) or root_comment_id <= 0:
+        raise ProtocolError("R03_ROOT_COMMENT_ID_INVALID")
+    return "\n".join(
+        [
+            DISPATCH_MARKER,
+            f"ROOT_COMMENT_ID = {root_comment_id}",
+            f"MESSAGE_ID = {dispatch.message_id}",
+            f"CORRELATION_ID = {dispatch.correlation_id}",
+            f"TASK_ID = {dispatch.task_id}",
+            f"TASK_REVISION = {dispatch.task_revision}",
+            f"BASE_SHA = {dispatch.base_sha}",
+            f"TASK_SPEC_COMMENT_ID = {dispatch.task_spec_comment_id}",
+            f"TASK_SPEC_SHA256 = {dispatch.task_spec_sha256}",
+            f"REPLAY_KEY = {dispatch.replay_key}",
+            "STATE = DISPATCHED",
+            "PRODUCTION_ACTIVE = NO",
+        ]
+    )
+
+
+def dispatch_payload(dispatch: R03Dispatch, *, root_comment_id: int) -> dict[str, Any]:
+    if not isinstance(root_comment_id, int) or isinstance(root_comment_id, bool) or root_comment_id <= 0:
+        raise ProtocolError("R03_ROOT_COMMENT_ID_INVALID")
+    return {
+        "root_comment_id": root_comment_id,
+        "message_id": dispatch.message_id,
+        "correlation_id": dispatch.correlation_id,
+        "task_id": dispatch.task_id,
+        "task_revision": dispatch.task_revision,
+        "base_sha": dispatch.base_sha,
+        "task_spec_comment_id": dispatch.task_spec_comment_id,
+        "task_spec_sha256": dispatch.task_spec_sha256,
+        "replay_key": dispatch.replay_key,
+    }
+
+
+def revalidate_r03_repository_dispatch(payload: Any, *, port: GitHubPort) -> R03Dispatch:
+    if not isinstance(payload, dict) or set(payload) != _DISPATCH_PAYLOAD_KEYS:
+        raise ProtocolError("R03_REPOSITORY_DISPATCH_INVALID")
+    root_comment_id = _positive_int(payload.get("root_comment_id"), "R03_REPOSITORY_DISPATCH_INVALID")
+    expected_base_sha = payload.get("base_sha")
+    if not isinstance(expected_base_sha, str) or not _SHA40.fullmatch(expected_base_sha):
+        raise ProtocolError("R03_REPOSITORY_DISPATCH_INVALID")
+
+    root_comment = port.read_comment(root_comment_id)
+    if not isinstance(root_comment, dict) or root_comment.get("id") != root_comment_id:
+        raise ProtocolError("R03_ROOT_READBACK_INVALID")
+    if root_comment.get("issue_url") != BUS_ISSUE_URL:
+        raise ProtocolError("R03_ROOT_CONTAINER_MISMATCH")
+    root_user = root_comment.get("user") or {}
+    if not isinstance(root_user, dict) or root_user.get("login") != TRANSPORT_ACTOR:
+        raise ProtocolError("R03_ROOT_ACTOR_MISMATCH")
+
+    synthetic_event = {
+        "repository": {"full_name": REPOSITORY},
+        "issue": {"number": BUS_PR, "pull_request": {"url": f"https://api.github.com/repos/{REPOSITORY}/pulls/{BUS_PR}"}},
+        "comment": root_comment,
+    }
+    dispatch = _build_dispatch(synthetic_event, expected_base_sha=expected_base_sha, port=port, check_replay=False)
+    expected_payload = dispatch_payload(dispatch, root_comment_id=root_comment_id)
+    if payload != expected_payload:
+        raise ProtocolError("R03_REPOSITORY_DISPATCH_MISMATCH")
+
+    expected_record = render_dispatch_record(dispatch, root_comment_id=root_comment_id)
+    exact_records = [
+        comment
+        for comment in port.list_tracker_comments()
+        if _trusted_comment(comment) and comment.get("body") == expected_record
+    ]
+    if not exact_records:
+        raise ProtocolError("R03_DISPATCH_RECORD_MISSING")
+    if len(exact_records) != 1:
+        raise ProtocolError("R03_DISPATCH_RECORD_AMBIGUOUS")
+    return dispatch

@@ -62,7 +62,7 @@ function Download-Verified([string]$Url, [string]$Destination, [string]$Expected
     $actual = Get-Sha256 $Destination
     if ($actual -ne $ExpectedSha.ToLowerInvariant()) {
         Remove-Item -LiteralPath $Destination -Force -ErrorAction SilentlyContinue
-        throw "DOWNLOAD_SHA256_MISMATCH:$Destination:$actual"
+        throw "DOWNLOAD_SHA256_MISMATCH:${Destination}:$actual"
     }
 }
 
@@ -82,6 +82,10 @@ function Find-Podman {
 function Ensure-Podman {
     $podman = Find-Podman
     if ($null -ne $podman) { return $podman }
+
+    if ([Environment]::OSVersion.Version.Build -lt 22000) {
+        throw "PODMAN_V6_WINDOWS_VERSION_UNSUPPORTED"
+    }
 
     Ensure-Directory $ToolsRoot
     $installer = Join-Path $ToolsRoot $PodmanInstallerName
@@ -161,8 +165,13 @@ function Materialize-ValidatedRuntime {
 
 function New-Secret {
     $bytes = New-Object byte[] 32
-    [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-    return ([Convert]::ToHexString($bytes)).ToLowerInvariant()
+    $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $rng.GetBytes($bytes)
+    } finally {
+        $rng.Dispose()
+    }
+    return (($bytes | ForEach-Object { $_.ToString("x2") }) -join "")
 }
 
 function Ensure-Secrets {
@@ -174,7 +183,8 @@ function Ensure-Secrets {
             "GRAFANA_ADMIN_PASSWORD=$(New-Secret)"
         ) | Set-Content -LiteralPath $SecretsPath -Encoding ASCII
         try {
-            & icacls $SecretsPath /inheritance:r /grant:r "$env:USERNAME:(R,W)" *> $null
+            $aclUser = $env:USERNAME + ":(R,W)"
+            & icacls $SecretsPath /inheritance:r /grant:r $aclUser *> $null
         } catch { }
     }
 }

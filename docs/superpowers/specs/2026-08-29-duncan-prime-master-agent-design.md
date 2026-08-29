@@ -30,6 +30,41 @@ Activating a specialist changes task focus, allowed tools, specialist methods, a
 
 Night School trains DUNCAN PRIME, not a separate specialist root. Shared verified learning may improve SALVADOR and other specialist facets through the common root. Specialist training data may return to the common root only after provenance and verification.
 
+### Primary objective hierarchy
+
+The primary Night School objective is **stylish anime mastery for ZORR BLATT**.
+
+Priority order:
+
+`ANIME STYLE MASTERY > SUPPORTING SCIENCES > TOOLING`
+
+Supporting sciences are learned because they improve anime production quality, consistency, speed, directing, or verification.
+
+### Primary anime mastery curriculum
+
+- character identity, silhouette and shape language;
+- gesture, pose, anatomy and fashion-driven presentation;
+- line economy, contour hierarchy and controlled detail;
+- black/white design, negative space and value grouping;
+- color design, palette logic, accents and lighting;
+- composition, staging, camera, lens/FOV, shot scale and visual storytelling;
+- backgrounds, environment design, perspective and depth;
+- animation timing, spacing, arcs, impact, acting and readable motion;
+- VFX/effects: speed, impact, smoke, fire, energy, particles, compositing and graphic stylization;
+- key visual / poster / promotional design, typography, titles and graphic hierarchy;
+- editing/montage rhythm, continuity, reveal and dramatic timing.
+
+### Anime study anchors
+
+OWNER-selected primary references:
+
+- **JoJo's Bizarre Adventure** — analyze bold silhouette, fashion-driven posing, graphic anatomy, high-contrast composition, unconventional color relationships, iconic pose language and aggressive visual identity;
+- **Bleach** — analyze elegant line economy, fashion/silhouette, negative space, black/white balance, restrained detail and iconic character presentation.
+
+Comparative references may include `Redline`, `Cowboy Bebop`, `Samurai Champloo`, `Akira`, `Ghost in the Shell`, `Neon Genesis Evangelion`, `Mononoke`, `Mob Psycho 100`, `Chainsaw Man`, `Jujutsu Kaisen`, or other relevant productions selected for a specific lesson.
+
+These works are analysis/benchmark references. DUNCAN must extract transferable principles rather than clone copyrighted frames, character designs, or one creator's exact style. The target is an original ZORR visual language.
+
 ### Learning universe
 
 Night School may continuously study any domain that materially improves ZORR BLATT production. The curriculum includes, but is not limited to:
@@ -98,9 +133,11 @@ PASS requires:
 2. `AGENTS.md` explicitly states DUNCAN PRIME is the single primordial/master identity root;
 3. SALVADOR is explicitly an internal facet of DUNCAN PRIME;
 4. Night School is explicitly DUNCAN PRIME learning;
-5. learning universe includes design/posters, drawing, effects, geometry, mathematics/science, cinematography, staging, editing, animation, engineering and sound, with an extensible relevance gate;
-6. no production/canon/QC/merge authority expansion;
-7. fresh PR diff/read-back confirms exact scope;
-8. Night School automation prompt is aligned with the master-agent and learning-universe law;
-9. durable evidence is captured by Permanent Archive V1;
-10. current Constitution is re-read before terminal PASS.
+5. stylish anime mastery is the top learning objective;
+6. JoJo and Bleach are durable primary study anchors, with comparative references allowed for specific lessons;
+7. learning universe includes design/posters, drawing, effects, geometry, mathematics/science, cinematography, staging, editing, animation, engineering and sound, with an extensible relevance gate;
+8. no production/canon/QC/merge authority expansion;
+9. fresh PR diff/read-back confirms exact scope;
+10. Night School automation prompt is aligned with the master-agent, anime-priority and learning-universe laws;
+11. durable evidence is captured by Permanent Archive V1;
+12. current Constitution is re-read before terminal PASS.

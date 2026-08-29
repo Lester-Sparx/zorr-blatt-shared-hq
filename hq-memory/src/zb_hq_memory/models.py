@@ -22,11 +22,15 @@ class RecordStatus(StrEnum):
 class SourceType(StrEnum):
     OWNER_DIRECT = "OWNER_DIRECT"
     OWNER_CORRECTION = "OWNER_CORRECTION"
+    LOCKED_REFERENCE = "LOCKED_REFERENCE"
+    APPROVED_REFERENCE = "APPROVED_REFERENCE"
+    WORKING_REFERENCE = "WORKING_REFERENCE"
     SOURCE_QUOTE = "SOURCE_QUOTE"
-    ASSISTANT_INFERENCE = "ASSISTANT_INFERENCE"
-    ASSISTANT_GENERATED = "ASSISTANT_GENERATED"
     TEST_RESULT = "TEST_RESULT"
     QC_RESULT = "QC_RESULT"
+    MEASURED_DERIVATION = "MEASURED_DERIVATION"
+    ASSISTANT_INFERENCE = "ASSISTANT_INFERENCE"
+    ASSISTANT_GENERATED = "ASSISTANT_GENERATED"
 
 
 class _FrozenModel(BaseModel):
@@ -109,11 +113,18 @@ class ProgressEvent(DurableRecordBase):
     record_type: Literal["PROGRESS_EVENT"] = "PROGRESS_EVENT"
     skill_id: str = Field(min_length=1)
     before_state: str = Field(min_length=1)
+    after_state: str | None = None
     task: str = Field(min_length=1)
+    run_id: str | None = None
     inputs: list[str] = Field(default_factory=list)
     output_artifacts: list[str] = Field(default_factory=list)
+    metric_set_version: str | None = None
+    measurements: dict[str, float | int | bool | str | None] = Field(default_factory=dict)
     qc_result: str = Field(min_length=1)
+    qc_evidence_refs: list[str] = Field(default_factory=list)
+    hard_lock_fail: bool = False
     failures: list[str] = Field(default_factory=list)
+    root_cause_hypotheses: list[str] = Field(default_factory=list)
     learned_rules: list[str] = Field(default_factory=list)
     progress_delta: str = Field(min_length=1)
     next_target: str = Field(min_length=1)

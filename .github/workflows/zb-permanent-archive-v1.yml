@@ -47,6 +47,15 @@ jobs:
             --event-path "$GITHUB_EVENT_PATH" \
             --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
 
+      - name: Derive SALVADOR shadow learning
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/source"
+          python3 -m scripts.salvador_shadow_archive \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
+
       - name: Verify complete archive before commit
         shell: bash
         run: |

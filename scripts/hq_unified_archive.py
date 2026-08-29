@@ -13,6 +13,7 @@ from typing import Any
 RECORD_SCHEMA = "ZB_UNIFIED_ARCHIVE_RECORD_V1"
 CONTEXT_SCHEMA = "ZB_UNIFIED_CURRENT_CONTEXT_V1"
 LESSON_SCHEMA = "ZB_REFLEXION_LESSON_V1"
+CURRENT_LESSONS_SCHEMA = "ZB_CURRENT_LESSONS_V1"
 LEARNING_POLICY_SCHEMA = "ZB_LEARNING_POLICY_V1"
 TRAINING_EXAMPLE_SCHEMA = "ZB_LEARNING_EXAMPLE_V1"
 _URL_RE = re.compile(r"https?://[^\s<>'\"\)\]]+")
@@ -470,6 +471,38 @@ def _write_learning_corpus(archive_root: Path, lessons: list[dict[str, Any]]) ->
     return path
 
 
+def _write_current_lessons(archive_root: Path, lessons: list[dict[str, Any]], *, limit: int = 100) -> Path:
+    if limit < 1:
+        raise UnifiedArchiveError("CURRENT_LESSONS_LIMIT_INVALID")
+    learning_root = _learning_root(Path(archive_root))
+    learning_root.mkdir(parents=True, exist_ok=True)
+    ordered = sorted(
+        lessons,
+        key=lambda item: (str(item.get("issued_at") or ""), str(item.get("verdict_id") or "")),
+        reverse=True,
+    )
+    current = {
+        "schema": CURRENT_LESSONS_SCHEMA,
+        "lesson_count": len(lessons),
+        "lessons": [
+            {
+                "verdict_id": lesson["verdict_id"],
+                "verdict_sha256": lesson["verdict_sha256"],
+                "error_signature": lesson["error_signature"],
+                "lesson_ref": lesson["lesson_ref"],
+                "lesson_excerpt": str(lesson["lesson_text"])[:1200],
+                "regression_test": lesson["regression_test"],
+                "evidence": lesson["evidence"],
+                "issued_at": lesson["issued_at"],
+            }
+            for lesson in ordered[:limit]
+        ],
+    }
+    path = learning_root / "CURRENT_LESSONS.json"
+    path.write_bytes(_canonical_json(current))
+    return path
+
+
 def sync_sheriff_lessons(verdict_root: Path, repo_root: Path, archive_root: Path) -> dict[str, Any]:
     verdict_root = Path(verdict_root)
     repo_root = Path(repo_root)
@@ -496,11 +529,13 @@ def sync_sheriff_lessons(verdict_root: Path, repo_root: Path, archive_root: Path
         path = lesson_root / f"{lesson['verdict_sha256']}.json"
         path.write_bytes(_canonical_json(lesson))
     corpus_path = _write_learning_corpus(archive_root, pending)
+    current_path = _write_current_lessons(archive_root, pending)
     return {
         "learned": len(pending),
         "skipped_open": skipped_open,
         "corpus_count": len(pending),
         "corpus_relpath": corpus_path.relative_to(archive_root).as_posix(),
+        "current_lessons_relpath": current_path.relative_to(archive_root).as_posix(),
     }
 
 

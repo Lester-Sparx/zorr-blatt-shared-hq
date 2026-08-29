@@ -139,6 +139,27 @@ class R03QcTests(unittest.TestCase):
                 with self.assertRaises(QcError):
                     validate_candidate(FakePort(files=files), 150, self.binding(), policy)
 
+    def test_r03_control_plane_cannot_be_modified_by_registered_code_task(self):
+        policy = resolve_task("ZB_CODE_CHANGE_R03", 1)
+        protected = [
+            "config/zb-r03/tasks.json",
+            "scripts/zb_communication_base.py",
+            "scripts/zb_r03_router.py",
+            "scripts/zb_r03_qc.py",
+            "scripts/zb_r03_finalize.py",
+            "scripts/hq_validate.py",
+            "tests/test_zb_r03_router.py",
+            "tests/test_zb_r03_qc.py",
+            "tests/test_zb_r03_finalize.py",
+            "tests/test_zb_r03_workflow.py",
+            "tests/test_zb_r03_gh_aw_source.py",
+        ]
+        for path in protected:
+            files = [{"filename": path, "status": "modified", "changes": 1, "patch": "@@ -1 +1 @@\n-a\n+b"}]
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(QcError, "R03_CONTROL_PLANE_MODIFICATION_BLOCKED"):
+                    validate_candidate(FakePort(files=files), 150, self.binding(), policy)
+
     def test_changed_file_and_patch_limits_fail_closed(self):
         policy = resolve_task("ZB_CODE_CHANGE_R03", 1)
         too_many = [

@@ -270,6 +270,52 @@ def _render_owner_view(
     )
 
 
+def _render_blocked_finalize(
+    *,
+    binding: dict[str, str],
+    candidate_pr_number: int | None,
+    candidate_head_sha: str | None,
+) -> str:
+    candidate = str(candidate_pr_number) if candidate_pr_number is not None else "NONE"
+    head = candidate_head_sha if candidate_head_sha else "NONE"
+    return "\n".join(
+        [
+            FINALIZE_MARKER,
+            f"MESSAGE_ID = {binding['MESSAGE_ID']}",
+            f"CORRELATION_ID = {binding['CORRELATION_ID']}",
+            f"TASK_ID = {binding['TASK_ID']}",
+            f"TASK_REVISION = {binding['TASK_REVISION']}",
+            f"BASE_SHA = {binding['BASE_SHA']}",
+            f"AUTHORITY_REF = {binding['AUTHORITY_REF']}",
+            f"CANDIDATE_PR = {candidate}",
+            f"CANDIDATE_HEAD_SHA = {head}",
+            "MERGE_SHA = NONE",
+            "STATE = BLOCKED",
+            "RESULT_CODE = UPSTREAM_NOT_PASS",
+            "PRODUCTION_ACTIVE = NO",
+        ]
+    )
+
+
+def _render_blocked_owner_view(
+    *,
+    binding: dict[str, str],
+    candidate_pr_number: int | None,
+) -> str:
+    candidate = str(candidate_pr_number) if candidate_pr_number is not None else "NONE"
+    return "\n".join(
+        [
+            OWNER_VIEW_MARKER,
+            f"MESSAGE_ID = {binding['MESSAGE_ID']}",
+            f"TASK_ID = {binding['TASK_ID']}",
+            f"CANDIDATE_PR = {candidate}",
+            "MERGE_SHA = NONE",
+            "LAST_STAGE = UPSTREAM_NOT_PASS",
+            "PRODUCTION_ACTIVE = NO",
+        ]
+    )
+
+
 def finalize_candidate(
     port: FinalizePort,
     *,
@@ -304,7 +350,6 @@ def finalize_candidate(
         binding=expected_binding,
     )
 
-    # One final main/head read immediately before the mutation closes the race window.
     if port.read_main_sha() != expected_binding["BASE_SHA"]:
         raise FinalizeError("R03_MAIN_DRIFT")
     _validate_candidate_for_merge(
@@ -354,6 +399,55 @@ def finalize_candidate(
     )
 
 
+def finalize_execution(
+    port: FinalizePort,
+    *,
+    candidate_pr_number: int | None,
+    candidate_head_sha: str | None,
+    expected_binding: dict[str, str],
+    policy: R03TaskPolicy,
+    lester_result: str,
+    duncan_result: str,
+    qc_pass: bool,
+) -> FinalizeResult | None:
+    validate_standing_authorization(port.read_authorization())
+    if policy.task_id != expected_binding.get("TASK_ID") or str(policy.revision) != expected_binding.get("TASK_REVISION"):
+        raise FinalizeError("R03_POLICY_BINDING_MISMATCH")
+
+    upstream_pass = lester_result == "success" and duncan_result == "success" and qc_pass is True
+    candidate_present = (
+        isinstance(candidate_pr_number, int)
+        and not isinstance(candidate_pr_number, bool)
+        and candidate_pr_number > 0
+        and isinstance(candidate_head_sha, str)
+        and bool(candidate_head_sha)
+    )
+    if not upstream_pass or not candidate_present:
+        tracker_body = _render_blocked_finalize(
+            binding=expected_binding,
+            candidate_pr_number=candidate_pr_number,
+            candidate_head_sha=candidate_head_sha,
+        )
+        console_body = _render_blocked_owner_view(
+            binding=expected_binding,
+            candidate_pr_number=candidate_pr_number,
+        )
+        _write_and_verify(port, tracker_body)
+        _write_and_verify(port, console_body, console=True)
+        return None
+
+    return finalize_candidate(
+        port,
+        candidate_pr_number=candidate_pr_number,
+        candidate_head_sha=candidate_head_sha,
+        expected_binding=expected_binding,
+        policy=policy,
+        lester_result=lester_result,
+        duncan_result=duncan_result,
+        qc_pass=qc_pass,
+    )
+
+
 def _require_env(name: str) -> str:
     value = os.environ.get(name)
     if not value:
@@ -361,9 +455,12 @@ def _require_env(name: str) -> str:
     return value
 
 
+def _optional_env(name: str) -> str | None:
+    value = os.environ.get(name, "").strip()
+    return value or None
+
+
 def main() -> int:
-    candidate_pr_number = int(_require_env("R03_CANDIDATE_PR"))
-    candidate_head_sha = _require_env("R03_CANDIDATE_HEAD")
     task_revision = int(_require_env("R03_TASK_REVISION"))
     binding = expected_candidate_binding(
         message_id=_require_env("R03_MESSAGE_ID"),
@@ -374,16 +471,27 @@ def main() -> int:
         authority_ref=_require_env("R03_AUTHORITY_REF"),
     )
     policy = resolve_task(binding["TASK_ID"], task_revision)
-    result = finalize_candidate(
+
+    candidate_raw = _optional_env("R03_CANDIDATE_PR")
+    candidate_pr_number = int(candidate_raw) if candidate_raw is not None else None
+    candidate_head_sha = _optional_env("R03_CANDIDATE_HEAD")
+    lester_result = _optional_env("R03_LESTER_RESULT") or "missing"
+    duncan_result = _optional_env("R03_DUNCAN_RESULT") or "missing"
+    qc_pass = (_optional_env("R03_QC_PASS") or "false").lower() == "true"
+
+    result = finalize_execution(
         R03FinalizeGitHubApi(_require_env("GITHUB_TOKEN")),
         candidate_pr_number=candidate_pr_number,
         candidate_head_sha=candidate_head_sha,
         expected_binding=binding,
         policy=policy,
-        lester_result=_require_env("R03_LESTER_RESULT"),
-        duncan_result=_require_env("R03_DUNCAN_RESULT"),
-        qc_pass=_require_env("R03_QC_PASS").lower() == "true",
+        lester_result=lester_result,
+        duncan_result=duncan_result,
+        qc_pass=qc_pass,
     )
+    if result is None:
+        print("R03_FINAL_STATE=BLOCKED")
+        return 0
     print(f"R03_AUTO_MERGE_SHA={result.merge_sha}")
     print(f"R03_MAIN_SHA={result.main_sha}")
     return 0

@@ -12,6 +12,8 @@ REQUIREMENTS = ROOT / "requirements-sheriff.txt"
 EVENT_SCHEMA = ROOT / "schemas" / "SHERIFF_AGENT_EVENT_V1.schema.json"
 OPA_POLICY = ROOT / "config" / "sheriff" / "opa" / "sheriff.rego"
 OPA_TEST = ROOT / "config" / "sheriff" / "opa" / "sheriff_test.rego"
+VALIDATOR = ROOT / "scripts" / "sheriff_validate.py"
+WORKFLOW = ROOT / ".github" / "workflows" / "sheriff-oss-validate.yml"
 
 
 class SheriffOssControlPlaneTest(unittest.TestCase):
@@ -98,6 +100,18 @@ class SheriffOssControlPlaneTest(unittest.TestCase):
         self.assertIn("test_false_pass_is_critical", tests)
         self.assertIn("test_sheriff_cannot_self_judge", tests)
         self.assertIn("test_pass_without_evidence_is_rejected", tests)
+
+    def test_v1_has_one_dedicated_fail_closed_validation_gate(self):
+        validator = VALIDATOR.read_text(encoding="utf-8")
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("SHERIFF OSS CONTROL PLANE V1 VALIDATION PASS", validator)
+        self.assertIn("OPEN_SOURCE_COMPONENTS.json", validator)
+        self.assertIn("PROPRIETARY", validator)
+        self.assertIn("python3 scripts/sheriff_validate.py", workflow)
+        self.assertIn("python3 -m py_compile scripts/sheriff_core.py scripts/sheriff_worker.py", workflow)
+        self.assertIn("docker compose -f config/sheriff/docker-compose.yml config", workflow)
+        self.assertIn("openpolicyagent/opa:1.0.1-static", workflow)
+        self.assertIn("opa test", workflow)
 
 
 if __name__ == "__main__":

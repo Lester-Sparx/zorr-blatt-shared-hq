@@ -43,9 +43,9 @@ The primary Night School objective is **stylish anime mastery for ZORR BLATT**.
 
 Priority order:
 
-`ANIME STYLE MASTERY > SUPPORTING SCIENCES > TOOLING`
+`ANIME STYLE MASTERY > SUPPORTING ART/SCIENCE > TOOLING`
 
-Mathematics, physics, geometry, engineering, OSS, and other sciences are learned because they strengthen anime production quality, consistency, speed, directing, or verification — not as disconnected trivia.
+Mathematics, physics, geometry, engineering, art history, design history, cinema, photography, architecture, fashion, OSS, and other domains are learned because they strengthen anime production quality, originality, consistency, speed, directing, or verification — not as disconnected trivia.
 
 Primary anime mastery domains:
 
@@ -61,16 +61,26 @@ Primary anime mastery domains:
 - key visual / poster / promotional design, typography, titles and graphic hierarchy;
 - editing/montage rhythm, continuity, reveal and dramatic timing.
 
-### Anime study anchors
+### Deep reference atlas — thin study, not imitation
 
-OWNER-selected primary references include:
+DUNCAN Night School must build a broad, comparative reference atlas across anime/manga, painting, cinema, photography, poster design, fashion/editorial, architecture and related visual culture. OWNER-selected anchors include:
 
-- **JoJo's Bizarre Adventure** — study bold silhouette, fashion-driven posing, graphic anatomy, high-contrast composition, unconventional color relationships, iconic pose language and aggressive visual identity;
-- **Bleach** — study elegant line economy, fashion/silhouette, negative space, black/white balance, calm graphic confidence, restrained detail and iconic character presentation.
+- **JoJo's Bizarre Adventure** — bold silhouette, fashion-driven posing, graphic anatomy, high-contrast composition, unconventional color relationships, iconic pose language and aggressive visual identity;
+- **Bleach** — elegant line economy, fashion/silhouette, negative space, black/white balance, restrained detail and iconic character presentation;
+- **Salvador Dalí** — metamorphosis of form, surreal object logic, symbolic imagery, sharp illusionistic rendering used for impossible scenes, contrast of reality and irrationality;
+- **David Lynch** — dream logic, uncanny everyday space, silence/pause, sound as dramaturgy, darkness/light, symbolic staging, psychological geography and unresolved tension;
+- **Giorgio de Chirico** — metaphysical space, long shadows, empty plazas, displaced scale, architectural perspective, stillness, estrangement and spatial unease;
+- **Max Ernst** — collage logic, frottage/grattage thinking, hybrid forms, texture-driven invention, accidental structure and associative image construction.
 
-Additional comparative anchors may include strong works such as `Redline`, `Cowboy Bebop`, `Samurai Champloo`, `Akira`, `Ghost in the Shell`, `Neon Genesis Evangelion`, `Mononoke`, `Mob Psycho 100`, `Chainsaw Man`, `Jujutsu Kaisen`, and other relevant productions selected for a specific lesson.
+The atlas is intentionally extensible. Comparative study may include other strong schools and makers when they serve a specific lesson: surrealism, metaphysical painting, expressionism, symbolism, ukiyo-e, modernist/poster design, editorial/fashion photography, graphic novels, animation, architecture, production design and cinema.
 
-These titles are **analysis/benchmark references, not a command to clone copyrighted frames, character designs, or a single creator's exact style**. DUNCAN must extract transferable principles and build an original ZORR visual language.
+Each reference study must decompose the work into transferable variables such as:
+
+`SILHOUETTE / SHAPE / LINE / NEGATIVE_SPACE / VALUE / COLOR / LIGHT / PERSPECTIVE / SCALE / CAMERA / POSE / RHYTHM / TEXTURE / TYPOGRAPHY / SYMBOL / UNCANNY / MOTION / CUT / SOUND / EFFECT`
+
+The required question is not `HOW DO I COPY THIS STYLE?` but `WHAT PRINCIPLE MAKES THIS IMAGE/SCENE POWERFUL, AND HOW CAN ZORR EXPRESS THAT PRINCIPLE ORIGINALLY?`
+
+No reference is a style-cloning command. Do not reproduce copyrighted frames, character designs, or a living creator's exact style as the target. Extract principles, compare across multiple sources, test transfer on new ZORR problems, and preserve original ZORR identity.
 
 ### DUNCAN PRIME learning universe
 
@@ -85,6 +95,7 @@ Night School may continuously train any domain that materially improves ZORR BLA
 - animation/motion: timing, spacing, arcs, anticipation, contact, balance, mass, momentum, acting, motion analysis;
 - editing/montage: shot structure, rhythm, pacing, continuity, causality, timeline analysis;
 - physics/science: mechanics, optics, waves, acoustics, signal processing, control systems, simulation, when relevant to production;
+- art/design history and visual culture when it improves original anime language;
 - engineering/computation: algorithms, data structures, debugging, testing, performance, deterministic pipelines, computer vision, graphics, scientific computing;
 - sound: acoustics, spatial audio, synchronization, signal analysis and SFX construction;
 - mature OSS/tool knowledge needed to replace custom ZORR code with proven upstream solutions.
@@ -93,7 +104,7 @@ This list is extensible by relevance, not by novelty. Night School MUST NOT accu
 
 Required learning gate:
 
-`ZORR_RELEVANCE -> OPEN/PRIMARY SOURCE -> EXERCISE -> OBJECTIVE CHECK -> CHANGED/UNSEEN TRANSFER -> DURABLE RECORD`
+`ZORR_RELEVANCE -> OPEN/PRIMARY SOURCE -> DECOMPOSE PRINCIPLES -> EXERCISE -> OBJECTIVE CHECK -> CHANGED/UNSEEN TRANSFER -> DURABLE RECORD`
 
 `READING != LEARNING` and `SOURCE_COUNT != SKILL`.
 

@@ -36,6 +36,14 @@ Before writing new infrastructure, search for and prefer existing repository cod
 
 Do not expand architecture while a narrower existing mechanism can finish the current goal.
 
+## SHERIFF safety and discipline
+
+After `SHERIFF_POLICY_V1` is activated on `main`, every agent must fresh-read `docs/SHERIFF_POLICY_V1.md` before handling an incident, discipline decision, rating update, or agent competition result.
+
+The current derived rating/discipline view is `hq/sheriff/SHERIFF_SCOREBOARD_V1.json`. It is not independent authority: durable SHERIFF verdict history and exact evidence win over the scoreboard if they ever disagree.
+
+Key fail-closed laws: an honest FAIL is not a violation; FALSE PASS/evidence substitution is critical; author, QC, and SHERIFF must remain independent for the same incident; safety gates outrank league points.
+
 ## Permanent archive
 
 Permanent Archive V1 is already the GitHub-side historical archive:

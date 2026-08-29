@@ -21,6 +21,21 @@ _BINDING_FIELDS = (
     "BASE_SHA",
     "AUTHORITY_REF",
 )
+_CONTROL_PLANE_FILES = frozenset(
+    {
+        "config/zb-r03/tasks.json",
+        "scripts/zb_communication_base.py",
+        "scripts/zb_r03_router.py",
+        "scripts/zb_r03_qc.py",
+        "scripts/zb_r03_finalize.py",
+        "scripts/hq_validate.py",
+        "tests/test_zb_r03_router.py",
+        "tests/test_zb_r03_qc.py",
+        "tests/test_zb_r03_finalize.py",
+        "tests/test_zb_r03_workflow.py",
+        "tests/test_zb_r03_gh_aw_source.py",
+    }
+)
 
 
 class QcError(ValueError):
@@ -138,6 +153,11 @@ def _allowed(path: str, policy: R03TaskPolicy) -> bool:
     return any(fnmatch.fnmatchcase(path, pattern) for pattern in policy.allowed_files)
 
 
+def _require_mutable_task_path(path: str) -> None:
+    if path in _CONTROL_PLANE_FILES:
+        raise QcError("R03_CONTROL_PLANE_MODIFICATION_BLOCKED")
+
+
 def _validate_files(files: Any, policy: R03TaskPolicy) -> None:
     if not isinstance(files, list) or not files or not all(isinstance(item, dict) for item in files):
         raise QcError("R03_CANDIDATE_FILES_INVALID")
@@ -146,11 +166,17 @@ def _validate_files(files: Any, policy: R03TaskPolicy) -> None:
     patch_bytes = 0
     for item in files:
         filename = item.get("filename")
-        if not _safe_repo_path(filename) or not _allowed(filename, policy):
+        if not _safe_repo_path(filename):
+            raise QcError("R03_CANDIDATE_SCOPE_VIOLATION")
+        _require_mutable_task_path(filename)
+        if not _allowed(filename, policy):
             raise QcError("R03_CANDIDATE_SCOPE_VIOLATION")
         if item.get("status") == "renamed":
             previous = item.get("previous_filename")
-            if not _safe_repo_path(previous) or not _allowed(previous, policy):
+            if not _safe_repo_path(previous):
+                raise QcError("R03_CANDIDATE_SCOPE_VIOLATION")
+            _require_mutable_task_path(previous)
+            if not _allowed(previous, policy):
                 raise QcError("R03_CANDIDATE_SCOPE_VIOLATION")
         patch = item.get("patch")
         if not isinstance(patch, str):

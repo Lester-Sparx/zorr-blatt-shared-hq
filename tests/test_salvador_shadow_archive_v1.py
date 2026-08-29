@@ -44,6 +44,61 @@ class SalvadorShadowArchiveV1Tests(unittest.TestCase):
             self.assertFalse(record["training_eligible"])
             self.assertFalse(record["promotion_allowed"])
 
+    def test_same_runtime_jingo_evaluation_is_partial_not_proven(self) -> None:
+        body = """JINGO_TARGETED_STRESS_R02_EVALUATION
+
+LOGICAL_EVALUATOR = JINGO
+AUTHENTICATED_CONNECTOR_ACTOR = Lester-Sparx
+CLASS = TRAINING DIAGNOSIS / SAME-RUNTIME
+PROMOTION = NO
+CERTIFICATION = NO
+HOLDOUT = NO
+GENERALIZATION_CLAIM = NO
+
+=== SALVADOR ===
+S-T01 = PASS
+S-T02 = PASS
+S-T03 = PASS
+S-T04 = PASS
+S-T05 = PASS
+
+SALVADOR RESULT
+PASS = 5/5
+MAJOR = 0
+CRITICAL = 0
+UNSUPPORTED GUESS = 0
+ROOT-CAUSE DISCRIMINATION = PASS
+
+NO PROMOTION
+NO CERTIFICATION
+NO HOLDOUT CLAIM
+"""
+        payload = {
+            "action": "created",
+            "issue": {"number": 98},
+            "comment": {
+                "id": 5436515963,
+                "user": {"login": "Lester-Sparx"},
+                "body": body,
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            result = archive_salvador_shadow_event(
+                json.dumps(payload).encode("utf-8"), Path(tmp), self.metadata()
+            )
+            self.assertIsNotNone(result)
+            record = json.loads((Path(tmp) / result["shadow_relpath"]).read_text(encoding="utf-8"))
+            self.assertEqual(record["kind"], "TRAINING_EVALUATION")
+            self.assertTrue(record["training_eligible"])
+            self.assertEqual(record["measurements"]["pass"], 5)
+            self.assertEqual(record["measurements"]["total"], 5)
+            self.assertEqual(record["measurements"]["critical"], 0)
+            self.assertEqual(record["state_before"], "UNTESTED")
+            self.assertEqual(record["state_after"], "PARTIAL")
+            self.assertFalse(record["certification"])
+            self.assertFalse(record["holdout"])
+            self.assertFalse(record["promotion_allowed"])
+
 
 if __name__ == "__main__":
     unittest.main()

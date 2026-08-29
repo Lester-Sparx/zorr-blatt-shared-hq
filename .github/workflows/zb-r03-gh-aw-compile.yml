@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   compile-gh-aw:
@@ -18,7 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
       - name: Install exact gh-aw compiler
         shell: bash
         run: |
@@ -38,6 +39,20 @@ jobs:
           set -euo pipefail
           "$RUNNER_TEMP/gh-aw" compile zb-r03-lester-agent --strict
           test -s .github/workflows/zb-r03-lester-agent.lock.yml
+      - name: Temporary sync exact generated lock on repair branch
+        if: github.head_ref == 'r03-copilot-auto-pricing-repair'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- .github/workflows/zb-r03-lester-agent.lock.yml; then
+            echo 'LOCK_ALREADY_SYNCED=YES'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/zb-r03-lester-agent.lock.yml
+          git commit -m 'build(r03): sync generated gh-aw lock'
+          git push origin HEAD:${{ github.head_ref }}
       - name: Upload exact generated lock
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

@@ -23,6 +23,7 @@ services:
       - "4222"
       - "8222"
     volumes:
+      # canonical repository source: config/sheriff/nats.conf
       - ./nats.conf:/etc/nats/nats.conf:ro
       - nats-data:/data/jetstream
 
@@ -33,6 +34,7 @@ services:
     expose:
       - "8181"
     volumes:
+      # canonical repository source: config/sheriff/opa
       - ./opa:/policy:ro
 
   postgres:
@@ -51,6 +53,7 @@ services:
       - "5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      # canonical repository source: config/sheriff/postgres
       - ./postgres:/docker-entrypoint-initdb.d:ro
 
   otel-collector:

@@ -23,7 +23,10 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertIn("workflow_call:", text)
         self.assertIn("engine: copilot", text)
         self.assertIn("model: copilot/auto", text)
-        self.assertNotIn("\nmodels:\n", text.split("---", 2)[1])
+        self.assertIn("\nmodels:\n", text.split("---", 2)[1])
+        self.assertIn("default-ai-credits-pricing:", text)
+        self.assertIn("input: 3.0", text)
+        self.assertIn("output: 15.0", text)
         self.assertIn("strict: true", text)
         self.assertNotIn("schedule:", text)
         self.assertNotIn("issue_comment:", text)
@@ -145,6 +148,8 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertIn('"agent_id":"copilot"', first)
         self.assertIn('"agent_model":"copilot/auto"', first)
         self.assertIn("COPILOT_MODEL: copilot/auto", lock)
+        self.assertIn("defaultAiCreditsPricing", lock)
+        self.assertIn('defaultAiCreditsPricing\\\":{\\\"input\\\":3,\\\"output\\\":15}', lock)
 
 
 if __name__ == "__main__":

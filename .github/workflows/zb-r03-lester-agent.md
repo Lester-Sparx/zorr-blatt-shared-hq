@@ -38,6 +38,10 @@ permissions:
   contents: read
 engine: copilot
 model: copilot/auto
+models:
+  default-ai-credits-pricing:
+    input: 3.0
+    output: 15.0
 strict: true
 checkout:
   repository: ${{ github.repository }}

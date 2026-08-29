@@ -13,8 +13,13 @@ class R03CopilotModelSelectionTests(unittest.TestCase):
     def test_source_uses_provider_scoped_native_copilot_auto(self):
         source = SOURCE.read_text(encoding="utf-8")
         frontmatter = source.split("---", 2)[1]
-        self.assertIn("engine: copilot\nmodel: copilot/auto\nstrict: true", frontmatter)
-        self.assertNotIn("\nmodels:\n", frontmatter)
+        self.assertIn("engine: copilot", frontmatter)
+        self.assertIn("model: copilot/auto", frontmatter)
+        self.assertIn("\nmodels:\n", frontmatter)
+        self.assertIn("default-ai-credits-pricing:", frontmatter)
+        self.assertIn("input: 3.0", frontmatter)
+        self.assertIn("output: 15.0", frontmatter)
+        self.assertIn("strict: true", frontmatter)
 
     def test_compiled_lock_passes_provider_scoped_auto_to_gh_aw_harness(self):
         lock = LOCK.read_text(encoding="utf-8")

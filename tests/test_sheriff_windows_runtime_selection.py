@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -40,11 +41,54 @@ class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
         self.assertNotIn('$build:MIN', self.bootstrap)
         self.assertIn('${build}:MIN', self.bootstrap)
 
-    def test_win10_preflights_wsl_before_podman_machine(self):
-        self.assertIn('function Assert-WslReady', self.bootstrap)
-        self.assertIn('WSL_NOT_READY', self.bootstrap)
+    def test_win10_automatically_repairs_wsl_instead_of_fail_only(self):
+        self.assertIn('function Ensure-WslReady', self.bootstrap)
+        self.assertIn('Microsoft-Windows-Subsystem-Linux', self.bootstrap)
+        self.assertIn('VirtualMachinePlatform', self.bootstrap)
+        self.assertIn('Enable-WindowsOptionalFeature', self.bootstrap)
+        self.assertIn('--install', self.bootstrap)
+        self.assertIn('--no-distribution', self.bootstrap)
         self.assertIn('WSL_STATUS = PASS', self.bootstrap)
-        self.assertLess(self.bootstrap.find('Assert-WslReady'), self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install'))
+        invocation = re.search(
+            r'if \(\$build -lt \$Windows11Build\) \{\s*Ensure-WslReady\s*\}',
+            self.bootstrap,
+        )
+        self.assertIsNotNone(invocation, 'Win10 execution path must invoke Ensure-WslReady')
+        install = self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install')
+        self.assertGreater(install, invocation.start())
+
+    def test_wsl_repair_self_elevates_without_manual_admin_commands(self):
+        self.assertIn('function Test-IsAdministrator', self.bootstrap)
+        self.assertIn('function Invoke-ElevatedSelf', self.bootstrap)
+        self.assertIn('-Verb RunAs', self.bootstrap)
+        self.assertIn('ELEVATION_REQUIRED_FOR_WSL', self.bootstrap)
+
+    def test_wsl_repair_can_resume_after_required_reboot(self):
+        self.assertIn('[ValidateSet("Auto", "Resume")]', self.bootstrap)
+        self.assertIn('function Register-WslResume', self.bootstrap)
+        self.assertIn('ZORR SHERIFF V1 WSL Resume', self.bootstrap)
+        self.assertIn('New-ScheduledTaskTrigger -AtLogOn', self.bootstrap)
+        self.assertIn('-Stage Resume', self.bootstrap)
+        self.assertIn('shutdown.exe', self.bootstrap)
+        self.assertIn('/r', self.bootstrap)
+        self.assertIn('/t', self.bootstrap)
+        self.assertIn('WSL_REBOOT_SCHEDULED = YES', self.bootstrap)
+        cleanup = re.search(
+            r'if \(\$Stage -eq "Resume"\) \{\s*Unregister-WslResume\s*\}',
+            self.bootstrap,
+        )
+        self.assertIsNotNone(cleanup, 'Resume task must remove itself before continuing')
+        ensure_call = self.bootstrap.find('    Ensure-WslReady', cleanup.end())
+        self.assertGreater(ensure_call, cleanup.end())
+
+    def test_virtualization_is_checked_before_wsl2_machine_use(self):
+        self.assertIn('VirtualizationFirmwareEnabled', self.bootstrap)
+        self.assertIn('CPU_VIRTUALIZATION_DISABLED_IN_FIRMWARE', self.bootstrap)
+        ensure_body = self.bootstrap.find('function Ensure-WslReady')
+        firmware_call = self.bootstrap.find('    Assert-VirtualizationFirmware', ensure_body)
+        install = self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install')
+        self.assertGreater(firmware_call, ensure_body)
+        self.assertGreater(install, firmware_call)
 
     def test_github_cli_is_not_a_physical_runtime_gate(self):
         self.assertIn('function Patch-EvidenceTransport', self.bootstrap)

@@ -47,6 +47,21 @@ jobs:
             --event-path "$GITHUB_EVENT_PATH" \
             --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
 
+      - name: Derive unified archive restore state
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Unified restore activation waits for trusted main; branch push RAW archive continues."
+          else
+            python3 source/scripts/hq_unified_archive.py ingest-event \
+              --event-path "$GITHUB_EVENT_PATH" \
+              --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1" \
+              --event-name "$GITHUB_EVENT_NAME" \
+              --repository "$GITHUB_REPOSITORY" \
+              --actor "$GITHUB_ACTOR"
+          fi
+
       - name: Derive SALVADOR shadow learning
         shell: bash
         run: |

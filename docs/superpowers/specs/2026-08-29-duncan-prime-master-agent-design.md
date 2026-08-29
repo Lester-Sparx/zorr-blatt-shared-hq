@@ -6,7 +6,7 @@ OWNER-approved architectural direction for ZORR BLATT.
 
 ## Goal
 
-Establish one durable identity root for the ZORR agent family: `DUNCAN PRIME`.
+Establish one durable identity and learning root for the ZORR agent family: `DUNCAN PRIME`.
 
 ## Core law
 
@@ -28,17 +28,67 @@ Activating a specialist changes task focus, allowed tools, specialist methods, a
 
 ## Night School
 
-Night School trains DUNCAN PRIME. Shared verified learning may improve SALVADOR and other specialist facets through the common root. Specialist training data may return to the common root only after provenance and verification.
+Night School trains DUNCAN PRIME, not a separate specialist root. Shared verified learning may improve SALVADOR and other specialist facets through the common root. Specialist training data may return to the common root only after provenance and verification.
+
+### Learning universe
+
+Night School may continuously study any domain that materially improves ZORR BLATT production. The curriculum includes, but is not limited to:
+
+- mathematics: geometry, linear algebra, calculus, optimization, probability/statistics, numerical methods, projective geometry, kinematics;
+- cinematography/directing: camera geometry, lenses/FOV, framing, composition, staging, blocking, screen geography, visual continuity, shot motivation;
+- anime/graphic design: posters, key visuals, typography, titles, layout, hierarchy, color systems, promotional composition and anime visual language;
+- drawing/illustration: anatomy, gesture, construction, perspective, line economy, shape design, values, rendering, stylization and production simplification;
+- VFX/effects: compositing, particles, smoke/fire, fluids, volumes, procedural effects, shaders/materials, lighting, color management and temporal effects;
+- geometry/3D: transforms, meshes, topology, rigging, IK, deformation, collision, reconstruction and spatial data structures;
+- animation/motion: timing, spacing, arcs, anticipation, contact, balance, mass, momentum, acting and motion analysis;
+- editing/montage: shot structure, rhythm, pacing, continuity, causality and timeline analysis;
+- physics/science: mechanics, optics, waves, acoustics, signal processing, control systems and simulation when they serve production;
+- engineering/computation: algorithms, data structures, debugging, testing, performance, deterministic pipelines, computer vision, graphics and scientific computing;
+- sound: acoustics, spatial audio, synchronization, signal analysis and SFX construction;
+- mature open-source production tools and methods that can replace custom ZORR implementations.
+
+The universe is extensible by ZORR relevance, not novelty. The system must not accumulate random knowledge merely to increase source count.
+
+### Learning gate
+
+Every promoted lesson must pass:
+
+`ZORR_RELEVANCE -> OPEN/PRIMARY SOURCE -> EXERCISE -> OBJECTIVE CHECK -> CHANGED/UNSEEN TRANSFER -> DURABLE RECORD`
+
+`READING != LEARNING`
+
+`SOURCE_COUNT != SKILL`
+
+`MEMORIZATION != GENERALIZATION`
+
+Failures remain useful training data but cannot be promoted as proven skills.
+
+## Open-source-first learning substrate
+
+R01 reuses existing ZORR/GitHub infrastructure and evaluates mature upstream tools instead of building a custom learning platform.
+
+Examples of preferred open systems by domain include:
+
+- identity/memory evaluation: Letta / Letta Code / MemFS;
+- mathematical verification: SymPy/SciPy and Lean 4 + mathlib4 when formal proof adds value;
+- geometry/camera: Open3D and other mature geometry libraries;
+- timeline/editing: OpenTimelineIO and PySceneDetect;
+- drawing/design: Krita, Inkscape/OpenToonz-class mature FOSS tools where applicable;
+- compositing/VFX/graphics: Academy Software Foundation ecosystem and other mature open production tools where applicable;
+- open study/reference sources: openly licensed production assets and learning material with license/provenance recorded.
+
+No tool is considered adopted merely because it is open source; each must pass a relevance, license, maturity, and physical-use gate.
 
 ## Authority boundary
 
-This law changes identity topology only. It does not grant production, canon, merge, or QC authority. Existing explicit authority gates remain in force.
+This law changes identity topology and curriculum only. It does not grant production, canon, merge, or QC authority. Existing explicit authority gates remain in force.
 
 ## Durable integration
 
-- `AGENTS.md` carries the bootstrap version of the master-agent law so every ZORR session restores it.
+- `AGENTS.md` carries the bootstrap version of the master-agent and learning-universe laws so every ZORR session restores them.
 - Issue #206 remains the working DUNCAN PRIME / Night School contract.
-- Permanent Archive V1 preserves the OWNER directive and subsequent evidence.
+- Permanent Archive V1 preserves OWNER directives and subsequent evidence.
+- Existing scheduled `Duncan Night School` executes the recurring learning cycle; no second scheduler is introduced.
 
 ## Acceptance
 
@@ -48,7 +98,9 @@ PASS requires:
 2. `AGENTS.md` explicitly states DUNCAN PRIME is the single primordial/master identity root;
 3. SALVADOR is explicitly an internal facet of DUNCAN PRIME;
 4. Night School is explicitly DUNCAN PRIME learning;
-5. no production/canon/QC/merge authority expansion;
-6. fresh PR diff/read-back confirms exact scope;
-7. durable PR/issue event is captured by Permanent Archive V1;
-8. current Constitution is re-read before terminal PASS.
+5. learning universe includes design/posters, drawing, effects, geometry, mathematics/science, cinematography, staging, editing, animation, engineering and sound, with an extensible relevance gate;
+6. no production/canon/QC/merge authority expansion;
+7. fresh PR diff/read-back confirms exact scope;
+8. Night School automation prompt is aligned with the master-agent and learning-universe law;
+9. durable evidence is captured by Permanent Archive V1;
+10. current Constitution is re-read before terminal PASS.

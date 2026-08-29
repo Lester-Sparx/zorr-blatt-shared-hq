@@ -92,10 +92,11 @@ class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
 
     def test_first_podman_machine_creation_uses_non_erroring_list_probe(self):
         self.assertIn('function Patch-PodmanMachineFirstInit', self.bootstrap)
-        self.assertIn('machine list --format', self.bootstrap)
+        self.assertIn('@("machine", "list", "--format", "json")', self.bootstrap)
+        self.assertIn('Start-Process -FilePath $PodmanExe', self.bootstrap)
         self.assertIn('PODMAN_MACHINE_LIST_FAILED', self.bootstrap)
         self.assertIn('PODMAN_MACHINE_FIRST_INIT_SAFE', self.bootstrap)
-        self.assertNotIn('& $PodmanExe machine inspect *> $null', self.bootstrap.split('function Patch-PodmanMachineFirstInit', 1)[1])
+        self.assertIn('PODMAN_MACHINE_PATCH_VERIFY_FAILED', self.bootstrap)
         invocation = self.bootstrap.find('Patch-PodmanMachineFirstInit $Deployer')
         install = self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install')
         self.assertGreater(invocation, 0)

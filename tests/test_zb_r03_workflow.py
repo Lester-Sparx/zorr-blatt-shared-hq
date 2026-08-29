@@ -39,12 +39,13 @@ class R03ProductionWorkflowTests(unittest.TestCase):
 
     def test_repository_dispatch_handoff_uses_no_pat_and_payload_is_built_only_by_typed_helper(self):
         text = self.workflow()
-        self.assertIn("contents: write", text)
-        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", text)
-        self.assertIn('"client_payload": dispatch_payload(dispatch, root_comment_id=root_comment_id)', text)
-        self.assertNotIn("COPILOT_GITHUB_TOKEN", text)
-        self.assertNotIn("GH_AW_CI_TRIGGER_TOKEN", text)
-        self.assertNotIn("secrets: inherit", text)
+        admit = text.split("\n  admit:\n", 1)[1].split("\n  revalidate:\n", 1)[0]
+        self.assertIn("contents: write", admit)
+        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", admit)
+        self.assertIn('"client_payload": dispatch_payload(dispatch, root_comment_id=root_comment_id)', admit)
+        self.assertNotIn("COPILOT_GITHUB_TOKEN", admit)
+        self.assertNotIn("GH_AW_CI_TRIGGER_TOKEN", admit)
+        self.assertNotIn("secrets: inherit", admit)
 
     def test_execution_run_revalidates_remote_authority_before_lester(self):
         text = self.workflow()

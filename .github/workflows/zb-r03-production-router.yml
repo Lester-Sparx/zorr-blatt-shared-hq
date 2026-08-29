@@ -135,7 +135,6 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
-      copilot-requests: write
     uses: ./.github/workflows/zb-r03-lester-agent.lock.yml
     with:
       message-id: ${{ needs.revalidate.outputs.message_id }}
@@ -145,6 +144,8 @@ jobs:
       base-sha: ${{ needs.revalidate.outputs.base_sha }}
       authority-ref: ${{ needs.revalidate.outputs.authority_ref }}
       task-spec-b64: ${{ needs.revalidate.outputs.task_spec_b64 }}
+    secrets:
+      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
 
   duncan_qc:
     needs: [revalidate, lester]

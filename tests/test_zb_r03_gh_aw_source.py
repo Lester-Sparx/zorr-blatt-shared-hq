@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / ".github" / "workflows" / "zb-r03-lester-agent.md"
 COMPILE_WORKFLOW = ROOT / ".github" / "workflows" / "zb-r03-gh-aw-compile.yml"
 LOCK = ROOT / ".github" / "workflows" / "zb-r03-lester-agent.lock.yml"
+ROUTER = ROOT / ".github" / "workflows" / "zb-r03-production-router.yml"
 
 
 class R03GhAwSourceTests(unittest.TestCase):
@@ -43,13 +44,29 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertIn("ref: ${{ inputs.base-sha }}", text)
         self.assertIn("fetch-depth: 0", text)
 
-    def test_agent_permissions_are_read_only_except_copilot_request(self):
+    def test_agent_uses_only_explicit_pat_for_copilot_inference(self):
         text = self.source()
         self.assertRegex(text, r"(?m)^permissions:\s*$")
         self.assertRegex(text, r"(?m)^\s{2}contents:\s*read\s*$")
-        self.assertRegex(text, r"(?m)^\s{2}copilot-requests:\s*write\s*$")
+        self.assertNotIn("copilot-requests: write", text)
         for forbidden in ("contents: write", "issues: write", "pull-requests: write", "actions: write"):
             self.assertNotIn(forbidden, text)
+
+        if not ROUTER.is_file():
+            self.fail("R03_PRODUCTION_ROUTER_MISSING")
+        router = ROUTER.read_text(encoding="utf-8")
+        lester = router.split("\n  lester:\n", 1)[1].split("\n  duncan_qc:\n", 1)[0]
+        self.assertNotIn("copilot-requests: write", lester)
+        self.assertIn("secrets:\n      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}", lester)
+        self.assertNotIn("secrets: inherit", lester)
+
+        if not LOCK.is_file():
+            self.fail("R03_GH_AW_LOCK_MISSING")
+        lock = LOCK.read_text(encoding="utf-8")
+        self.assertRegex(
+            lock,
+            r"(?ms)^on:\s*$.*?^\s{2}workflow_call:\s*$.*?^\s{4}secrets:\s*$.*?^\s{6}COPILOT_GITHUB_TOKEN:\s*$",
+        )
 
     def test_safe_output_is_one_draft_pr_with_no_fallback_or_auto_merge(self):
         text = self.source()

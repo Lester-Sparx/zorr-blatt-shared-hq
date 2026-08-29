@@ -60,6 +60,15 @@ class ZorrModeToolbarContractTests(unittest.TestCase):
         self.assertIn("STOP_NOT_AVAILABLE", text)
         self.assertNotIn('sendPrompt("СТОП', text)
 
+    def test_legacy_r02_conflict_is_suppressed_before_mount(self):
+        text = self.script_text()
+        self.assertIn('const LEGACY_R02_HEADING = "ZORR OWNER COMMAND BAR R02"', text)
+        self.assertIn("function suppressLegacyR02Toolbar", text)
+        mount = re.search(r"function mountToolbar\(\) \{(.*?)\n  \}", text, re.S)
+        self.assertIsNotNone(mount, "mountToolbar is required")
+        self.assertIn("suppressLegacyR02Toolbar();", mount.group(1))
+        self.assertIn('dataset.zorrLegacySuppressed = "r02"', text)
+
     def test_install_doc_uses_oss_manager_and_raw_script(self):
         self.assertTrue(DOC.is_file(), "install doc is required")
         text = DOC.read_text(encoding="utf-8")

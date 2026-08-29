@@ -86,7 +86,7 @@ $build = [Environment]::OSVersion.Version.Build
 Write-Output "WINDOWS_BUILD = $build"
 
 if ($build -lt $MinWindows10Build) {
-    throw "WINDOWS_BUILD_UNSUPPORTED:$build:MIN=$MinWindows10Build"
+    throw "WINDOWS_BUILD_UNSUPPORTED:${build}:MIN=$MinWindows10Build"
 }
 
 Invoke-WebRequest -UseBasicParsing -Uri $DeployerUrl -OutFile $Deployer

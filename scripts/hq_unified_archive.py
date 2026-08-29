@@ -12,6 +12,9 @@ from typing import Any
 
 RECORD_SCHEMA = "ZB_UNIFIED_ARCHIVE_RECORD_V1"
 CONTEXT_SCHEMA = "ZB_UNIFIED_CURRENT_CONTEXT_V1"
+LESSON_SCHEMA = "ZB_REFLEXION_LESSON_V1"
+LEARNING_POLICY_SCHEMA = "ZB_LEARNING_POLICY_V1"
+TRAINING_EXAMPLE_SCHEMA = "ZB_LEARNING_EXAMPLE_V1"
 _URL_RE = re.compile(r"https?://[^\s<>'\"\)\]]+")
 _TOKEN_RE = re.compile(r"\w+", re.UNICODE)
 _KEY_RE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
@@ -354,6 +357,233 @@ def build_restore_packet(archive_root: Path, query: str, *, limit: int = 10) -> 
     }
 
 
+def _learning_root(archive_root: Path) -> Path:
+    return Path(archive_root) / "derived" / "unified-v1" / "learning"
+
+
+def _safe_repo_path(repo_root: Path, relative_path: str) -> Path:
+    relative = Path(relative_path)
+    if not relative_path or relative.is_absolute() or ".." in relative.parts:
+        raise UnifiedArchiveError("LESSON_REF_INVALID")
+    root = Path(repo_root).resolve()
+    candidate = (root / relative).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise UnifiedArchiveError("LESSON_REF_INVALID") from exc
+    return candidate
+
+
+def _closed_verdict_to_lesson(verdict_bytes: bytes, *, repo_root: Path) -> dict[str, Any] | None:
+    try:
+        verdict = json.loads(verdict_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise UnifiedArchiveError("SHERIFF_VERDICT_INVALID") from exc
+    if not isinstance(verdict, dict) or verdict.get("schemaVersion") != "SHERIFF_VERDICT_V1":
+        raise UnifiedArchiveError("SHERIFF_VERDICT_INVALID")
+    if verdict.get("status") != "CLOSED":
+        return None
+
+    required_strings = (
+        "verdictId",
+        "agentId",
+        "incidentClass",
+        "errorSignature",
+        "rootCause",
+        "regressionTest",
+        "lessonRef",
+        "issuedAt",
+    )
+    for key in required_strings:
+        value = verdict.get(key)
+        if not isinstance(value, str) or not value.strip():
+            raise UnifiedArchiveError(f"SHERIFF_VERDICT_{key.upper()}_INVALID")
+    evidence = verdict.get("evidence")
+    if not isinstance(evidence, list) or not evidence or not all(isinstance(item, str) and item for item in evidence):
+        raise UnifiedArchiveError("SHERIFF_VERDICT_EVIDENCE_INVALID")
+
+    lesson_ref = str(verdict["lessonRef"])
+    lesson_path = _safe_repo_path(Path(repo_root), lesson_ref)
+    if not lesson_path.is_file():
+        raise UnifiedArchiveError("LESSON_REF_MISSING")
+    try:
+        lesson_text = lesson_path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeError) as exc:
+        raise UnifiedArchiveError("LESSON_REF_UNREADABLE") from exc
+    if not lesson_text:
+        raise UnifiedArchiveError("LESSON_TEXT_EMPTY")
+    if len(lesson_text) > 16000:
+        raise UnifiedArchiveError("LESSON_TEXT_TOO_LARGE")
+
+    verdict_sha256 = hashlib.sha256(verdict_bytes).hexdigest()
+    return {
+        "schema": LESSON_SCHEMA,
+        "verdict_id": verdict["verdictId"],
+        "verdict_sha256": verdict_sha256,
+        "agent_id": verdict["agentId"],
+        "incident_class": verdict["incidentClass"],
+        "error_signature": verdict["errorSignature"],
+        "root_cause": verdict["rootCause"],
+        "lesson_ref": lesson_ref,
+        "lesson_text": lesson_text,
+        "regression_test": verdict["regressionTest"],
+        "evidence": list(verdict["evidence"]),
+        "issued_at": verdict["issuedAt"],
+    }
+
+
+def _load_lessons(archive_root: Path) -> list[dict[str, Any]]:
+    root = _learning_root(Path(archive_root)) / "lessons"
+    lessons: list[dict[str, Any]] = []
+    for path in sorted(root.glob("*.json")):
+        try:
+            lesson = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise UnifiedArchiveError("LESSON_RECORD_INVALID") from exc
+        if not isinstance(lesson, dict) or lesson.get("schema") != LESSON_SCHEMA:
+            raise UnifiedArchiveError("LESSON_RECORD_INVALID")
+        digest = str(lesson.get("verdict_sha256") or "")
+        if path.name != f"{digest}.json" or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise UnifiedArchiveError("LESSON_RECORD_PATH_INVALID")
+        lessons.append(lesson)
+    return lessons
+
+
+def _write_learning_corpus(archive_root: Path, lessons: list[dict[str, Any]]) -> Path:
+    learning_root = _learning_root(Path(archive_root))
+    learning_root.mkdir(parents=True, exist_ok=True)
+    path = learning_root / "TRAINING_CORPUS.jsonl"
+    examples = []
+    for lesson in sorted(lessons, key=lambda item: (str(item.get("issued_at") or ""), str(item.get("verdict_id") or ""))):
+        examples.append({
+            "schema": TRAINING_EXAMPLE_SCHEMA,
+            "verdict_id": lesson["verdict_id"],
+            "error_signature": lesson["error_signature"],
+            "root_cause": lesson["root_cause"],
+            "lesson": lesson["lesson_text"],
+            "regression_test": lesson["regression_test"],
+            "evidence": lesson["evidence"],
+            "issued_at": lesson["issued_at"],
+        })
+    data = b"".join(_canonical_json(example) for example in examples)
+    path.write_bytes(data)
+    return path
+
+
+def sync_sheriff_lessons(verdict_root: Path, repo_root: Path, archive_root: Path) -> dict[str, Any]:
+    verdict_root = Path(verdict_root)
+    repo_root = Path(repo_root)
+    archive_root = Path(archive_root)
+    pending: list[dict[str, Any]] = []
+    skipped_open = 0
+    if verdict_root.exists():
+        for verdict_path in sorted(verdict_root.glob("*.json")):
+            try:
+                verdict_bytes = verdict_path.read_bytes()
+            except OSError as exc:
+                raise UnifiedArchiveError("SHERIFF_VERDICT_UNREADABLE") from exc
+            lesson = _closed_verdict_to_lesson(verdict_bytes, repo_root=repo_root)
+            if lesson is None:
+                skipped_open += 1
+            else:
+                pending.append(lesson)
+
+    lesson_root = _learning_root(archive_root) / "lessons"
+    lesson_root.mkdir(parents=True, exist_ok=True)
+    for old in lesson_root.glob("*.json"):
+        old.unlink()
+    for lesson in pending:
+        path = lesson_root / f"{lesson['verdict_sha256']}.json"
+        path.write_bytes(_canonical_json(lesson))
+    corpus_path = _write_learning_corpus(archive_root, pending)
+    return {
+        "learned": len(pending),
+        "skipped_open": skipped_open,
+        "corpus_count": len(pending),
+        "corpus_relpath": corpus_path.relative_to(archive_root).as_posix(),
+    }
+
+
+def search_lessons(archive_root: Path, query: str, *, limit: int = 10) -> list[dict[str, Any]]:
+    if limit < 1:
+        raise UnifiedArchiveError("SEARCH_LIMIT_INVALID")
+    lessons = _load_lessons(Path(archive_root))
+    if not lessons:
+        return []
+    by_id = {str(lesson["verdict_id"]): lesson for lesson in lessons}
+    connection = sqlite3.connect(":memory:")
+    try:
+        try:
+            connection.execute(
+                "CREATE VIRTUAL TABLE lesson_fts USING fts5(verdict_id UNINDEXED, error_signature, root_cause, lesson_text, regression_test)"
+            )
+        except sqlite3.OperationalError as exc:
+            raise UnifiedArchiveError("SQLITE_FTS5_UNAVAILABLE") from exc
+        connection.executemany(
+            "INSERT INTO lesson_fts(verdict_id, error_signature, root_cause, lesson_text, regression_test) VALUES (?, ?, ?, ?, ?)",
+            [
+                (
+                    lesson["verdict_id"],
+                    str(lesson.get("error_signature") or ""),
+                    str(lesson.get("root_cause") or ""),
+                    str(lesson.get("lesson_text") or ""),
+                    str(lesson.get("regression_test") or ""),
+                )
+                for lesson in lessons
+            ],
+        )
+        rows = connection.execute(
+            "SELECT verdict_id FROM lesson_fts WHERE lesson_fts MATCH ? ORDER BY bm25(lesson_fts), rowid LIMIT ?",
+            (_fts_query(query), limit),
+        ).fetchall()
+    finally:
+        connection.close()
+    return [by_id[str(row[0])] for row in rows]
+
+
+def build_learning_policy(archive_root: Path, query: str, *, limit: int = 5) -> dict[str, Any]:
+    lessons = search_lessons(Path(archive_root), query, limit=limit)
+    if not lessons:
+        return {
+            "schema": LEARNING_POLICY_SCHEMA,
+            "status": "NOT_PROVEN",
+            "query": query,
+            "lesson_count": 0,
+            "policy_prefix": "",
+            "lessons": [],
+        }
+    rendered: list[str] = [
+        "DURABLE VERIFIED LESSONS — apply before answering; fresher raw evidence always wins."
+    ]
+    public_lessons: list[dict[str, Any]] = []
+    for lesson in lessons:
+        rendered.extend([
+            f"VERDICT = {lesson['verdict_id']}",
+            f"ERROR_SIGNATURE = {lesson['error_signature']}",
+            f"RULE = {lesson['lesson_text']}",
+            f"REGRESSION_TEST = {lesson['regression_test']}",
+            "EVIDENCE = " + " | ".join(str(item) for item in lesson["evidence"]),
+        ])
+        public_lessons.append({
+            "verdict_id": lesson["verdict_id"],
+            "verdict_sha256": lesson["verdict_sha256"],
+            "error_signature": lesson["error_signature"],
+            "root_cause": lesson["root_cause"],
+            "lesson": lesson["lesson_text"],
+            "regression_test": lesson["regression_test"],
+            "evidence": lesson["evidence"],
+            "issued_at": lesson["issued_at"],
+        })
+    return {
+        "schema": LEARNING_POLICY_SCHEMA,
+        "status": "PROVEN",
+        "query": query,
+        "lesson_count": len(public_lessons),
+        "policy_prefix": "\n".join(rendered),
+        "lessons": public_lessons,
+    }
+
+
 def _ingest_event(args: argparse.Namespace) -> dict[str, Any]:
     event_bytes = args.event_path.read_bytes()
     digest = hashlib.sha256(event_bytes).hexdigest()
@@ -408,6 +638,16 @@ def main() -> int:
     guard.add_argument("--key", required=True)
     guard.add_argument("--claimed-value", required=True)
 
+    sync_lessons = subparsers.add_parser("sync-lessons")
+    sync_lessons.add_argument("--verdict-root", required=True, type=Path)
+    sync_lessons.add_argument("--repo-root", required=True, type=Path)
+    sync_lessons.add_argument("--archive-root", required=True, type=Path)
+
+    learning_policy = subparsers.add_parser("learning-policy")
+    learning_policy.add_argument("--archive-root", required=True, type=Path)
+    learning_policy.add_argument("--query", required=True)
+    learning_policy.add_argument("--limit", type=int, default=5)
+
     args = parser.parse_args()
     if args.command == "ingest-event":
         result: Any = _ingest_event(args)
@@ -417,7 +657,7 @@ def main() -> int:
         result = build_restore_packet(args.archive_root, args.query, limit=args.limit)
     elif args.command == "resolve":
         result = resolve_assertion(args.archive_root, args.subject_kind, args.subject_number, args.key)
-    else:
+    elif args.command == "guard":
         result = guard_assertion(
             args.archive_root,
             args.subject_kind,
@@ -425,6 +665,10 @@ def main() -> int:
             args.key,
             args.claimed_value,
         )
+    elif args.command == "sync-lessons":
+        result = sync_sheriff_lessons(args.verdict_root, args.repo_root, args.archive_root)
+    else:
+        result = build_learning_policy(args.archive_root, args.query, limit=args.limit)
     print(json.dumps(result, sort_keys=True, ensure_ascii=False))
     return 0
 

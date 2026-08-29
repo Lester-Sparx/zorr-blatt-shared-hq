@@ -36,6 +36,10 @@ class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
         self.assertIn('47a92fc4a0d685e1a892285c568a59dfc5ccac82', self.bootstrap)
         self.assertIn('ab816ff383c74d1c72ee36df31bc381cf062f52b', self.bootstrap)
 
+    def test_powershell_variable_before_colon_is_braced(self):
+        self.assertNotIn('$build:MIN', self.bootstrap)
+        self.assertIn('${build}:MIN', self.bootstrap)
+
 
 if __name__ == '__main__':
     unittest.main()

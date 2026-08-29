@@ -2,6 +2,23 @@
 
 This file is a short bootstrap map for coding/review agents. It is not the project archive and must not become a second source of truth.
 
+## ZORR MODE — mandatory execution bootstrap
+
+Before any substantive ZORR BLATT engineering, automation, QC, debugging, research, or production-support work, every agent/session MUST fresh-read:
+
+1. current `main` HEAD;
+2. `ZORR_EXECUTION_CONSTITUTION.md` from that exact `main`;
+3. this `AGENTS.md`;
+4. the exact current task/tracker/PR and latest relevant evidence.
+
+The Constitution is the mandatory operating law. Its requirements apply even when OWNER does not type `ZORR MODE`.
+
+`ZORR MODE` means: reload current `main`, reload the Constitution, reload the exact task/evidence, discard stale chat assumptions that conflict with durable evidence, then continue from the first real blocker.
+
+If the Constitution is missing, unreadable, stale relative to the current `main`, or contradicted by required durable context, fail closed with `DURABLE_CONTEXT_NOT_PROVEN`. Do not continue from chat memory.
+
+Before claiming `PASS`, `DONE`, `ACTIVE`, `LOCKED`, `PRODUCTION_ACTIVE`, or equivalent, fresh-read the current Constitution again and prove the exact claimed state with fresh evidence.
+
 ## First law
 
 GitHub is the durable system of record. Chat/session memory is never authoritative.

@@ -139,6 +139,19 @@ NO HOLDOUT CLAIM
             self.assertEqual(record["state_before"], "PARTIAL")
             self.assertEqual(record["state_after"], "PARTIAL")
 
+    def test_replay_of_older_event_remains_idempotent_after_newer_event(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            event = self.evaluator_event(self.passing_evaluation())
+            first = archive_salvador_shadow_event(event, root, self.metadata("99001"))
+            archive_salvador_shadow_event(
+                self.runtime_event(5434385534), root, self.metadata("99002")
+            )
+            replay = archive_salvador_shadow_event(event, root, self.metadata("99001"))
+            self.assertIsNotNone(first)
+            self.assertIsNotNone(replay)
+            self.assertEqual(replay["shadow_relpath"], first["shadow_relpath"])
+
 
 if __name__ == "__main__":
     unittest.main()

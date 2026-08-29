@@ -31,6 +31,7 @@ jobs:
       - name: Run HQ memory tests
         run: python -m pytest hq-memory/tests -q
       - name: Run production controller tests
-        run: python -m pytest agent-controller/tests -q
+        working-directory: agent-controller
+        run: python -m pytest tests -q
       - name: Compile both packages
         run: python -m compileall -q hq-memory/src agent-controller/src

@@ -39,6 +39,10 @@ permissions:
 engine: copilot
 model: auto
 strict: true
+checkout:
+  repository: ${{ github.repository }}
+  ref: ${{ inputs.base-sha }}
+  fetch-depth: 0
 network:
   allowed:
     - defaults

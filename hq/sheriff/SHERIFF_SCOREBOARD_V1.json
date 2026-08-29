@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "SHERIFF_SCOREBOARD_V1",
+  "policyRef": "docs/SHERIFF_POLICY_V1.md",
+  "verdictSchemaRef": "schemas/SHERIFF_VERDICT_V1.schema.json",
+  "derivedFromVerdicts": true,
+  "bootstrap": "NEUTRAL_NO_HISTORICAL_BACKFILL",
+  "updatedAt": null,
+  "agents": [
+    {
+      "agentId": "LESTER",
+      "discipline": {
+        "score": 100,
+        "status": "GREEN",
+        "meritPoints": 0,
+        "incidentCount": 0,
+        "activeGate": "NONE"
+      },
+      "skill": {
+        "system": "glicko2",
+        "rating": 1500,
+        "ratingDeviation": 350,
+        "volatility": 0.06,
+        "ratedMatches": 0
+      },
+      "verdictIds": []
+    },
+    {
+      "agentId": "DUNCAN",
+      "discipline": {
+        "score": 100,
+        "status": "GREEN",
+        "meritPoints": 0,
+        "incidentCount": 0,
+        "activeGate": "NONE"
+      },
+      "skill": {
+        "system": "glicko2",
+        "rating": 1500,
+        "ratingDeviation": 350,
+        "volatility": 0.06,
+        "ratedMatches": 0
+      },
+      "verdictIds": []
+    },
+    {
+      "agentId": "DJANGO",
+      "discipline": {
+        "score": 100,
+        "status": "GREEN",
+        "meritPoints": 0,
+        "incidentCount": 0,
+        "activeGate": "NONE"
+      },
+      "skill": {
+        "system": "glicko2",
+        "rating": 1500,
+        "ratingDeviation": 350,
+        "volatility": 0.06,
+        "ratedMatches": 0
+      },
+      "verdictIds": []
+    },
+    {
+      "agentId": "JINGO",
+      "discipline": {
+        "score": 100,
+        "status": "GREEN",
+        "meritPoints": 0,
+        "incidentCount": 0,
+        "activeGate": "NONE"
+      },
+      "skill": {
+        "system": "glicko2",
+        "rating": 1500,
+        "ratingDeviation": 350,
+        "volatility": 0.06,
+        "ratedMatches": 0
+      },
+      "verdictIds": []
+    },
+    {
+      "agentId": "SHERIFF",
+      "discipline": {
+        "score": 100,
+        "status": "GREEN",
+        "meritPoints": 0,
+        "incidentCount": 0,
+        "activeGate": "NONE"
+      },
+      "skill": {
+        "system": "glicko2",
+        "rating": 1500,
+        "ratingDeviation": 350,
+        "volatility": 0.06,
+        "ratedMatches": 0
+      },
+      "verdictIds": [],
+      "canSelfJudge": false
+    }
+  ]
+}

@@ -1,0 +1,270 @@
+{
+  "after": "a50722374ccc2add70ea759f190927d16351f6bd",
+  "base_ref": null,
+  "before": "333550e4a9d4754471c49d3573a370e559212451",
+  "commits": [
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "d3d03ef1af8ded72116aec33ceb883da1a53cf0b",
+      "message": "docs: define ZORR MODE toolbar v1",
+      "timestamp": "2026-08-29T13:00:37+03:00",
+      "tree_id": "d2e342fd2e15f02ed62305eaf5a517d76217efbf",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/d3d03ef1af8ded72116aec33ceb883da1a53cf0b"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "e860ba507e2d07fd559f9e49f82466c0166d0255",
+      "message": "docs: plan ZORR MODE toolbar v1",
+      "timestamp": "2026-08-29T13:00:57+03:00",
+      "tree_id": "9b4bc7f4d39857d2344892d5871923cf6e96bec4",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/e860ba507e2d07fd559f9e49f82466c0166d0255"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "9cee884972fe6454ed72eb969319cf7a86ed738f",
+      "message": "test: define ZORR MODE toolbar contract",
+      "timestamp": "2026-08-29T13:01:11+03:00",
+      "tree_id": "3214df6380f3ce8324cae1b00f0fc1894cd37848",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/9cee884972fe6454ed72eb969319cf7a86ed738f"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "f5d8d0ac20b24e0d13d653869f4768f52841fb49",
+      "message": "feat: add one-click ZORR MODE toolbar",
+      "timestamp": "2026-08-29T13:01:59+03:00",
+      "tree_id": "116a4c7a716bea97312ad14f1c0f660123f4837e",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/f5d8d0ac20b24e0d13d653869f4768f52841fb49"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "efdb4f2621d01df42c536a63697d11fab356aabc",
+      "message": "docs: add ZORR MODE toolbar install path",
+      "timestamp": "2026-08-29T13:02:16+03:00",
+      "tree_id": "4c15da62dd48fda0c55502f0a1eadbeda6616b16",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/efdb4f2621d01df42c536a63697d11fab356aabc"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "noreply@github.com",
+        "name": "GitHub",
+        "username": "web-flow"
+      },
+      "distinct": true,
+      "id": "a50722374ccc2add70ea759f190927d16351f6bd",
+      "message": "ZORR MODE — lock one-click ChatGPT toolbar v1\n\nMerge the minimal OWNER toolbar after fresh hq-validate success on exact head efdb4f2621d01df42c536a63697d11fab356aabc. Physical browser activation remains a separate local security gate.",
+      "timestamp": "2026-08-29T13:04:33+03:00",
+      "tree_id": "4c15da62dd48fda0c55502f0a1eadbeda6616b16",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/a50722374ccc2add70ea759f190927d16351f6bd"
+    }
+  ],
+  "compare": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/compare/333550e4a9d4...a50722374ccc",
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "head_commit": {
+    "author": {
+      "email": "sparxphenomena@gmail.com",
+      "name": "Lester-Sparx",
+      "username": "Lester-Sparx"
+    },
+    "committer": {
+      "email": "noreply@github.com",
+      "name": "GitHub",
+      "username": "web-flow"
+    },
+    "distinct": true,
+    "id": "a50722374ccc2add70ea759f190927d16351f6bd",
+    "message": "ZORR MODE — lock one-click ChatGPT toolbar v1\n\nMerge the minimal OWNER toolbar after fresh hq-validate success on exact head efdb4f2621d01df42c536a63697d11fab356aabc. Physical browser activation remains a separate local security gate.",
+    "timestamp": "2026-08-29T13:04:33+03:00",
+    "tree_id": "4c15da62dd48fda0c55502f0a1eadbeda6616b16",
+    "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/a50722374ccc2add70ea759f190927d16351f6bd"
+  },
+  "pusher": {
+    "email": "sparxphenomena@gmail.com",
+    "name": "Lester-Sparx"
+  },
+  "ref": "refs/heads/main",
+  "repository": {
+    "allow_forking": true,
+    "archive_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/{archive_format}{/ref}",
+    "archived": false,
+    "assignees_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/assignees{/user}",
+    "blobs_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/blobs{/sha}",
+    "branches_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/branches{/branch}",
+    "clone_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq.git",
+    "collaborators_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/collaborators{/collaborator}",
+    "comments_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/comments{/number}",
+    "commits_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/commits{/sha}",
+    "compare_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/compare/{base}...{head}",
+    "contents_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/contents/{+path}",
+    "contributors_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/contributors",
+    "created_at": 1787656939,
+    "default_branch": "main",
+    "deployments_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/deployments",
+    "description": null,
+    "disabled": false,
+    "downloads_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/downloads",
+    "events_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/events",
+    "fork": false,
+    "forks": 0,
+    "forks_count": 0,
+    "forks_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/forks",
+    "full_name": "Lester-Sparx/zorr-blatt-shared-hq",
+    "git_commits_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/commits{/sha}",
+    "git_refs_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/refs{/sha}",
+    "git_tags_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/tags{/sha}",
+    "git_url": "git://github.com/Lester-Sparx/zorr-blatt-shared-hq.git",
+    "has_discussions": false,
+    "has_downloads": true,
+    "has_issues": true,
+    "has_pages": true,
+    "has_projects": true,
+    "has_pull_requests": true,
+    "has_wiki": false,
+    "homepage": null,
+    "hooks_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/hooks",
+    "html_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq",
+    "id": 1346039873,
+    "is_template": false,
+    "issue_comment_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/comments{/number}",
+    "issue_events_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/events{/number}",
+    "issues_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues{/number}",
+    "keys_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/keys{/key_id}",
+    "labels_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/labels{/name}",
+    "language": "Python",
+    "languages_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/languages",
+    "license": null,
+    "master_branch": "main",
+    "merges_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/merges",
+    "milestones_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/milestones{/number}",
+    "mirror_url": null,
+    "name": "zorr-blatt-shared-hq",
+    "node_id": "R_kgDOUDrwQQ",
+    "notifications_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/notifications{?since,all,participating}",
+    "open_issues": 85,
+    "open_issues_count": 85,
+    "owner": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/320954677?v=4",
+      "email": "sparxphenomena@gmail.com",
+      "events_url": "https://api.github.com/users/Lester-Sparx/events{/privacy}",
+      "followers_url": "https://api.github.com/users/Lester-Sparx/followers",
+      "following_url": "https://api.github.com/users/Lester-Sparx/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Lester-Sparx/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/Lester-Sparx",
+      "id": 320954677,
+      "login": "Lester-Sparx",
+      "name": "Lester-Sparx",
+      "node_id": "U_kgDOEyFhNQ",
+      "organizations_url": "https://api.github.com/users/Lester-Sparx/orgs",
+      "received_events_url": "https://api.github.com/users/Lester-Sparx/received_events",
+      "repos_url": "https://api.github.com/users/Lester-Sparx/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/Lester-Sparx/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Lester-Sparx/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/Lester-Sparx",
+      "user_view_type": "public"
+    },
+    "private": false,
+    "pull_request_creation_policy": "all",
+    "pulls_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/pulls{/number}",
+    "pushed_at": 1787997874,
+    "releases_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/releases{/id}",
+    "size": 1727,
+    "ssh_url": "git@github.com:Lester-Sparx/zorr-blatt-shared-hq.git",
+    "stargazers": 0,
+    "stargazers_count": 0,
+    "stargazers_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/stargazers",
+    "statuses_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/statuses/{sha}",
+    "subscribers_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/subscribers",
+    "subscription_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/subscription",
+    "svn_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq",
+    "tags_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/tags",
+    "teams_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/teams",
+    "topics": [],
+    "trees_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/trees{/sha}",
+    "updated_at": "2026-08-29T09:53:37Z",
+    "url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq",
+    "visibility": "public",
+    "watchers": 0,
+    "watchers_count": 0,
+    "web_commit_signoff_required": false
+  },
+  "sender": {
+    "avatar_url": "https://avatars.githubusercontent.com/u/320954677?v=4",
+    "events_url": "https://api.github.com/users/Lester-Sparx/events{/privacy}",
+    "followers_url": "https://api.github.com/users/Lester-Sparx/followers",
+    "following_url": "https://api.github.com/users/Lester-Sparx/following{/other_user}",
+    "gists_url": "https://api.github.com/users/Lester-Sparx/gists{/gist_id}",
+    "gravatar_id": "",
+    "html_url": "https://github.com/Lester-Sparx",
+    "id": 320954677,
+    "login": "Lester-Sparx",
+    "node_id": "U_kgDOEyFhNQ",
+    "organizations_url": "https://api.github.com/users/Lester-Sparx/orgs",
+    "received_events_url": "https://api.github.com/users/Lester-Sparx/received_events",
+    "repos_url": "https://api.github.com/users/Lester-Sparx/repos",
+    "site_admin": false,
+    "starred_url": "https://api.github.com/users/Lester-Sparx/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/Lester-Sparx/subscriptions",
+    "type": "User",
+    "url": "https://api.github.com/users/Lester-Sparx",
+    "user_view_type": "public"
+  }
+}

@@ -1,0 +1,270 @@
+{
+  "after": "7442774617d6988b6ad637fb5a5ec818e8d96da0",
+  "base_ref": null,
+  "before": "137abbbbfcdb12ba6a3b20f3144aefd11f1486a7",
+  "commits": [
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "d38ff2bb75ac4f623edaa1c8692ded70b0122f4b",
+      "message": "test: reproduce Windows 10 Podman 6 production blocker",
+      "timestamp": "2026-08-29T13:22:39+03:00",
+      "tree_id": "42cc14de7cdca65019e0a7530a8fea7a785015cf",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/d38ff2bb75ac4f623edaa1c8692ded70b0122f4b"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "f5854a7e653ece150f0f62e251028eeaf8f38a99",
+      "message": "test: bind Win10 repair to host bootstrap boundary",
+      "timestamp": "2026-08-29T13:25:14+03:00",
+      "tree_id": "f43c792ca4aa1c6a780ef7e5ad28691cf034f3b3",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/f5854a7e653ece150f0f62e251028eeaf8f38a99"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "fd4f510a9d65400dc45a4bc3f7d4c38bd23903d8",
+      "message": "fix: reuse Podman 5.8.5 on supported Windows 10 hosts",
+      "timestamp": "2026-08-29T13:25:49+03:00",
+      "tree_id": "bdfb457d070a865c7eb67eb211356624d1339b3c",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/fd4f510a9d65400dc45a4bc3f7d4c38bd23903d8"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "16dc1085309e7824d0bd7b0ca380f122d4c7e3c2",
+      "message": "test: guard PowerShell 5.1 variable-colon parsing",
+      "timestamp": "2026-08-29T13:26:12+03:00",
+      "tree_id": "3eb1ceee2e6cd9360e3b280f82169bf95b348723",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/16dc1085309e7824d0bd7b0ca380f122d4c7e3c2"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "fd4c5b347bc072f516d36b310a8ebcc4cac16572",
+      "message": "fix: brace PowerShell variable before colon",
+      "timestamp": "2026-08-29T13:26:29+03:00",
+      "tree_id": "a2119f160122481f00733ad4668c56fa9e68cf74",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/fd4c5b347bc072f516d36b310a8ebcc4cac16572"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "noreply@github.com",
+        "name": "GitHub",
+        "username": "web-flow"
+      },
+      "distinct": true,
+      "id": "7442774617d6988b6ad637fb5a5ec818e8d96da0",
+      "message": "SHERIFF V1 — Windows 10 Podman 5 runtime repair\n\nBASE-FIRST host compatibility repair only. Windows 10 uses official Podman 5.8.5; Windows 11 preserves proven Podman 6.1.0 deployer. Fresh hq/OSS/runtime E2E green on exact head.",
+      "timestamp": "2026-08-29T13:29:30+03:00",
+      "tree_id": "bfafde4349bee8fae0391a5cf94f7c66e1a5fa87",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/7442774617d6988b6ad637fb5a5ec818e8d96da0"
+    }
+  ],
+  "compare": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/compare/137abbbbfcdb...7442774617d6",
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "head_commit": {
+    "author": {
+      "email": "sparxphenomena@gmail.com",
+      "name": "Lester-Sparx",
+      "username": "Lester-Sparx"
+    },
+    "committer": {
+      "email": "noreply@github.com",
+      "name": "GitHub",
+      "username": "web-flow"
+    },
+    "distinct": true,
+    "id": "7442774617d6988b6ad637fb5a5ec818e8d96da0",
+    "message": "SHERIFF V1 — Windows 10 Podman 5 runtime repair\n\nBASE-FIRST host compatibility repair only. Windows 10 uses official Podman 5.8.5; Windows 11 preserves proven Podman 6.1.0 deployer. Fresh hq/OSS/runtime E2E green on exact head.",
+    "timestamp": "2026-08-29T13:29:30+03:00",
+    "tree_id": "bfafde4349bee8fae0391a5cf94f7c66e1a5fa87",
+    "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/7442774617d6988b6ad637fb5a5ec818e8d96da0"
+  },
+  "pusher": {
+    "email": "sparxphenomena@gmail.com",
+    "name": "Lester-Sparx"
+  },
+  "ref": "refs/heads/main",
+  "repository": {
+    "allow_forking": true,
+    "archive_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/{archive_format}{/ref}",
+    "archived": false,
+    "assignees_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/assignees{/user}",
+    "blobs_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/blobs{/sha}",
+    "branches_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/branches{/branch}",
+    "clone_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq.git",
+    "collaborators_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/collaborators{/collaborator}",
+    "comments_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/comments{/number}",
+    "commits_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/commits{/sha}",
+    "compare_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/compare/{base}...{head}",
+    "contents_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/contents/{+path}",
+    "contributors_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/contributors",
+    "created_at": 1787656939,
+    "default_branch": "main",
+    "deployments_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/deployments",
+    "description": null,
+    "disabled": false,
+    "downloads_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/downloads",
+    "events_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/events",
+    "fork": false,
+    "forks": 0,
+    "forks_count": 0,
+    "forks_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/forks",
+    "full_name": "Lester-Sparx/zorr-blatt-shared-hq",
+    "git_commits_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/commits{/sha}",
+    "git_refs_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/refs{/sha}",
+    "git_tags_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/tags{/sha}",
+    "git_url": "git://github.com/Lester-Sparx/zorr-blatt-shared-hq.git",
+    "has_discussions": false,
+    "has_downloads": true,
+    "has_issues": true,
+    "has_pages": true,
+    "has_projects": true,
+    "has_pull_requests": true,
+    "has_wiki": false,
+    "homepage": null,
+    "hooks_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/hooks",
+    "html_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq",
+    "id": 1346039873,
+    "is_template": false,
+    "issue_comment_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/comments{/number}",
+    "issue_events_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/events{/number}",
+    "issues_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues{/number}",
+    "keys_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/keys{/key_id}",
+    "labels_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/labels{/name}",
+    "language": "Python",
+    "languages_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/languages",
+    "license": null,
+    "master_branch": "main",
+    "merges_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/merges",
+    "milestones_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/milestones{/number}",
+    "mirror_url": null,
+    "name": "zorr-blatt-shared-hq",
+    "node_id": "R_kgDOUDrwQQ",
+    "notifications_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/notifications{?since,all,participating}",
+    "open_issues": 86,
+    "open_issues_count": 86,
+    "owner": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/320954677?v=4",
+      "email": "sparxphenomena@gmail.com",
+      "events_url": "https://api.github.com/users/Lester-Sparx/events{/privacy}",
+      "followers_url": "https://api.github.com/users/Lester-Sparx/followers",
+      "following_url": "https://api.github.com/users/Lester-Sparx/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Lester-Sparx/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/Lester-Sparx",
+      "id": 320954677,
+      "login": "Lester-Sparx",
+      "name": "Lester-Sparx",
+      "node_id": "U_kgDOEyFhNQ",
+      "organizations_url": "https://api.github.com/users/Lester-Sparx/orgs",
+      "received_events_url": "https://api.github.com/users/Lester-Sparx/received_events",
+      "repos_url": "https://api.github.com/users/Lester-Sparx/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/Lester-Sparx/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Lester-Sparx/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/Lester-Sparx",
+      "user_view_type": "public"
+    },
+    "private": false,
+    "pull_request_creation_policy": "all",
+    "pulls_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/pulls{/number}",
+    "pushed_at": 1787999371,
+    "releases_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/releases{/id}",
+    "size": 1727,
+    "ssh_url": "git@github.com:Lester-Sparx/zorr-blatt-shared-hq.git",
+    "stargazers": 0,
+    "stargazers_count": 0,
+    "stargazers_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/stargazers",
+    "statuses_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/statuses/{sha}",
+    "subscribers_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/subscribers",
+    "subscription_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/subscription",
+    "svn_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq",
+    "tags_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/tags",
+    "teams_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/teams",
+    "topics": [],
+    "trees_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/trees{/sha}",
+    "updated_at": "2026-08-29T10:27:32Z",
+    "url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq",
+    "visibility": "public",
+    "watchers": 0,
+    "watchers_count": 0,
+    "web_commit_signoff_required": false
+  },
+  "sender": {
+    "avatar_url": "https://avatars.githubusercontent.com/u/320954677?v=4",
+    "events_url": "https://api.github.com/users/Lester-Sparx/events{/privacy}",
+    "followers_url": "https://api.github.com/users/Lester-Sparx/followers",
+    "following_url": "https://api.github.com/users/Lester-Sparx/following{/other_user}",
+    "gists_url": "https://api.github.com/users/Lester-Sparx/gists{/gist_id}",
+    "gravatar_id": "",
+    "html_url": "https://github.com/Lester-Sparx",
+    "id": 320954677,
+    "login": "Lester-Sparx",
+    "node_id": "U_kgDOEyFhNQ",
+    "organizations_url": "https://api.github.com/users/Lester-Sparx/orgs",
+    "received_events_url": "https://api.github.com/users/Lester-Sparx/received_events",
+    "repos_url": "https://api.github.com/users/Lester-Sparx/repos",
+    "site_admin": false,
+    "starred_url": "https://api.github.com/users/Lester-Sparx/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/Lester-Sparx/subscriptions",
+    "type": "User",
+    "url": "https://api.github.com/users/Lester-Sparx",
+    "user_view_type": "public"
+  }
+}

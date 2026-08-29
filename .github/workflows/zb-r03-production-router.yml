@@ -90,7 +90,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.client_payload.base_sha }}
+          ref: main
           fetch-depth: 1
           persist-credentials: false
       - name: Fresh revalidate root, task spec, dispatch record and current main

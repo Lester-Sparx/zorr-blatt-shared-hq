@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 jobs:
   test:
@@ -33,5 +34,36 @@ jobs:
       - name: Run production controller tests
         working-directory: agent-controller
         run: python -m pytest tests -q
+      - name: Live read-only SALVADOR ingress smoke
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import tempfile
+          from zb_hq_memory import ArchiveStore, build_salvador_context
+          from zb_hq_memory.salvador_ingress import GitHubShadowReader, ingest_salvador_events
+
+          expected_sha = "69f20660a52750eeafbc97877f0c064d008e8e3fa1ed25dcd005924bed5ec6bf"
+          with tempfile.TemporaryDirectory() as tmp:
+              store = ArchiveStore(Path(tmp))
+              summary = ingest_salvador_events(
+                  store,
+                  GitHubShadowReader("Lester-Sparx/zorr-blatt-shared-hq"),
+                  expected_actor="Lester-Sparx",
+              )
+              records = store.iter_records()
+              proof = [
+                  record
+                  for record in records
+                  if "TASK_ID=ZB-SALVADOR-PROD-001" in record.text
+                  and "STATE=RESULT_READY" in record.text
+                  and expected_sha in record.text
+              ]
+              assert summary.events_archived >= 2, summary
+              assert proof, "LIVE_ISSUE_72_RESULT_READY_NOT_ARCHIVED"
+              assert build_salvador_context(store).skills == {}, "RUNTIME_EVENT_MUST_NOT_PROMOTE_QC_OR_SKILL"
+              print(f"LIVE_SHADOW_INGRESS_PASS events={summary.events_archived} issue72_result_ready={len(proof)}")
+          PY
       - name: Compile both packages
         run: python -m compileall -q hq-memory/src agent-controller/src

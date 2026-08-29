@@ -10,10 +10,10 @@ from scripts.salvador_shadow_archive import archive_salvador_shadow_event
 
 class SalvadorShadowArchiveV1Tests(unittest.TestCase):
     @staticmethod
-    def metadata() -> dict[str, str]:
+    def metadata(run_id: str = "99001") -> dict[str, str]:
         return {
             "event_name": "issue_comment",
-            "run_id": "99001",
+            "run_id": run_id,
             "run_attempt": "1",
             "repository": "Lester-Sparx/zorr-blatt-shared-hq",
             "actor": "Lester-Sparx",
@@ -33,33 +33,26 @@ class SalvadorShadowArchiveV1Tests(unittest.TestCase):
             }
         ).encode("utf-8")
 
-    def test_result_ready_is_archived_without_skill_promotion(self) -> None:
-        payload = {
-            "action": "created",
-            "issue": {
-                "number": 72,
-                "body": "ZB_AGENT_TASK_V0\nTASK_ID = ZB-SALVADOR-PROD-001\nAGENT = SALVADOR\nTASK_KIND = CANON_REFERENCE_EDIT\nSTATE = ASSIGNED\nREFERENCE = LOCAL_INBOX",
-            },
-            "comment": {
-                "id": 5434385533,
-                "user": {"login": "Lester-Sparx"},
-                "body": "ZB_AGENT_EVENT_V0\nTASK_ID = ZB-SALVADOR-PROD-001\nAGENT = SALVADOR\nSTATE = RESULT_READY\nBACKEND = COMFYUI_LOCAL\nEXECUTION_ID = 619cbaba-03f2-43e6-a1df-7c7291f557b4\nRESULT_SHA256 = 69f20660a52750eeafbc97877f0c064d008e8e3fa1ed25dcd005924bed5ec6bf\nERROR_CODE = NONE\n\nSALVADOR_RESULT_READY",
-            },
-        }
-        with tempfile.TemporaryDirectory() as tmp:
-            result = archive_salvador_shadow_event(
-                json.dumps(payload).encode("utf-8"), Path(tmp), self.metadata()
-            )
-            self.assertIsNotNone(result)
-            record = json.loads((Path(tmp) / result["shadow_relpath"]).read_text(encoding="utf-8"))
-            self.assertEqual(record["kind"], "RUNTIME_OBSERVATION")
-            self.assertEqual(record["state_before"], "UNTESTED")
-            self.assertEqual(record["state_after"], "UNTESTED")
-            self.assertFalse(record["training_eligible"])
-            self.assertFalse(record["promotion_allowed"])
+    @staticmethod
+    def runtime_event(comment_id: int = 5434385533) -> bytes:
+        return json.dumps(
+            {
+                "action": "created",
+                "issue": {
+                    "number": 72,
+                    "body": "ZB_AGENT_TASK_V0\nTASK_ID = ZB-SALVADOR-PROD-001\nAGENT = SALVADOR\nTASK_KIND = CANON_REFERENCE_EDIT\nSTATE = ASSIGNED\nREFERENCE = LOCAL_INBOX",
+                },
+                "comment": {
+                    "id": comment_id,
+                    "user": {"login": "Lester-Sparx"},
+                    "body": "ZB_AGENT_EVENT_V0\nTASK_ID = ZB-SALVADOR-PROD-001\nAGENT = SALVADOR\nSTATE = RESULT_READY\nBACKEND = COMFYUI_LOCAL\nEXECUTION_ID = 619cbaba-03f2-43e6-a1df-7c7291f557b4\nRESULT_SHA256 = 69f20660a52750eeafbc97877f0c064d008e8e3fa1ed25dcd005924bed5ec6bf\nERROR_CODE = NONE\n\nSALVADOR_RESULT_READY",
+                },
+            }
+        ).encode("utf-8")
 
-    def test_same_runtime_jingo_evaluation_is_partial_not_proven(self) -> None:
-        body = """JINGO_TARGETED_STRESS_R02_EVALUATION
+    @staticmethod
+    def passing_evaluation() -> str:
+        return """JINGO_TARGETED_STRESS_R02_EVALUATION
 
 LOGICAL_EVALUATOR = JINGO
 AUTHENTICATED_CONNECTOR_ACTOR = Lester-Sparx
@@ -87,9 +80,24 @@ NO PROMOTION
 NO CERTIFICATION
 NO HOLDOUT CLAIM
 """
+
+    def test_result_ready_is_archived_without_skill_promotion(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             result = archive_salvador_shadow_event(
-                self.evaluator_event(body), Path(tmp), self.metadata()
+                self.runtime_event(), Path(tmp), self.metadata()
+            )
+            self.assertIsNotNone(result)
+            record = json.loads((Path(tmp) / result["shadow_relpath"]).read_text(encoding="utf-8"))
+            self.assertEqual(record["kind"], "RUNTIME_OBSERVATION")
+            self.assertEqual(record["state_before"], "UNTESTED")
+            self.assertEqual(record["state_after"], "UNTESTED")
+            self.assertFalse(record["training_eligible"])
+            self.assertFalse(record["promotion_allowed"])
+
+    def test_same_runtime_jingo_evaluation_is_partial_not_proven(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = archive_salvador_shadow_event(
+                self.evaluator_event(self.passing_evaluation()), Path(tmp), self.metadata()
             )
             self.assertIsNotNone(result)
             record = json.loads((Path(tmp) / result["shadow_relpath"]).read_text(encoding="utf-8"))
@@ -105,24 +113,7 @@ NO HOLDOUT CLAIM
             self.assertFalse(record["promotion_allowed"])
 
     def test_critical_failure_overrides_high_pass_count(self) -> None:
-        body = """JINGO_TARGETED_STRESS_R02_EVALUATION
-
-LOGICAL_EVALUATOR = JINGO
-CLASS = TRAINING DIAGNOSIS / SAME-RUNTIME
-PROMOTION = NO
-CERTIFICATION = NO
-HOLDOUT = NO
-GENERALIZATION_CLAIM = NO
-
-=== SALVADOR ===
-SALVADOR RESULT
-PASS = 4/5
-MAJOR = 0
-CRITICAL = 1
-UNSUPPORTED GUESS = 0
-
-NO PROMOTION
-"""
+        body = self.passing_evaluation().replace("PASS = 5/5", "PASS = 4/5").replace("CRITICAL = 0", "CRITICAL = 1")
         with tempfile.TemporaryDirectory() as tmp:
             result = archive_salvador_shadow_event(
                 self.evaluator_event(body, 5436515964), Path(tmp), self.metadata()
@@ -133,6 +124,20 @@ NO PROMOTION
             self.assertEqual(record["measurements"]["critical"], 1)
             self.assertEqual(record["state_after"], "FAILED")
             self.assertFalse(record["promotion_allowed"])
+
+    def test_later_runtime_event_restores_prior_partial_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive_salvador_shadow_event(
+                self.evaluator_event(self.passing_evaluation()), root, self.metadata("99001")
+            )
+            result = archive_salvador_shadow_event(
+                self.runtime_event(5434385534), root, self.metadata("99002")
+            )
+            self.assertIsNotNone(result)
+            record = json.loads((root / result["shadow_relpath"]).read_text(encoding="utf-8"))
+            self.assertEqual(record["state_before"], "PARTIAL")
+            self.assertEqual(record["state_after"], "PARTIAL")
 
 
 if __name__ == "__main__":

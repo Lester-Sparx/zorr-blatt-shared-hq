@@ -258,6 +258,10 @@ $build = [Environment]::OSVersion.Version.Build
 Write-Output "WINDOWS_BUILD = $build"
 Write-Output "BOOTSTRAP_STAGE = $Stage"
 
+if ($Stage -eq "Resume") {
+    Unregister-WslResume
+}
+
 if ($build -lt $MinWindows10Build) {
     throw "WINDOWS_BUILD_UNSUPPORTED:${build}:MIN=$MinWindows10Build"
 }

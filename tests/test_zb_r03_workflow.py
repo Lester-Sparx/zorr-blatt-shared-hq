@@ -54,6 +54,12 @@ class R03ProductionWorkflowTests(unittest.TestCase):
         self.assertIn("dispatch_ready", text)
         self.assertIn("needs.revalidate.outputs.dispatch_ready == 'true'", text)
 
+    def test_revalidate_executes_only_trusted_main_code_not_payload_selected_code(self):
+        text = self.workflow()
+        revalidate = text.split("\n  revalidate:\n", 1)[1].split("\n  lester:\n", 1)[0]
+        self.assertIn("ref: main", revalidate)
+        self.assertNotIn("ref: ${{ github.event.client_payload.base_sha }}", revalidate)
+
     def test_revalidate_job_has_no_forward_reference_to_lester(self):
         text = self.workflow()
         revalidate = text.split("\n  revalidate:\n", 1)[1].split("\n  lester:\n", 1)[0]

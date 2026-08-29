@@ -1,0 +1,52 @@
+name: r03-lock-sync-temp
+
+on:
+  pull_request:
+    types: [synchronize, opened]
+    paths:
+      - '.github/workflows/r03-lock-sync-temp.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-lock:
+    if: >-
+      github.event.pull_request.number == 136 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/r03-internal-dispatch-activation'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/r03-internal-dispatch-activation
+          fetch-depth: 0
+      - name: Install exact gh-aw compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="$RUNNER_TEMP/gh-aw"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            'https://github.com/github/gh-aw/releases/download/v0.86.2/linux-amd64' \
+            --output "$asset"
+          actual="$(sha256sum "$asset" | awk '{print $1}')"
+          expected='b8fd100d1d56a77b842ad28375ff361215a5aa1277db6b9a05d70054cde7260e'
+          test "$actual" = "$expected"
+          chmod 0555 "$asset"
+          "$asset" --version
+      - name: Regenerate and commit only exact R03 lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/gh-aw" compile zb-r03-lester-agent --strict
+          test -s .github/workflows/zb-r03-lester-agent.lock.yml
+          git diff --exit-code -- . ':!.github/workflows/zb-r03-lester-agent.lock.yml' || { echo 'TEMP_SYNC_UNEXPECTED_DIFF' >&2; exit 1; }
+          if git diff --quiet -- .github/workflows/zb-r03-lester-agent.lock.yml; then
+            echo 'TEMP_SYNC_LOCK_ALREADY_EXACT'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- .github/workflows/zb-r03-lester-agent.lock.yml
+          git commit -m 'build(r03): regenerate trusted internal dispatch lock'
+          git push origin HEAD:fix/r03-internal-dispatch-activation

@@ -186,7 +186,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ steps.metadata.outputs.candidate_head_sha }}
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
       - name: Run independent candidate verification without GitHub token
         shell: bash
@@ -195,6 +195,14 @@ jobs:
           python3 scripts/hq_validate.py
           python3 -m unittest discover -s tests -v
           python3 -m compileall -q scripts tests
+      - name: Restore trusted BASE tests over candidate workspace
+        env:
+          R03_TRUSTED_BASE_SHA: ${{ needs.revalidate.outputs.base_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout "$R03_TRUSTED_BASE_SHA" -- tests
+          python3 -m unittest discover -s tests -v
       - name: Restore trusted QC implementation before recording PASS
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

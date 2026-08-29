@@ -11,6 +11,7 @@ from scripts.hq_archive_ingest import _canonical_json, _write_once
 
 SCHEMA = "SALVADOR_SHADOW_PROGRESS_V1"
 _RUNTIME_STATES = {"WAITING_REFERENCE", "RUNNING", "RESULT_READY", "FAILED"}
+_SKILL_STATES = {"UNTESTED", "FAILED", "PARTIAL", "PROVEN", "LOCKED"}
 
 
 def _fields(body: str) -> dict[str, str]:
@@ -47,6 +48,41 @@ def _total(body: str) -> int | None:
         return None
     token = value.split("/", 1)[1].strip()
     return int(token) if token.isdigit() else None
+
+
+def _sequence(metadata: Mapping[str, str], comment_id: object) -> list[int]:
+    try:
+        return [int(metadata.get("run_id", "0")), int(metadata.get("run_attempt", "0")), int(comment_id)]
+    except (TypeError, ValueError):
+        return [0, 0, 0]
+
+
+def reduce_salvador_state(archive_root: Path) -> str:
+    root = Path(archive_root) / "derived" / "salvador-shadow-v1" / "events"
+    ordered: list[tuple[tuple[int, int, int], str]] = []
+    if not root.is_dir():
+        return "UNTESTED"
+    for path in root.glob("*.json"):
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(record, dict) or record.get("schema") != SCHEMA:
+            continue
+        sequence = record.get("sequence")
+        state_after = record.get("state_after")
+        if (
+            not isinstance(sequence, list)
+            or len(sequence) != 3
+            or not all(isinstance(value, int) for value in sequence)
+            or state_after not in _SKILL_STATES
+        ):
+            continue
+        ordered.append(((sequence[0], sequence[1], sequence[2]), str(state_after)))
+    if not ordered:
+        return "UNTESTED"
+    ordered.sort(key=lambda item: item[0])
+    return ordered[-1][1]
 
 
 def _write_record(event_bytes: bytes, archive_root: Path, record: dict[str, object]) -> dict[str, str]:
@@ -89,6 +125,8 @@ def archive_salvador_shadow_event(
 
     issue_number = issue.get("number")
     comment_id = comment.get("id")
+    state_before = reduce_salvador_state(archive_root)
+    sequence = _sequence(metadata, comment_id)
 
     if body.startswith("ZB_AGENT_EVENT_V0\n"):
         values = _fields(body)
@@ -100,14 +138,15 @@ def archive_salvador_shadow_event(
             {
                 "schema": SCHEMA,
                 "kind": "RUNTIME_OBSERVATION",
+                "sequence": sequence,
                 "issue": issue_number,
                 "comment_id": comment_id,
                 "task_id": values.get("TASK_ID", ""),
                 "runtime_state": values["STATE"],
                 "execution_id": values.get("EXECUTION_ID", ""),
                 "result_sha256": values.get("RESULT_SHA256", ""),
-                "state_before": "UNTESTED",
-                "state_after": "UNTESTED",
+                "state_before": state_before,
+                "state_after": state_before,
                 "training_eligible": False,
                 "promotion_allowed": False,
             },
@@ -131,6 +170,7 @@ def archive_salvador_shadow_event(
             {
                 "schema": SCHEMA,
                 "kind": "TRAINING_EVALUATION",
+                "sequence": sequence,
                 "issue": issue_number,
                 "comment_id": comment_id,
                 "measurements": {
@@ -139,7 +179,7 @@ def archive_salvador_shadow_event(
                     "major": major,
                     "critical": critical,
                 },
-                "state_before": "UNTESTED",
+                "state_before": state_before,
                 "state_after": state_after,
                 "training_eligible": True,
                 "certification": False,

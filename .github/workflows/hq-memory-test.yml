@@ -4,9 +4,11 @@ on:
   pull_request:
     paths:
       - 'hq-memory/**'
+      - 'agent-controller/**'
       - '.github/workflows/hq-memory-test.yml'
       - 'docs/superpowers/specs/2026-08-29-hq-memory-archive-mvp-r01-design.md'
       - 'docs/superpowers/plans/2026-08-29-hq-memory-archive-mvp-r01.md'
+      - 'docs/superpowers/plans/2026-08-29-salvador-shadow-live-ingress-r01.md'
   workflow_dispatch:
 
 permissions:
@@ -21,10 +23,14 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: hq-memory/pyproject.toml
-      - name: Install HQ memory test dependencies
-        run: python -m pip install -e './hq-memory[test]'
+          cache-dependency-path: |
+            hq-memory/pyproject.toml
+            agent-controller/pyproject.toml
+      - name: Install production controller and HQ memory test dependencies
+        run: python -m pip install -e './agent-controller' -e './hq-memory[test]'
       - name: Run HQ memory tests
         run: python -m pytest hq-memory/tests -q
-      - name: Compile HQ memory package
-        run: python -m compileall -q hq-memory/src
+      - name: Run production controller tests
+        run: python -m pytest agent-controller/tests -q
+      - name: Compile both packages
+        run: python -m compileall -q hq-memory/src agent-controller/src

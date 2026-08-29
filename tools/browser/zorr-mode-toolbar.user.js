@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ZORR MODE Toolbar V1
 // @namespace    https://github.com/Lester-Sparx/zorr-blatt-shared-hq
-// @version      1.0.0
+// @version      1.0.1
 // @description  One-click ZORR BLATT owner controls inside ChatGPT.
 // @match        https://chatgpt.com/*
 // @grant        none
@@ -13,9 +13,11 @@
 
   const TOOLBAR_ID = "zorr-mode-toolbar-v1";
   const NOTICE_ID = "zorr-mode-toolbar-notice-v1";
+  const LEGACY_R02_HEADING = "ZORR OWNER COMMAND BAR R02";
   const GITHUB_ROOT = "https://github.com/Lester-Sparx/zorr-blatt-shared-hq";
   const CONSTITUTION_URL = `${GITHUB_ROOT}/blob/main/ZORR_EXECUTION_CONSTITUTION.md`;
   let hiddenUntilReload = false;
+  let legacyR02SuppressedForUrl = null;
 
   const PRIMARY_ACTIONS = [
     { label: "ZORR MODE", kind: "prompt", prompt: "ZORR MODE", primary: true },
@@ -33,6 +35,36 @@
     const style = window.getComputedStyle(element);
     const rect = element.getBoundingClientRect();
     return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+  }
+
+  function suppressLegacyR02Toolbar() {
+    if (legacyR02SuppressedForUrl === window.location.href) return;
+
+    const candidates = document.querySelectorAll("h1,h2,h3,h4,h5,h6,div,p,span,strong");
+    for (const node of candidates) {
+      if ((node.textContent || "").trim() !== LEGACY_R02_HEADING) continue;
+
+      let target = node;
+      let ancestor = node.parentElement;
+      for (let depth = 0; depth < 7 && ancestor; depth += 1) {
+        const text = ancestor.innerText || ancestor.textContent || "";
+        if (
+          text.includes(LEGACY_R02_HEADING) &&
+          text.includes("БРИФ") &&
+          text.includes("ГЕНЕРИРУЙ") &&
+          text.includes("HANDOFF")
+        ) {
+          target = ancestor;
+          break;
+        }
+        ancestor = ancestor.parentElement;
+      }
+
+      target.dataset.zorrLegacySuppressed = "r02";
+      target.style.setProperty("display", "none", "important");
+      legacyR02SuppressedForUrl = window.location.href;
+      return;
+    }
   }
 
   function findComposer() {
@@ -284,6 +316,7 @@
   }
 
   function mountToolbar() {
+    suppressLegacyR02Toolbar();
     if (hiddenUntilReload || document.getElementById(TOOLBAR_ID)) return;
     const composer = findComposer();
     if (!composer) return;

@@ -57,7 +57,7 @@ timeout-minutes: 20
 tools:
   github:
     toolsets: [default, actions]
-    allowed-repos: current
+    allowed-repos: ${{ github.repository }}
   edit:
   bash:
     - "python3 -m unittest *"

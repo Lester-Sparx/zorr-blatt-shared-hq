@@ -1,0 +1,47 @@
+name: zb-r03-lock-object-stage
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/zb-r03-lock-object-stage.yml'
+      - '.github/workflows/zb-r03-lester-agent.md'
+
+permissions:
+  contents: read
+
+jobs:
+  stage-exact-lock-object:
+    if: >-
+      github.actor == 'Lester-Sparx' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'feat/r03-gh-aw-production-router'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/r03-gh-aw-production-router
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Build exact pinned lock object
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="$RUNNER_TEMP/gh-aw"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            'https://github.com/github/gh-aw/releases/download/v0.86.2/linux-amd64' \
+            --output "$asset"
+          test "$(sha256sum "$asset" | awk '{print $1}')" = 'b8fd100d1d56a77b842ad28375ff361215a5aa1277db6b9a05d70054cde7260e'
+          chmod 0555 "$asset"
+          "$asset" compile zb-r03-lester-agent --strict
+          lock='.github/workflows/zb-r03-lester-agent.lock.yml'
+          test "$(sha256sum "$lock" | awk '{print $1}')" = '2207d8609e35f1840d228f4dfeb57403bc71aa9fb4317bb99526c797225fb405'
+          git add -- "$lock"
+          test "$(git diff --cached --name-only)" = "$lock"
+          blob="$(git hash-object -w "$lock")"
+          echo "R03_EXACT_LOCK_BLOB=$blob"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore: stage exact generated R03 gh-aw lock object'
+          git push origin HEAD:feat/r03-gh-aw-production-router

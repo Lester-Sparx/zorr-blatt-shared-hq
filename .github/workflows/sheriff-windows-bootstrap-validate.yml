@@ -1,0 +1,32 @@
+name: sheriff-windows-bootstrap-validate
+
+on:
+  pull_request:
+    paths:
+      - 'config/sheriff/deploy/windows/**'
+      - 'tests/test_sheriff_windows_runtime_selection.py'
+      - '.github/workflows/sheriff-windows-bootstrap-validate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-bootstrap:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $path = Join-Path $PWD 'config\sheriff\deploy\windows\BootstrapSheriffV1Host.ps1'
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Output 'WINDOWS_POWERSHELL_PARSE = PASS'
+      - name: Run Windows bootstrap contract tests
+        shell: powershell
+        run: python -m unittest tests.test_sheriff_windows_runtime_selection -v

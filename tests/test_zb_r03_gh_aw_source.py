@@ -55,6 +55,11 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertNotIn("github-token-for-extra-empty-commit", text)
         self.assertNotIn("GH_AW_CI_TRIGGER_TOKEN", text)
 
+    def test_safe_output_hard_blocks_upstream_protected_files(self):
+        text = self.source()
+        section = text.split("create-pull-request:", 1)[1].split("---", 1)[0]
+        self.assertIn("protected-files: blocked", section)
+
     def test_allowed_files_are_exact_exclusive_initial_profile(self):
         text = self.source()
         marker = "allowed-files:"

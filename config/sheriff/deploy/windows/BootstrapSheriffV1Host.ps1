@@ -217,7 +217,7 @@ $PodmanInstallerSha256 = "1958aac22abb3a9cf7b52626c71ba1a26015c323f0b5fa74671e30
 
     $newPins = @"
 `$PodmanVersion = "$Podman5Version"
-`$PodmanInstallerName = "$PodmanInstallerName"
+`$PodmanInstallerName = "$Podman5InstallerName"
 `$PodmanInstallerUrl = "$Podman5InstallerUrl"
 `$PodmanInstallerSha256 = "$Podman5InstallerSha256"
 "@

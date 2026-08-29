@@ -16,6 +16,7 @@ LESSON_SCHEMA = "ZB_REFLEXION_LESSON_V1"
 CURRENT_LESSONS_SCHEMA = "ZB_CURRENT_LESSONS_V1"
 LEARNING_POLICY_SCHEMA = "ZB_LEARNING_POLICY_V1"
 TRAINING_EXAMPLE_SCHEMA = "ZB_LEARNING_EXAMPLE_V1"
+OPTIMIZED_POLICY_SCHEMA = "ZB_OPTIMIZED_LEARNING_POLICY_V1"
 _URL_RE = re.compile(r"https?://[^\s<>'\"\)\]]+")
 _TOKEN_RE = re.compile(r"\w+", re.UNICODE)
 _KEY_RE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
@@ -503,6 +504,200 @@ def _write_current_lessons(archive_root: Path, lessons: list[dict[str, Any]], *,
     return path
 
 
+def _load_learning_corpus(archive_root: Path) -> tuple[list[dict[str, Any]], str]:
+    path = _learning_root(Path(archive_root)) / "TRAINING_CORPUS.jsonl"
+    if not path.exists():
+        return [], hashlib.sha256(b"").hexdigest()
+    try:
+        data = path.read_bytes()
+    except OSError as exc:
+        raise UnifiedArchiveError("TRAINING_CORPUS_UNREADABLE") from exc
+    examples: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw_line in data.splitlines():
+        if not raw_line.strip():
+            continue
+        try:
+            example = json.loads(raw_line.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise UnifiedArchiveError("TRAINING_CORPUS_INVALID") from exc
+        if not isinstance(example, dict) or example.get("schema") != TRAINING_EXAMPLE_SCHEMA:
+            raise UnifiedArchiveError("TRAINING_CORPUS_INVALID")
+        for key in ("verdict_id", "error_signature", "lesson", "regression_test"):
+            value = example.get(key)
+            if not isinstance(value, str) or not value.strip():
+                raise UnifiedArchiveError("TRAINING_CORPUS_INVALID")
+        verdict_id = str(example["verdict_id"])
+        if verdict_id in seen:
+            raise UnifiedArchiveError("TRAINING_CORPUS_DUPLICATE_VERDICT")
+        seen.add(verdict_id)
+        examples.append(example)
+    return examples, hashlib.sha256(data).hexdigest()
+
+
+def _normalize_rule(text: str) -> str:
+    return " ".join(text.split())
+
+
+def _render_optimizer_policy(rules: list[dict[str, Any]]) -> str:
+    if not rules:
+        return ""
+    rendered = [
+        "DURABLE OPTIMIZED LESSON POLICY — verified regression coverage; fresher raw evidence always wins."
+    ]
+    for rule in rules:
+        rendered.append("ERROR_SIGNATURES = " + " | ".join(rule["error_signatures"]))
+        rendered.append("RULE = " + str(rule["lesson_text"]))
+        rendered.append("SOURCE_VERDICTS = " + " | ".join(rule["verdict_ids"]))
+    return "\n".join(rendered)
+
+
+def _policy_coverage(examples: list[dict[str, Any]], rules: list[dict[str, Any]]) -> float:
+    if not examples:
+        return 0.0
+    normalized_rules = {_normalize_rule(str(rule["lesson_text"])) for rule in rules}
+    matched = sum(1 for example in examples if _normalize_rule(str(example["lesson"])) in normalized_rules)
+    return matched / len(examples)
+
+
+def optimize_learning_policy(archive_root: Path) -> dict[str, Any]:
+    archive_root = Path(archive_root)
+    learning_root = _learning_root(archive_root)
+    learning_root.mkdir(parents=True, exist_ok=True)
+    output_path = learning_root / "CURRENT_OPTIMIZED_POLICY.json"
+    lessons = _load_lessons(archive_root)
+    examples, corpus_sha256 = _load_learning_corpus(archive_root)
+    source_verdict_ids = sorted(str(lesson.get("verdict_id") or "") for lesson in lessons)
+
+    if not lessons or not examples:
+        result = {
+            "schema": OPTIMIZED_POLICY_SCHEMA,
+            "status": "NOT_PROVEN",
+            "accepted": False,
+            "baseline_rule_count": len(lessons),
+            "optimized_rule_count": 0,
+            "training_coverage": 0.0,
+            "holdout_coverage": 0.0,
+            "baseline_bytes": 0,
+            "optimized_bytes": 0,
+            "policy_prefix": "",
+            "source_verdict_ids": source_verdict_ids,
+            "corpus_sha256": corpus_sha256,
+            "conflicting_error_signatures": [],
+        }
+        output_path.write_bytes(_canonical_json(result))
+        return result
+
+    signature_rules: dict[str, set[str]] = {}
+    for lesson in lessons:
+        signature = str(lesson.get("error_signature") or "")
+        normalized = _normalize_rule(str(lesson.get("lesson_text") or ""))
+        signature_rules.setdefault(signature, set()).add(normalized)
+    conflicts = sorted(signature for signature, rules in signature_rules.items() if len(rules) > 1)
+
+    baseline_rules = [
+        {
+            "lesson_text": str(lesson["lesson_text"]),
+            "error_signatures": [str(lesson["error_signature"])],
+            "verdict_ids": [str(lesson["verdict_id"])],
+        }
+        for lesson in sorted(lessons, key=lambda item: (str(item.get("issued_at") or ""), str(item.get("verdict_id") or "")))
+    ]
+    baseline_prefix = _render_optimizer_policy(baseline_rules)
+    baseline_bytes = len(baseline_prefix.encode("utf-8"))
+
+    if conflicts:
+        result = {
+            "schema": OPTIMIZED_POLICY_SCHEMA,
+            "status": "CONFLICT",
+            "accepted": False,
+            "baseline_rule_count": len(baseline_rules),
+            "optimized_rule_count": 0,
+            "training_coverage": 0.0,
+            "holdout_coverage": 0.0,
+            "baseline_bytes": baseline_bytes,
+            "optimized_bytes": 0,
+            "policy_prefix": "",
+            "source_verdict_ids": source_verdict_ids,
+            "corpus_sha256": corpus_sha256,
+            "conflicting_error_signatures": conflicts,
+        }
+        output_path.write_bytes(_canonical_json(result))
+        return result
+
+    grouped: dict[str, dict[str, Any]] = {}
+    for lesson in sorted(
+        lessons,
+        key=lambda item: (str(item.get("issued_at") or ""), str(item.get("verdict_id") or "")),
+        reverse=True,
+    ):
+        normalized = _normalize_rule(str(lesson["lesson_text"]))
+        entry = grouped.setdefault(
+            normalized,
+            {
+                "lesson_text": str(lesson["lesson_text"]),
+                "error_signatures": set(),
+                "verdict_ids": set(),
+            },
+        )
+        entry["error_signatures"].add(str(lesson["error_signature"]))
+        entry["verdict_ids"].add(str(lesson["verdict_id"]))
+
+    optimized_rules = [
+        {
+            "lesson_text": entry["lesson_text"],
+            "error_signatures": sorted(entry["error_signatures"]),
+            "verdict_ids": sorted(entry["verdict_ids"]),
+        }
+        for _, entry in sorted(grouped.items(), key=lambda item: item[0])
+    ]
+    optimized_prefix = _render_optimizer_policy(optimized_rules)
+    optimized_bytes = len(optimized_prefix.encode("utf-8"))
+
+    ordered_examples = sorted(examples, key=lambda item: str(item["verdict_id"]))
+    if len(ordered_examples) == 1:
+        training_examples = ordered_examples
+        holdout_examples = ordered_examples
+    else:
+        training_examples = ordered_examples[::2]
+        holdout_examples = ordered_examples[1::2]
+        if not holdout_examples:
+            holdout_examples = training_examples
+
+    baseline_training = _policy_coverage(training_examples, baseline_rules)
+    baseline_holdout = _policy_coverage(holdout_examples, baseline_rules)
+    optimized_training = _policy_coverage(training_examples, optimized_rules)
+    optimized_holdout = _policy_coverage(holdout_examples, optimized_rules)
+    non_regression = optimized_training >= baseline_training and optimized_holdout >= baseline_holdout
+
+    if non_regression and optimized_bytes < baseline_bytes:
+        status = "IMPROVED"
+        selected_rules = optimized_rules
+        selected_prefix = optimized_prefix
+    else:
+        status = "BASELINE_KEPT"
+        selected_rules = baseline_rules
+        selected_prefix = baseline_prefix
+
+    result = {
+        "schema": OPTIMIZED_POLICY_SCHEMA,
+        "status": status,
+        "accepted": True,
+        "baseline_rule_count": len(baseline_rules),
+        "optimized_rule_count": len(selected_rules),
+        "training_coverage": _policy_coverage(training_examples, selected_rules),
+        "holdout_coverage": _policy_coverage(holdout_examples, selected_rules),
+        "baseline_bytes": baseline_bytes,
+        "optimized_bytes": len(selected_prefix.encode("utf-8")),
+        "policy_prefix": selected_prefix,
+        "source_verdict_ids": source_verdict_ids,
+        "corpus_sha256": corpus_sha256,
+        "conflicting_error_signatures": [],
+    }
+    output_path.write_bytes(_canonical_json(result))
+    return result
+
+
 def sync_sheriff_lessons(verdict_root: Path, repo_root: Path, archive_root: Path) -> dict[str, Any]:
     verdict_root = Path(verdict_root)
     repo_root = Path(repo_root)
@@ -530,12 +725,16 @@ def sync_sheriff_lessons(verdict_root: Path, repo_root: Path, archive_root: Path
         path.write_bytes(_canonical_json(lesson))
     corpus_path = _write_learning_corpus(archive_root, pending)
     current_path = _write_current_lessons(archive_root, pending)
+    optimizer = optimize_learning_policy(archive_root)
+    optimized_path = _learning_root(archive_root) / "CURRENT_OPTIMIZED_POLICY.json"
     return {
         "learned": len(pending),
         "skipped_open": skipped_open,
         "corpus_count": len(pending),
         "corpus_relpath": corpus_path.relative_to(archive_root).as_posix(),
         "current_lessons_relpath": current_path.relative_to(archive_root).as_posix(),
+        "optimizer_status": optimizer["status"],
+        "optimized_policy_relpath": optimized_path.relative_to(archive_root).as_posix(),
     }
 
 

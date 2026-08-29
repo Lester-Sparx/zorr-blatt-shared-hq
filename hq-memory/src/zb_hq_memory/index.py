@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import sqlite3
 from typing import Iterable
@@ -36,6 +37,16 @@ class SearchHit:
 class SearchIndex:
     def __init__(self, db_path: Path):
         self.db_path = Path(db_path)
+
+    @staticmethod
+    def _searchable_text(record: DurableRecord) -> str:
+        payload = record.model_dump(mode="json", exclude_none=True)
+        return record.text + "\n" + json.dumps(
+            payload,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(" ", " "),
+        )
 
     def rebuild(self, records: Iterable[DurableRecord]) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -76,7 +87,7 @@ class SearchIndex:
                     )
                     connection.execute(
                         "INSERT INTO records_fts(record_id, entity_id, text) VALUES (?, ?, ?)",
-                        (record.record_id, record.entity_id, record.text),
+                        (record.record_id, record.entity_id, self._searchable_text(record)),
                     )
                 connection.commit()
         except sqlite3.Error as exc:

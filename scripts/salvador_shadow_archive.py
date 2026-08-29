@@ -59,9 +59,14 @@ def _sequence(metadata: Mapping[str, str], comment_id: object) -> list[int]:
         return [0, 0, 0]
 
 
-def reduce_salvador_state(archive_root: Path) -> str:
+def reduce_salvador_state(
+    archive_root: Path,
+    *,
+    before_sequence: list[int] | None = None,
+) -> str:
     root = Path(archive_root) / "derived" / "salvador-shadow-v1" / "events"
-    ordered: list[tuple[tuple[int, int, int], str]] = []
+    ordered: list[tuple[tuple[int, int, int], dict[str, object]]] = []
+    cutoff = tuple(before_sequence) if before_sequence is not None else None
     if not root.is_dir():
         return "UNTESTED"
     for path in root.glob("*.json"):
@@ -72,19 +77,35 @@ def reduce_salvador_state(archive_root: Path) -> str:
         if not isinstance(record, dict) or record.get("schema") != SCHEMA:
             continue
         sequence = record.get("sequence")
-        state_after = record.get("state_after")
         if (
             not isinstance(sequence, list)
             or len(sequence) != 3
             or not all(isinstance(value, int) for value in sequence)
-            or state_after not in _SKILL_STATES
         ):
             continue
-        ordered.append(((sequence[0], sequence[1], sequence[2]), str(state_after)))
-    if not ordered:
-        return "UNTESTED"
-    ordered.sort(key=lambda item: item[0])
-    return ordered[-1][1]
+        key = (sequence[0], sequence[1], sequence[2])
+        if cutoff is not None and key >= cutoff:
+            continue
+        ordered.append((key, record))
+
+    state = "UNTESTED"
+    for _, record in sorted(ordered, key=lambda item: item[0]):
+        kind = record.get("kind")
+        if kind == "RUNTIME_OBSERVATION":
+            continue
+        if kind == "TRAINING_EVALUATION":
+            measurements = record.get("measurements")
+            if not isinstance(measurements, dict):
+                continue
+            critical = measurements.get("critical")
+            if not isinstance(critical, int):
+                continue
+            state = "FAILED" if critical > 0 else "PARTIAL"
+            continue
+        explicit = record.get("state_after")
+        if explicit in {"PROVEN", "LOCKED"}:
+            state = str(explicit)
+    return state
 
 
 def _write_record(event_bytes: bytes, archive_root: Path, record: dict[str, object]) -> dict[str, str]:
@@ -127,8 +148,8 @@ def archive_salvador_shadow_event(
 
     issue_number = issue.get("number")
     comment_id = comment.get("id")
-    state_before = reduce_salvador_state(archive_root)
     sequence = _sequence(metadata, comment_id)
+    state_before = reduce_salvador_state(archive_root, before_sequence=sequence)
 
     if body.startswith("ZB_AGENT_EVENT_V0\n"):
         values = _fields(body)

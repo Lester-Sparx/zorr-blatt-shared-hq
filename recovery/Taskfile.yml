@@ -11,6 +11,7 @@ tasks:
 
   recover:
     desc: Build exact local recovery state and resume packet from GitHub
+    dir: '..'
     deps: [doctor]
     cmds:
       - python -m recovery.zb_recovery --manifest recovery/recovery_manifest.json --output recovery/.runtime

@@ -49,7 +49,7 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertIn("ref: ${{ inputs.base-sha }}", text)
         self.assertIn("fetch-depth: 0", text)
 
-    def test_agent_uses_only_explicit_pat_for_copilot_inference(self):
+    def test_legacy_agent_requires_explicit_pat_but_router_does_not_bind_it(self):
         text = self.source()
         self.assertRegex(text, r"(?m)^permissions:\s*$")
         self.assertRegex(text, r"(?m)^\s{2}contents:\s*read\s*$")
@@ -60,10 +60,10 @@ class R03GhAwSourceTests(unittest.TestCase):
         if not ROUTER.is_file():
             self.fail("R03_PRODUCTION_ROUTER_MISSING")
         router = ROUTER.read_text(encoding="utf-8")
-        lester = router.split("\n  lester:\n", 1)[1].split("\n  duncan_qc:\n", 1)[0]
-        self.assertNotIn("copilot-requests: write", lester)
-        self.assertIn("secrets:\n      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}", lester)
-        self.assertNotIn("secrets: inherit", lester)
+        self.assertIn("R03_RETIRED_FROM_AUTOMATION", router)
+        self.assertNotIn("\n  lester:\n", router)
+        self.assertNotIn("zb-r03-lester-agent.lock.yml", router)
+        self.assertNotIn("COPILOT_GITHUB_TOKEN", router)
 
         if not LOCK.is_file():
             self.fail("R03_GH_AW_LOCK_MISSING")
@@ -126,8 +126,8 @@ class R03GhAwSourceTests(unittest.TestCase):
         if not COMPILE_WORKFLOW.is_file():
             self.skipTest("compile workflow is added after source GREEN")
         text = COMPILE_WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("v0.86.2/linux-amd64", text)
-        self.assertIn("b8fd100d1d56a77b842ad28375ff361215a5aa1277db6b9a05d70054cde7260e", text)
+        self.assertIn("v0.87.2/linux-amd64", text)
+        self.assertIn("97c1a5e2246fb580381679d23eb687663fcffc43cfc59be1ad797785f3e4be68", text)
         self.assertIn("compile zb-r03-lester-agent --strict", text)
         self.assertIn("contents: read", text)
         self.assertNotIn("contents: write", text)
@@ -144,7 +144,7 @@ class R03GhAwSourceTests(unittest.TestCase):
             self.fail("R03_GH_AW_LOCK_MISSING")
         lock = LOCK.read_text(encoding="utf-8")
         first = lock.splitlines()[0]
-        self.assertIn('"compiler_version":"v0.86.2"', first)
+        self.assertIn('"compiler_version":"v0.87.2"', first)
         self.assertIn('"strict":true', first)
         self.assertIn('"agent_id":"copilot"', first)
         self.assertIn('"agent_model":"gpt-5-mini"', first)
@@ -152,6 +152,18 @@ class R03GhAwSourceTests(unittest.TestCase):
         self.assertNotIn("COPILOT_MODEL: copilot/auto", lock)
         self.assertIn("defaultAiCreditsPricing", lock)
         self.assertIn('defaultAiCreditsPricing\\\":{\\\"input\\\":3,\\\"output\\\":15}', lock)
+
+    def test_compiled_copilot_contract_has_no_system_ripgrep_bootstrap(self):
+        if not LOCK.is_file():
+            self.fail("R03_GH_AW_LOCK_MISSING")
+        lock = LOCK.read_text(encoding="utf-8")
+        for forbidden in (
+            "Install ripgrep",
+            "install_ripgrep.sh",
+            "apt-get install -y ripgrep",
+            "ripgrep not found; installing with apt-get",
+        ):
+            self.assertNotIn(forbidden, lock)
 
 
 if __name__ == "__main__":

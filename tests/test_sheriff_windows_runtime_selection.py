@@ -90,6 +90,18 @@ class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
         self.assertGreater(firmware_call, ensure_body)
         self.assertGreater(install, firmware_call)
 
+    def test_first_podman_machine_creation_uses_non_erroring_list_probe(self):
+        self.assertIn('function Patch-PodmanMachineFirstInit', self.bootstrap)
+        self.assertIn('@("machine", "list", "--format", "json")', self.bootstrap)
+        self.assertIn('Start-Process -FilePath $PodmanExe', self.bootstrap)
+        self.assertIn('PODMAN_MACHINE_LIST_FAILED', self.bootstrap)
+        self.assertIn('PODMAN_MACHINE_FIRST_INIT_SAFE', self.bootstrap)
+        self.assertIn('PODMAN_MACHINE_PATCH_VERIFY_FAILED', self.bootstrap)
+        invocation = self.bootstrap.find('Patch-PodmanMachineFirstInit $Deployer')
+        install = self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install')
+        self.assertGreater(invocation, 0)
+        self.assertGreater(install, invocation)
+
     def test_github_cli_is_not_a_physical_runtime_gate(self):
         self.assertIn('function Patch-EvidenceTransport', self.bootstrap)
         self.assertIn('GITHUB_EVIDENCE_POST = DEFERRED_TO_CONNECTED_CHAT', self.bootstrap)

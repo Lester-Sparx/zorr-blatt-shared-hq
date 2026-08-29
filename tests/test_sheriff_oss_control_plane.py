@@ -9,6 +9,9 @@ MANIFEST = ROOT / "config" / "sheriff" / "OPEN_SOURCE_COMPONENTS.json"
 COMPOSE = ROOT / "config" / "sheriff" / "docker-compose.yml"
 NATS = ROOT / "config" / "sheriff" / "nats.conf"
 REQUIREMENTS = ROOT / "requirements-sheriff.txt"
+EVENT_SCHEMA = ROOT / "schemas" / "SHERIFF_AGENT_EVENT_V1.schema.json"
+OPA_POLICY = ROOT / "config" / "sheriff" / "opa" / "sheriff.rego"
+OPA_TEST = ROOT / "config" / "sheriff" / "opa" / "sheriff_test.rego"
 
 
 class SheriffOssControlPlaneTest(unittest.TestCase):
@@ -65,6 +68,36 @@ class SheriffOssControlPlaneTest(unittest.TestCase):
         self.assertIn("psycopg", text)
         self.assertNotIn("openai", text)
         self.assertNotIn("anthropic", text)
+
+    def test_event_schema_is_cloudevents_1_and_evidence_bound(self):
+        schema = json.loads(EVENT_SCHEMA.read_text(encoding="utf-8"))
+        self.assertEqual(schema["properties"]["specversion"]["const"], "1.0")
+        self.assertEqual(schema["properties"]["datacontenttype"]["const"], "application/json")
+        self.assertTrue({"specversion", "id", "source", "type", "subject", "time", "datacontenttype", "data"}.issubset(schema["required"]))
+        self.assertEqual(
+            set(schema["properties"]["type"]["enum"]),
+            {"zb.agent.task.started", "zb.agent.result", "zb.agent.qc", "zb.sheriff.verdict", "zb.league.match"},
+        )
+        self.assertEqual(schema["$defs"]["evidence"]["minItems"], 1)
+        self.assertGreaterEqual(len(schema["allOf"]), 4)
+
+    def test_opa_policy_has_fail_closed_incident_and_independence_rules(self):
+        policy = OPA_POLICY.read_text(encoding="utf-8")
+        tests = OPA_TEST.read_text(encoding="utf-8")
+        self.assertIn("package zorr.sheriff", policy)
+        self.assertIn("default decision", policy)
+        for incident_class in (
+            "I0_SELF_CAUGHT", "I1_CORRECTNESS", "I2_PROCESS",
+            "I3_CRITICAL_INTEGRITY", "I4_SAFETY_SECURITY",
+        ):
+            self.assertIn(incident_class, policy)
+        self.assertIn("FALSE_PASS", policy)
+        self.assertIn("SELF_JUDGEMENT", policy)
+        self.assertIn("PASS_WITHOUT_EVIDENCE", policy)
+        self.assertIn("test_honest_fail_is_admitted_without_penalty", tests)
+        self.assertIn("test_false_pass_is_critical", tests)
+        self.assertIn("test_sheriff_cannot_self_judge", tests)
+        self.assertIn("test_pass_without_evidence_is_rejected", tests)
 
 
 if __name__ == "__main__":

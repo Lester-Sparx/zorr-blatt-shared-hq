@@ -105,14 +105,17 @@ class SheriffWindowsRuntimeSelectionTests(unittest.TestCase):
     def test_openssh_client_is_repaired_before_first_podman_machine_init(self):
         self.assertIn('function Ensure-OpenSshClient', self.bootstrap)
         self.assertIn('OpenSSH.Client~~~~0.0.1.0', self.bootstrap)
+        self.assertIn('Get-WindowsCapability -Online -Name', self.bootstrap)
         self.assertIn('Add-WindowsCapability -Online -Name', self.bootstrap)
+        self.assertIn('System32\\OpenSSH', self.bootstrap)
         self.assertIn('ssh-keygen.exe', self.bootstrap)
         self.assertIn('OPENSSH_CLIENT = PASS', self.bootstrap)
-        invocation = self.bootstrap.find('Ensure-OpenSshClient')
+        self.assertIn('[Environment]::SetEnvironmentVariable("PATH"', self.bootstrap)
+        call = re.search(r'\nEnsure-OpenSshClient\s*\n', self.bootstrap)
+        self.assertIsNotNone(call, 'execution path must invoke Ensure-OpenSshClient')
         machine_patch = self.bootstrap.find('Patch-PodmanMachineFirstInit $Deployer')
         install = self.bootstrap.find('& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Deployer -Action Install')
-        self.assertGreater(invocation, 0)
-        self.assertGreater(machine_patch, invocation)
+        self.assertGreater(machine_patch, call.start())
         self.assertGreater(install, machine_patch)
 
     def test_github_cli_is_not_a_physical_runtime_gate(self):

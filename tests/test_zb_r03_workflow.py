@@ -88,6 +88,15 @@ class R03ProductionWorkflowTests(unittest.TestCase):
         self.assertIn("qc_pass: ${{ steps.record.outputs.qc_pass }}", duncan)
         self.assertIn("candidate_head_sha: ${{ steps.record.outputs.candidate_head_sha }}", duncan)
 
+    def test_duncan_runs_trusted_base_regression_suite_against_candidate_code(self):
+        text = self.workflow()
+        duncan = text.split("\n  duncan_qc:\n", 1)[1].split("\n  finalize:\n", 1)[0]
+        self.assertIn("fetch-depth: 0", duncan)
+        self.assertIn("Restore trusted BASE tests over candidate workspace", duncan)
+        self.assertIn("R03_TRUSTED_BASE_SHA: ${{ needs.revalidate.outputs.base_sha }}", duncan)
+        self.assertIn('git checkout "$R03_TRUSTED_BASE_SHA" -- tests', duncan)
+        self.assertGreaterEqual(duncan.count("python3 -m unittest discover -s tests -v"), 2)
+
     def test_duncan_and_finalize_are_downstream_same_execution_run(self):
         text = self.workflow()
         self.assertIn("duncan_qc:", text)

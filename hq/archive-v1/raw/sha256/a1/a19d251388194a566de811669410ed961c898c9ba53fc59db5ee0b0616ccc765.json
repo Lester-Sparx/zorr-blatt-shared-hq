@@ -1,0 +1,414 @@
+{
+  "after": "a76b9bafd1d195b3539d55f1f07c1bc050a6526f",
+  "base_ref": null,
+  "before": "9a46ee912de73adc6eed308d26a9de27398d09fc",
+  "commits": [
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "db87be34490c9129907dd4f9492b11fd14c70dcc",
+      "message": "fix(r03): use Copilot Free native mini model",
+      "timestamp": "2026-08-29T10:11:30+03:00",
+      "tree_id": "d13c0cc6fe929c8e65a83f05ce339e4db4f11dd8",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/db87be34490c9129907dd4f9492b11fd14c70dcc"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "5217419e0916374b9b2a1eaf2c65d8bb679dae62",
+      "message": "test(r03): bind to upstream gpt-5-mini alias",
+      "timestamp": "2026-08-29T10:11:42+03:00",
+      "tree_id": "c0dd41a1f1a04e0173bbbb86643f7ca650f7b2be",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/5217419e0916374b9b2a1eaf2c65d8bb679dae62"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "6bcadbae15e47fb68fc5abfaa7ea284dce88d6a1",
+      "message": "test(r03): align source contract to Copilot Free mini",
+      "timestamp": "2026-08-29T10:12:05+03:00",
+      "tree_id": "7469f4e0414930bea14dd7552e8d76873bee8330",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/6bcadbae15e47fb68fc5abfaa7ea284dce88d6a1"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "9af3ff9a716e0cd51547caa4ec620dcf81cf77c9",
+      "message": "fix(r03): use typed GitHub MCP reads",
+      "timestamp": "2026-08-29T10:26:42+03:00",
+      "tree_id": "1db7b22daff88babc8518dd94407a4fd891c59a3",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/9af3ff9a716e0cd51547caa4ec620dcf81cf77c9"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "4afd4df1e8cf6f502a90cd789cc61c6829a46193",
+      "message": "test(r03): require typed GitHub durable reads",
+      "timestamp": "2026-08-29T10:27:04+03:00",
+      "tree_id": "df2a1d44e1868d7702edf585b35142552b6fc149",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/4afd4df1e8cf6f502a90cd789cc61c6829a46193"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "6e7af9f99025b9215dc1c5338f94203733a13aff",
+      "message": "fix(r03): use compiler-compatible repo scope",
+      "timestamp": "2026-08-29T10:28:07+03:00",
+      "tree_id": "3e95afbba9699f968d5192b80f4ea7f3a680fd14",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/6e7af9f99025b9215dc1c5338f94203733a13aff"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "6487e553c5edf172d74c234bbf8d054a4888bbbd",
+      "message": "test(r03): bind typed reads to current repo expression",
+      "timestamp": "2026-08-29T10:28:26+03:00",
+      "tree_id": "f5b244214eaad8ca7942d863fdc58de455c07241",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/6487e553c5edf172d74c234bbf8d054a4888bbbd"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "9496678c49fa72eeef0f83abda2f5a7e56c28c0d",
+      "message": "repair(r03): reuse upstream gh-proxy pattern",
+      "timestamp": "2026-08-29T10:36:06+03:00",
+      "tree_id": "b7e102c7e6c3986dbc5f2c9dfac921c9870fe236",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/9496678c49fa72eeef0f83abda2f5a7e56c28c0d"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "12b6b3861501abe8a151ad50ec1d207ab20b6b01",
+      "message": "test(r03): reuse existing main contracts",
+      "timestamp": "2026-08-29T10:36:54+03:00",
+      "tree_id": "5c3d0289be8ea7c50d978ea91d8eef34b3dd0b51",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/12b6b3861501abe8a151ad50ec1d207ab20b6b01"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "d5efdd1f21d051eb3f7b26f1f2b8b06003ba7410",
+      "message": "ci(r03): temporarily sync compiler-generated lock",
+      "timestamp": "2026-08-29T10:39:08+03:00",
+      "tree_id": "28bdf669b5af616f55c28ddd88ec1e676e2eb94d",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/d5efdd1f21d051eb3f7b26f1f2b8b06003ba7410"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "82a138f55e33b221a527d977610bd302d89de425",
+      "message": "ci(r03): sync lock from exact PR head",
+      "timestamp": "2026-08-29T10:40:06+03:00",
+      "tree_id": "ed59e135ec167fef2e3c0a44165704fcdb88a765",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/82a138f55e33b221a527d977610bd302d89de425"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "bc6ab09a937d576ee0bed5b22514beed212d7e66",
+      "message": "chore(r03): install exact gh-aw generated lock",
+      "timestamp": "2026-08-29T10:41:22+03:00",
+      "tree_id": "226d132002cbf3632e714254da36da6624aea251",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/bc6ab09a937d576ee0bed5b22514beed212d7e66"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "distinct": false,
+      "id": "34d600f89aa3a1c1a7dd6c26751aede6d91d9e40",
+      "message": "ci(r03): restore read-only compiler workflow",
+      "timestamp": "2026-08-29T10:41:52+03:00",
+      "tree_id": "62de99875d8daa9a9ca76a148f70e23d846f5a75",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/34d600f89aa3a1c1a7dd6c26751aede6d91d9e40"
+    },
+    {
+      "author": {
+        "email": "sparxphenomena@gmail.com",
+        "name": "Lester-Sparx",
+        "username": "Lester-Sparx"
+      },
+      "committer": {
+        "email": "noreply@github.com",
+        "name": "GitHub",
+        "username": "web-flow"
+      },
+      "distinct": true,
+      "id": "a76b9bafd1d195b3539d55f1f07c1bc050a6526f",
+      "message": "Merge PR #160: reuse upstream gh-proxy durable reads\n\nR03 repair: reuse upstream gh-proxy durable reads",
+      "timestamp": "2026-08-29T10:43:51+03:00",
+      "tree_id": "62de99875d8daa9a9ca76a148f70e23d846f5a75",
+      "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/a76b9bafd1d195b3539d55f1f07c1bc050a6526f"
+    }
+  ],
+  "compare": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/compare/9a46ee912de7...a76b9bafd1d1",
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "head_commit": {
+    "author": {
+      "email": "sparxphenomena@gmail.com",
+      "name": "Lester-Sparx",
+      "username": "Lester-Sparx"
+    },
+    "committer": {
+      "email": "noreply@github.com",
+      "name": "GitHub",
+      "username": "web-flow"
+    },
+    "distinct": true,
+    "id": "a76b9bafd1d195b3539d55f1f07c1bc050a6526f",
+    "message": "Merge PR #160: reuse upstream gh-proxy durable reads\n\nR03 repair: reuse upstream gh-proxy durable reads",
+    "timestamp": "2026-08-29T10:43:51+03:00",
+    "tree_id": "62de99875d8daa9a9ca76a148f70e23d846f5a75",
+    "url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq/commit/a76b9bafd1d195b3539d55f1f07c1bc050a6526f"
+  },
+  "pusher": {
+    "email": "sparxphenomena@gmail.com",
+    "name": "Lester-Sparx"
+  },
+  "ref": "refs/heads/main",
+  "repository": {
+    "allow_forking": true,
+    "archive_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/{archive_format}{/ref}",
+    "archived": false,
+    "assignees_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/assignees{/user}",
+    "blobs_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/blobs{/sha}",
+    "branches_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/branches{/branch}",
+    "clone_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq.git",
+    "collaborators_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/collaborators{/collaborator}",
+    "comments_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/comments{/number}",
+    "commits_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/commits{/sha}",
+    "compare_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/compare/{base}...{head}",
+    "contents_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/contents/{+path}",
+    "contributors_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/contributors",
+    "created_at": 1787656939,
+    "default_branch": "main",
+    "deployments_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/deployments",
+    "description": null,
+    "disabled": false,
+    "downloads_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/downloads",
+    "events_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/events",
+    "fork": false,
+    "forks": 0,
+    "forks_count": 0,
+    "forks_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/forks",
+    "full_name": "Lester-Sparx/zorr-blatt-shared-hq",
+    "git_commits_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/commits{/sha}",
+    "git_refs_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/refs{/sha}",
+    "git_tags_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/tags{/sha}",
+    "git_url": "git://github.com/Lester-Sparx/zorr-blatt-shared-hq.git",
+    "has_discussions": false,
+    "has_downloads": true,
+    "has_issues": true,
+    "has_pages": true,
+    "has_projects": true,
+    "has_pull_requests": true,
+    "has_wiki": false,
+    "homepage": null,
+    "hooks_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/hooks",
+    "html_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq",
+    "id": 1346039873,
+    "is_template": false,
+    "issue_comment_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/comments{/number}",
+    "issue_events_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/events{/number}",
+    "issues_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues{/number}",
+    "keys_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/keys{/key_id}",
+    "labels_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/labels{/name}",
+    "language": "Python",
+    "languages_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/languages",
+    "license": null,
+    "master_branch": "main",
+    "merges_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/merges",
+    "milestones_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/milestones{/number}",
+    "mirror_url": null,
+    "name": "zorr-blatt-shared-hq",
+    "node_id": "R_kgDOUDrwQQ",
+    "notifications_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/notifications{?since,all,participating}",
+    "open_issues": 72,
+    "open_issues_count": 72,
+    "owner": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/320954677?v=4",
+      "email": "sparxphenomena@gmail.com",
+      "events_url": "https://api.github.com/users/Lester-Sparx/events{/privacy}",
+      "followers_url": "https://api.github.com/users/Lester-Sparx/followers",
+      "following_url": "https://api.github.com/users/Lester-Sparx/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Lester-Sparx/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/Lester-Sparx",
+      "id": 320954677,
+      "login": "Lester-Sparx",
+      "name": "Lester-Sparx",
+      "node_id": "U_kgDOEyFhNQ",
+      "organizations_url": "https://api.github.com/users/Lester-Sparx/orgs",
+      "received_events_url": "https://api.github.com/users/Lester-Sparx/received_events",
+      "repos_url": "https://api.github.com/users/Lester-Sparx/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/Lester-Sparx/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Lester-Sparx/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/Lester-Sparx",
+      "user_view_type": "public"
+    },
+    "private": false,
+    "pull_request_creation_policy": "all",
+    "pulls_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/pulls{/number}",
+    "pushed_at": 1787989431,
+    "releases_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/releases{/id}",
+    "size": 1098,
+    "ssh_url": "git@github.com:Lester-Sparx/zorr-blatt-shared-hq.git",
+    "stargazers": 0,
+    "stargazers_count": 0,
+    "stargazers_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/stargazers",
+    "statuses_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/statuses/{sha}",
+    "subscribers_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/subscribers",
+    "subscription_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/subscription",
+    "svn_url": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq",
+    "tags_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/tags",
+    "teams_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/teams",
+    "topics": [],
+    "trees_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/trees{/sha}",
+    "updated_at": "2026-08-29T07:06:02Z",
+    "url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq",
+    "visibility": "public",
+    "watchers": 0,
+    "watchers_count": 0,
+    "web_commit_signoff_required": false
+  },
+  "sender": {
+    "avatar_url": "https://avatars.githubusercontent.com/u/320954677?v=4",
+    "events_url": "https://api.github.com/users/Lester-Sparx/events{/privacy}",
+    "followers_url": "https://api.github.com/users/Lester-Sparx/followers",
+    "following_url": "https://api.github.com/users/Lester-Sparx/following{/other_user}",
+    "gists_url": "https://api.github.com/users/Lester-Sparx/gists{/gist_id}",
+    "gravatar_id": "",
+    "html_url": "https://github.com/Lester-Sparx",
+    "id": 320954677,
+    "login": "Lester-Sparx",
+    "node_id": "U_kgDOEyFhNQ",
+    "organizations_url": "https://api.github.com/users/Lester-Sparx/orgs",
+    "received_events_url": "https://api.github.com/users/Lester-Sparx/received_events",
+    "repos_url": "https://api.github.com/users/Lester-Sparx/repos",
+    "site_admin": false,
+    "starred_url": "https://api.github.com/users/Lester-Sparx/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/Lester-Sparx/subscriptions",
+    "type": "User",
+    "url": "https://api.github.com/users/Lester-Sparx",
+    "user_view_type": "public"
+  }
+}

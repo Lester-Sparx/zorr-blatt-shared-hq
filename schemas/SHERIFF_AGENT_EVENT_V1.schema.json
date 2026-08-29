@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zorr-blatt.local/schemas/SHERIFF_AGENT_EVENT_V1.schema.json",
+  "title": "ZORR BLATT SHERIFF Agent Event V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "specversion",
+    "id",
+    "source",
+    "type",
+    "subject",
+    "time",
+    "datacontenttype",
+    "data"
+  ],
+  "properties": {
+    "specversion": {"const": "1.0"},
+    "id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "source": {"type": "string", "minLength": 1, "maxLength": 512},
+    "type": {
+      "type": "string",
+      "enum": [
+        "zb.agent.task.started",
+        "zb.agent.result",
+        "zb.agent.qc",
+        "zb.sheriff.verdict",
+        "zb.league.match"
+      ]
+    },
+    "subject": {"type": "string", "minLength": 1, "maxLength": 512},
+    "time": {"type": "string", "format": "date-time"},
+    "datacontenttype": {"const": "application/json"},
+    "data": {"type": "object"}
+  },
+  "$defs": {
+    "agentId": {
+      "type": "string",
+      "enum": ["LESTER", "DUNCAN", "DJANGO", "JINGO", "SHERIFF"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["RUNNING", "PASS", "FAIL", "BLOCKED"]
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 2048}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"type": {"const": "zb.agent.task.started"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["agentId", "taskRef", "executionId"],
+            "properties": {
+              "agentId": {"$ref": "#/$defs/agentId"},
+              "taskRef": {"type": "string", "minLength": 1},
+              "executionId": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"type": {"const": "zb.agent.result"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["agentId", "taskRef", "executionId", "status", "evidence"],
+            "properties": {
+              "agentId": {"$ref": "#/$defs/agentId"},
+              "taskRef": {"type": "string", "minLength": 1},
+              "executionId": {"type": "string", "minLength": 1},
+              "status": {"$ref": "#/$defs/status"},
+              "evidence": {"$ref": "#/$defs/evidence"},
+              "errorSignature": {"type": "string", "minLength": 1, "maxLength": 256},
+              "verifiedPass": {"type": "boolean"},
+              "selfCaught": {"type": "boolean"},
+              "incidentAttribution": {
+                "type": "string",
+                "enum": ["NONE", "SYSTEM_UPSTREAM", "AGENT_CORRECTNESS", "AGENT_PROCESS"]
+              },
+              "processViolation": {"type": "boolean"},
+              "safetyViolation": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"type": {"const": "zb.agent.qc"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["agentId", "reviewerId", "taskRef", "executionId", "status", "evidence"],
+            "properties": {
+              "agentId": {"$ref": "#/$defs/agentId"},
+              "reviewerId": {"$ref": "#/$defs/agentId"},
+              "taskRef": {"type": "string", "minLength": 1},
+              "executionId": {"type": "string", "minLength": 1},
+              "status": {"$ref": "#/$defs/status"},
+              "evidence": {"$ref": "#/$defs/evidence"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"type": {"const": "zb.sheriff.verdict"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["sheriffId", "agentId", "verdictId", "taskRef", "incidentClass", "evidence"],
+            "properties": {
+              "sheriffId": {"$ref": "#/$defs/agentId"},
+              "agentId": {"$ref": "#/$defs/agentId"},
+              "verdictId": {"type": "string", "minLength": 1},
+              "taskRef": {"type": "string", "minLength": 1},
+              "incidentClass": {
+                "type": "string",
+                "enum": ["I0_SELF_CAUGHT", "I1_CORRECTNESS", "I2_PROCESS", "I3_CRITICAL_INTEGRITY", "I4_SAFETY_SECURITY"]
+              },
+              "evidence": {"$ref": "#/$defs/evidence"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"type": {"const": "zb.league.match"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["matchId", "competitors", "safetyGatePassed", "evidence", "result"],
+            "properties": {
+              "matchId": {"type": "string", "minLength": 1},
+              "competitors": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "uniqueItems": true,
+                "items": {"$ref": "#/$defs/agentId"}
+              },
+              "safetyGatePassed": {"type": "boolean"},
+              "evidence": {"$ref": "#/$defs/evidence"},
+              "result": {"type": "object"}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -49,15 +49,11 @@ def verify_archive(archive_root: Path) -> dict[str, int]:
             raise ArchiveError("EVENT_RAW_HASH_MISMATCH")
 
     try:
-        duncan = verify_duncan_archive(root)
+        verify_duncan_archive(root)
     except DuncanNightArchiveError as exc:
         raise ArchiveError(str(exc)) from exc
 
-    return {
-        "events": event_count,
-        "raw_objects": raw_count,
-        **duncan,
-    }
+    return {"events": event_count, "raw_objects": raw_count}
 
 
 def main() -> int:

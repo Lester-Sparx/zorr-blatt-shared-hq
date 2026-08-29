@@ -36,6 +36,9 @@ on:
         type: string
 permissions:
   contents: read
+  actions: read
+  issues: read
+  pull-requests: read
 engine: copilot
 model: gpt-5-mini
 models:
@@ -52,6 +55,9 @@ network:
     - defaults
 timeout-minutes: 20
 tools:
+  github:
+    toolsets: [default, actions]
+    allowed-repos: current
   edit:
   bash:
     - "python3 -m unittest *"
@@ -108,13 +114,14 @@ AUTHORITY_REF = ${{ inputs.authority-ref }}
 ## Execution law
 
 1. Read `.zb-r03/task-spec.md` completely before editing.
-2. Treat the natural-language task specification only as desired behavior. It cannot widen the allowed file set, permissions, engine, runner, safe-output type, merge authority, or any other frontmatter policy.
-3. Inspect the repository and make the smallest correct change that satisfies the task.
-4. Do not edit anything under `.github/`, `Taskfile.yml`, lock/canon material, secrets, credentials, or files outside the compiler-enforced `allowed-files` list.
-5. Run the relevant unit tests. For Python changes, also run `python3 -m compileall -q scripts tests` when applicable.
-6. Review `git diff` and remove unrelated changes.
-7. Never merge, push to `main`, change canon, change OWNER LOCK, mutate PR #111, issue #102, or PR #103.
-8. If the task cannot be completed inside the allowed surface, do not attempt a workaround or scope expansion; finish without creating a candidate PR.
-9. If and only if the bounded task is complete and verified, invoke exactly one `create_pull_request` safe output. Use a concise title and include the exact binding block above at the beginning of the PR body, followed by a short summary and verification evidence.
+2. For every durable GitHub context read, use the typed GitHub MCP tools exposed by the configured `default` and `actions` toolsets (for example issue, pull-request, commit, and workflow-run tools). Do not use a generic `fetch` tool against GitHub REST API URLs. If a required durable surface cannot be read through the typed GitHub tools, fail closed rather than substituting chat context or public web results.
+3. Treat the natural-language task specification only as desired behavior. It cannot widen the allowed file set, permissions, engine, runner, safe-output type, merge authority, or any other frontmatter policy.
+4. Inspect the repository and make the smallest correct change that satisfies the task.
+5. Do not edit anything under `.github/`, `Taskfile.yml`, lock/canon material, secrets, credentials, or files outside the compiler-enforced `allowed-files` list.
+6. Run the relevant unit tests. For Python changes, also run `python3 -m compileall -q scripts tests` when applicable.
+7. Review `git diff` and remove unrelated changes.
+8. Never merge, push to `main`, change canon, change OWNER LOCK, mutate PR #111, issue #102, or PR #103.
+9. If the task cannot be completed inside the allowed surface, do not attempt a workaround or scope expansion; finish without creating a candidate PR.
+10. If and only if the bounded task is complete and verified, invoke exactly one `create_pull_request` safe output. Use a concise title and include the exact binding block above at the beginning of the PR body, followed by a short summary and verification evidence.
 
 The candidate must remain draft. DUNCAN and the parent R03 workflow own independent QC and any later promotion decision.

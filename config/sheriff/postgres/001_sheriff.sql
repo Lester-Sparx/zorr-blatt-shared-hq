@@ -44,6 +44,33 @@ CREATE TABLE IF NOT EXISTS sheriff_verdicts (
     CHECK (jsonb_array_length(evidence) > 0)
 );
 
+CREATE TABLE IF NOT EXISTS sheriff_outbox (
+    outbox_id TEXT PRIMARY KEY,
+    source_event_id TEXT NOT NULL REFERENCES sheriff_events(event_id),
+    subject TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    published_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS sheriff_outbox_unpublished_idx
+    ON sheriff_outbox(created_at)
+    WHERE published_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS sheriff_dead_letters (
+    dead_letter_id BIGSERIAL PRIMARY KEY,
+    message_hash CHAR(64) NOT NULL CHECK (message_hash ~ '^[0-9a-f]{64}$'),
+    event_id TEXT,
+    subject TEXT NOT NULL,
+    stream_sequence BIGINT NOT NULL,
+    consumer_sequence BIGINT NOT NULL,
+    deliveries INTEGER NOT NULL CHECK (deliveries >= 1),
+    raw_payload TEXT NOT NULL,
+    error_text TEXT NOT NULL,
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (stream_sequence, consumer_sequence)
+);
+
 CREATE TABLE IF NOT EXISTS sheriff_remediations (
     remediation_id BIGSERIAL PRIMARY KEY,
     verdict_id TEXT NOT NULL REFERENCES sheriff_verdicts(verdict_id),

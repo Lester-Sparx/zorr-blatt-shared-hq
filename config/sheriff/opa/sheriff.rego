@@ -15,6 +15,8 @@ default decision := {
     "incidentClass": null,
     "disciplineDelta": 0,
     "meritDelta": 0,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "UNKNOWN_EVENT_TYPE",
 }
@@ -88,6 +90,8 @@ decision := {
     "incidentClass": null,
     "disciplineDelta": 0,
     "meritDelta": 0,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "SELF_JUDGEMENT",
 } if {
@@ -99,6 +103,8 @@ decision := {
     "incidentClass": null,
     "disciplineDelta": 0,
     "meritDelta": 0,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "PASS_WITHOUT_EVIDENCE",
 } if {
@@ -108,8 +114,10 @@ decision := {
 decision := {
     "admit": true,
     "incidentClass": "I4_SAFETY_SECURITY",
-    "disciplineDelta": -25,
+    "disciplineDelta": -40,
     "meritDelta": 0,
+    "executionGate": "HARD_HOLD",
+    "ownerActionRequired": true,
     "hardHold": true,
     "reason": "SAFETY_SECURITY_VIOLATION",
 } if {
@@ -121,7 +129,9 @@ decision := {
     "incidentClass": "I3_CRITICAL_INTEGRITY",
     "disciplineDelta": -20,
     "meritDelta": 0,
-    "hardHold": true,
+    "executionGate": "HOLD",
+    "ownerActionRequired": false,
+    "hardHold": false,
     "reason": "FALSE_PASS",
 } if {
     is_false_pass
@@ -133,6 +143,8 @@ decision := {
     "incidentClass": "I2_PROCESS",
     "disciplineDelta": -5,
     "meritDelta": 0,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "PROCESS_VIOLATION",
 } if {
@@ -146,6 +158,8 @@ decision := {
     "incidentClass": "I0_SELF_CAUGHT",
     "disciplineDelta": 0,
     "meritDelta": 1,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "SELF_CAUGHT_BEFORE_HANDOFF",
 } if {
@@ -159,6 +173,8 @@ decision := {
     "incidentClass": "I1_CORRECTNESS",
     "disciplineDelta": -2,
     "meritDelta": 0,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "AGENT_CORRECTNESS_INCIDENT",
 } if {
@@ -173,6 +189,8 @@ decision := {
     "incidentClass": null,
     "disciplineDelta": 0,
     "meritDelta": 0,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "HONEST_FAIL",
 } if {
@@ -184,6 +202,8 @@ decision := {
     "incidentClass": null,
     "disciplineDelta": 0,
     "meritDelta": 0,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "VERIFIED_RESULT",
 } if {
@@ -195,6 +215,8 @@ decision := {
     "incidentClass": null,
     "disciplineDelta": 0,
     "meritDelta": 0,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "KNOWN_EVENT",
 } if {
@@ -206,6 +228,8 @@ decision := {
     "incidentClass": null,
     "disciplineDelta": 0,
     "meritDelta": 0,
+    "executionGate": "NONE",
+    "ownerActionRequired": false,
     "hardHold": false,
     "reason": "INDEPENDENT_VERDICT",
 } if {

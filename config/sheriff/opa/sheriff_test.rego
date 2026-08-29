@@ -23,6 +23,7 @@ test_honest_fail_is_admitted_without_penalty if {
     d.admit == true
     d.incidentClass == null
     d.disciplineDelta == 0
+    d.executionGate == "NONE"
     d.reason == "HONEST_FAIL"
 }
 
@@ -38,7 +39,8 @@ test_false_pass_is_critical if {
     d.admit == true
     d.incidentClass == "I3_CRITICAL_INTEGRITY"
     d.disciplineDelta == -20
-    d.hardHold == true
+    d.executionGate == "HOLD"
+    d.hardHold == false
     d.reason == "FALSE_PASS"
 }
 
@@ -94,5 +96,8 @@ test_safety_violation_is_hard_hold if {
         "safetyViolation": true,
     })
     d.incidentClass == "I4_SAFETY_SECURITY"
+    d.disciplineDelta == -40
+    d.executionGate == "HARD_HOLD"
+    d.ownerActionRequired == true
     d.hardHold == true
 }

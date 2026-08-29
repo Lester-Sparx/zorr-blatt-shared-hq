@@ -6,13 +6,16 @@ on:
     paths:
       - 'config/sheriff/**'
       - 'schemas/SHERIFF_AGENT_EVENT_V1.schema.json'
+      - 'schemas/SHERIFF_VERDICT_V1.schema.json'
       - 'scripts/sheriff_core.py'
       - 'scripts/sheriff_worker.py'
       - 'scripts/sheriff_validate.py'
       - 'requirements-sheriff.txt'
       - 'tests/test_sheriff_core.py'
       - 'tests/test_sheriff_oss_control_plane.py'
+      - 'tests/test_sheriff_policy_v1.py'
       - 'tests/test_sheriff_worker_contract.py'
+      - 'tests/test_sheriff_stabilization_v1.py'
       - '.github/workflows/sheriff-oss-validate.yml'
   workflow_dispatch:
 
@@ -28,6 +31,9 @@ jobs:
 
       - name: Validate OSS manifest and topology
         run: python3 scripts/sheriff_validate.py
+
+      - name: Install SHERIFF runtime dependencies
+        run: python3 -m pip install -r requirements-sheriff.txt
 
       - name: Run SHERIFF tests
         run: python3 -m unittest discover -s tests -p 'test_sheriff*.py' -v

@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import signal
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import nats
 import psycopg
 from glicko2.math import update_rating, rating_to_mu, rd_to_phi, mu_to_rating, phi_to_rd
+from jsonschema import Draft202012Validator, FormatChecker
+from nats.js.api import AckPolicy, ConsumerConfig
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 from sheriff_core import (
@@ -18,13 +22,16 @@ from sheriff_core import (
     apply_discipline,
     canonical_body_hash,
     classify_replay,
+    execution_gate_for_score,
     remediation_path,
+    stricter_gate,
 )
 
 
 STREAM_NAME = "ZB_AGENT_EVENTS"
 SUBJECT = "zb.>"
 DURABLE_NAME = "sheriff-v1"
+BACKOFF_SECONDS = [1.0, 5.0, 15.0, 30.0, 60.0]
 
 EVENTS = Counter("zb_sheriff_events_total", "Processed SHERIFF events", ["type"])
 INCIDENTS = Counter("zb_sheriff_incidents_total", "Recorded incidents", ["agent", "class"])
@@ -32,6 +39,8 @@ REPEATS = Counter("zb_sheriff_repeat_incidents_total", "Repeated incidents", ["a
 DISCIPLINE = Gauge("zb_sheriff_discipline_score", "Current discipline score", ["agent"])
 HOLDS = Gauge("zb_sheriff_active_holds", "Active hard/restricted holds", ["agent"])
 LATENCY = Histogram("zb_sheriff_verdict_latency_seconds", "SHERIFF event processing latency")
+
+_EVENT_VALIDATOR: Draft202012Validator | None = None
 
 
 def _required_env(name: str) -> str:
@@ -41,14 +50,35 @@ def _required_env(name: str) -> str:
     return value
 
 
+def _schema_path() -> Path:
+    explicit = os.environ.get("SHERIFF_EVENT_SCHEMA_PATH", "").strip()
+    if explicit:
+        return Path(explicit)
+    here = Path(__file__).resolve().parent
+    candidates = [
+        here / "schemas" / "SHERIFF_AGENT_EVENT_V1.schema.json",
+        here.parent / "schemas" / "SHERIFF_AGENT_EVENT_V1.schema.json",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    raise RuntimeError("SHERIFF_AGENT_EVENT_V1.schema.json:NOT_FOUND")
+
+
+def _validator() -> Draft202012Validator:
+    global _EVENT_VALIDATOR
+    if _EVENT_VALIDATOR is None:
+        schema = json.loads(_schema_path().read_text(encoding="utf-8"))
+        _EVENT_VALIDATOR = Draft202012Validator(schema, format_checker=FormatChecker())
+    return _EVENT_VALIDATOR
+
+
 def _validate_event(event: dict[str, Any]) -> None:
-    required = {"specversion", "id", "source", "type", "subject", "time", "datacontenttype", "data"}
-    if not required.issubset(event):
-        raise ValueError("EVENT_CONTRACT_INVALID")
-    if event["specversion"] != "1.0" or event["datacontenttype"] != "application/json":
-        raise ValueError("EVENT_CONTRACT_INVALID")
-    if not isinstance(event["data"], dict):
-        raise ValueError("EVENT_CONTRACT_INVALID")
+    errors = sorted(_validator().iter_errors(event), key=lambda item: list(item.absolute_path))
+    if errors:
+        first = errors[0]
+        location = ".".join(str(part) for part in first.absolute_path) or "$"
+        raise ValueError(f"EVENT_SCHEMA_VALIDATION_FAILED:{location}:{first.message}")
 
 
 def _opa_request_sync(url: str, event: dict[str, Any]) -> dict[str, Any]:
@@ -140,6 +170,12 @@ async def _record_incident(
         )
 
         evidence = data.get("evidence") or [f"event:{event['id']}"]
+        root_cause = (
+            data.get("rootCause")
+            or data.get("errorDetail")
+            or decision.get("reason")
+            or "POLICY_DECISION"
+        )
         await cur.execute(
             """
             INSERT INTO sheriff_verdicts(
@@ -150,7 +186,7 @@ async def _record_incident(
             (
                 verdict_id,
                 incident_id,
-                decision.get("reason", "POLICY_DECISION"),
+                root_cause,
                 json.dumps(evidence),
                 int(decision.get("disciplineDelta", 0)),
                 int(decision.get("meritDelta", 0)),
@@ -172,7 +208,9 @@ async def _record_incident(
         )
         score, merit = await cur.fetchone()
         new_score = apply_discipline(score, int(decision.get("disciplineDelta", 0)))
-        gate = "HARD_HOLD" if decision.get("hardHold") else ("HEIGHTENED_QC" if repeat_count else "NONE")
+        repeat_gate = "RESTRICTED" if repeat_count >= 2 else ("HEIGHTENED_QC" if repeat_count >= 1 else "NONE")
+        policy_gate = str(decision.get("executionGate") or ("HARD_HOLD" if decision.get("hardHold") else "NONE"))
+        gate = stricter_gate(policy_gate, repeat_gate, execution_gate_for_score(new_score))
         await cur.execute(
             """
             UPDATE sheriff_agent_scores
@@ -200,7 +238,8 @@ async def _record_incident(
         "repeatCount": repeat_count,
         "disciplineScore": new_score,
         "remediation": list(steps),
-        "hardHold": bool(decision.get("hardHold", False)),
+        "executionGate": gate,
+        "hardHold": gate == "HARD_HOLD",
     }
 
 
@@ -267,8 +306,8 @@ async def _rate_match(conn: psycopg.AsyncConnection, event: dict[str, Any]) -> N
         )
 
 
-async def _publish_verdict(js: Any, source_event: dict[str, Any], verdict: dict[str, Any]) -> None:
-    emitted = {
+def _build_verdict_event(source_event: dict[str, Any], verdict: dict[str, Any]) -> dict[str, Any]:
+    return {
         "specversion": "1.0",
         "id": f"sheriff:{source_event['id']}",
         "source": "zb://sheriff/v1",
@@ -286,10 +325,101 @@ async def _publish_verdict(js: Any, source_event: dict[str, Any], verdict: dict[
             "repeatCount": verdict["repeatCount"],
             "disciplineScore": verdict["disciplineScore"],
             "remediation": verdict["remediation"],
+            "executionGate": verdict["executionGate"],
             "hardHold": verdict["hardHold"],
         },
     }
-    await js.publish("zb.sheriff.verdict", json.dumps(emitted, separators=(",", ":")).encode("utf-8"))
+
+
+async def _enqueue_verdict_outbox(
+    conn: psycopg.AsyncConnection,
+    source_event: dict[str, Any],
+    verdict: dict[str, Any],
+) -> None:
+    emitted = _build_verdict_event(source_event, verdict)
+    async with conn.cursor() as cur:
+        await cur.execute(
+            """
+            INSERT INTO sheriff_outbox(outbox_id, source_event_id, subject, payload)
+            VALUES (%s, %s, 'zb.sheriff.verdict', %s::jsonb)
+            ON CONFLICT (outbox_id) DO NOTHING
+            """,
+            (
+                emitted["id"],
+                source_event["id"],
+                json.dumps(emitted, separators=(",", ":")),
+            ),
+        )
+
+
+async def _flush_outbox(
+    conn: psycopg.AsyncConnection,
+    js: Any,
+    source_event_id: str | None = None,
+) -> None:
+    query = """
+        SELECT outbox_id, subject, payload
+        FROM sheriff_outbox
+        WHERE published_at IS NULL
+    """
+    params: tuple[Any, ...] = ()
+    if source_event_id is not None:
+        query += " AND source_event_id = %s"
+        params = (source_event_id,)
+    query += " ORDER BY created_at FOR UPDATE SKIP LOCKED"
+
+    async with conn.cursor() as cur:
+        await cur.execute(query, params)
+        rows = await cur.fetchall()
+        for outbox_id, subject, payload in rows:
+            body = payload if isinstance(payload, dict) else json.loads(payload)
+            await js.publish(
+                subject,
+                json.dumps(body, separators=(",", ":")).encode("utf-8"),
+                headers={"Nats-Msg-Id": outbox_id},
+            )
+            await cur.execute(
+                "UPDATE sheriff_outbox SET published_at = NOW() WHERE outbox_id = %s",
+                (outbox_id,),
+            )
+    await conn.commit()
+
+
+def _delivery_count(msg: Any) -> int:
+    try:
+        return int(msg.metadata.num_delivered)
+    except Exception:
+        return 1
+
+
+async def _record_dead_letter(
+    conn: psycopg.AsyncConnection,
+    msg: Any,
+    event: dict[str, Any] | None,
+    exc: Exception,
+) -> None:
+    digest = hashlib.sha256(msg.data).hexdigest()
+    metadata = msg.metadata
+    async with conn.cursor() as cur:
+        await cur.execute(
+            """
+            INSERT INTO sheriff_dead_letters(
+                message_hash, event_id, subject, stream_sequence, consumer_sequence,
+                deliveries, raw_payload, error_text
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (stream_sequence, consumer_sequence) DO NOTHING
+            """,
+            (
+                digest,
+                event.get("id") if isinstance(event, dict) else None,
+                msg.subject,
+                metadata.sequence.stream,
+                metadata.sequence.consumer,
+                metadata.num_delivered,
+                msg.data.decode("utf-8", errors="replace"),
+                f"{type(exc).__name__}:{exc}"[:4000],
+            ),
+        )
 
 
 async def run() -> None:
@@ -308,34 +438,74 @@ async def run() -> None:
 
     async def handle(msg: Any) -> None:
         started = asyncio.get_running_loop().time()
-        event = json.loads(msg.data.decode("utf-8"))
-        _validate_event(event)
-        decision = await request_opa_decision(event)
-        if not decision.get("admit"):
-            raise RuntimeError(f"OPA_REJECTED_EVENT:{decision.get('reason', 'UNKNOWN')}")
-
-        conn = await psycopg.AsyncConnection.connect(postgres_dsn)
-        verdict = None
+        event: dict[str, Any] | None = None
+        conn: psycopg.AsyncConnection | None = None
         try:
+            event = json.loads(msg.data.decode("utf-8"))
+            _validate_event(event)
+            decision = await request_opa_decision(event)
+            if not decision.get("admit"):
+                raise RuntimeError(f"OPA_REJECTED_EVENT:{decision.get('reason', 'UNKNOWN')}")
+
+            conn = await psycopg.AsyncConnection.connect(postgres_dsn)
+            verdict = None
             inserted = await _ensure_event(conn, event)
             if inserted:
                 if event["type"] == "zb.league.match":
                     await _rate_match(conn, event)
                 else:
                     verdict = await _record_incident(conn, event, decision)
+                    if verdict is not None:
+                        await _enqueue_verdict_outbox(conn, event, verdict)
+
             await conn.commit()
-            if verdict is not None:
-                await _publish_verdict(js, event, verdict)
+            await _flush_outbox(conn, js, event["id"])
             await msg.ack()
             EVENTS.labels(type=event["type"]).inc()
-        except Exception:
-            await conn.rollback()
-            raise
+        except Exception as exc:
+            if conn is not None:
+                try:
+                    await conn.rollback()
+                except Exception:
+                    pass
+
+            deliveries = _delivery_count(msg)
+            if deliveries >= 5:
+                dead_conn: psycopg.AsyncConnection | None = None
+                try:
+                    dead_conn = await psycopg.AsyncConnection.connect(postgres_dsn)
+                    await _record_dead_letter(dead_conn, msg, event, exc)
+                    await dead_conn.commit()
+                    await msg.term()
+                except Exception:
+                    if dead_conn is not None:
+                        try:
+                            await dead_conn.rollback()
+                        except Exception:
+                            pass
+                    await msg.nak(delay=BACKOFF_SECONDS[-1])
+                finally:
+                    if dead_conn is not None:
+                        await dead_conn.close()
+            else:
+                await msg.nak(delay=BACKOFF_SECONDS[min(deliveries - 1, len(BACKOFF_SECONDS) - 1)])
         finally:
-            await conn.close()
+            if conn is not None:
+                await conn.close()
             LATENCY.observe(asyncio.get_running_loop().time() - started)
 
-    await js.subscribe(SUBJECT, durable=DURABLE_NAME, cb=handle, manual_ack=True)
+    consumer_config = ConsumerConfig(
+        durable_name=DURABLE_NAME,
+        ack_policy=AckPolicy.EXPLICIT,
+        max_deliver=5,
+        backoff=BACKOFF_SECONDS,
+    )
+    await js.subscribe(
+        SUBJECT,
+        cb=handle,
+        manual_ack=True,
+        config=consumer_config,
+    )
 
     stop_event = asyncio.Event()
     loop = asyncio.get_running_loop()

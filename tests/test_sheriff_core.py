@@ -7,7 +7,9 @@ from sheriff_core import (
     canonical_body_hash,
     classify_replay,
     discipline_status,
+    execution_gate_for_score,
     remediation_path,
+    stricter_gate,
 )
 
 
@@ -33,6 +35,13 @@ class SheriffCoreTest(unittest.TestCase):
         self.assertEqual(discipline_status(74), "ORANGE")
         self.assertEqual(discipline_status(49), "RED")
 
+    def test_score_bands_map_to_execution_gates(self):
+        self.assertEqual(execution_gate_for_score(100), "NONE")
+        self.assertEqual(execution_gate_for_score(89), "HEIGHTENED_QC")
+        self.assertEqual(execution_gate_for_score(74), "RESTRICTED")
+        self.assertEqual(execution_gate_for_score(49), "HOLD")
+        self.assertEqual(stricter_gate("NONE", "RESTRICTED", "HOLD"), "HOLD")
+
     def test_i0_self_caught_has_no_hold_path(self):
         self.assertEqual(remediation_path("I0_SELF_CAUGHT", 0), ())
 
@@ -48,11 +57,15 @@ class SheriffCoreTest(unittest.TestCase):
         self.assertIn("RESTRICT_SIMILAR_WORK", repeated)
         self.assertIn("INDEPENDENT_QC", repeated)
 
-    def test_critical_incidents_require_hard_hold_and_independent_clearance(self):
-        path = remediation_path("I3_CRITICAL_INTEGRITY", 0)
-        for step in ("HARD_HOLD", "EVIDENCE_REVIEW", "REMEDIATION_PROOF", "INDEPENDENT_QC"):
-            self.assertIn(step, path)
+    def test_critical_incidents_match_policy_gate_levels(self):
+        integrity_path = remediation_path("I3_CRITICAL_INTEGRITY", 0)
+        self.assertIn("HOLD", integrity_path)
+        self.assertNotIn("HARD_HOLD", integrity_path)
+        self.assertIn("EVIDENCE_REVIEW", integrity_path)
+        self.assertIn("REMEDIATION_PROOF", integrity_path)
+        self.assertIn("INDEPENDENT_QC", integrity_path)
         safety_path = remediation_path("I4_SAFETY_SECURITY", 0)
+        self.assertIn("HARD_HOLD", safety_path)
         self.assertIn("OWNER_REINSTATEMENT", safety_path)
 
     def test_unknown_incident_class_fails_closed(self):

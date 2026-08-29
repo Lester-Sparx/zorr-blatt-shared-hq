@@ -2,89 +2,18 @@
   "schemaVersion": "SHERIFF_OSS_COMPONENTS_V1",
   "policy": "OPEN_CODE_ONLY",
   "components": [
-    {
-      "id": "forgejo",
-      "source": "https://codeberg.org/forgejo/forgejo",
-      "license": "GPL-3.0-or-later",
-      "runtimeRef": "codeberg.org/forgejo/forgejo:15.0.7",
-      "purpose": "self-hosted Git forge, pull requests and Actions target runtime"
-    },
-    {
-      "id": "nats",
-      "source": "https://github.com/nats-io/nats-server",
-      "license": "Apache-2.0",
-      "runtimeRef": "nats:2.10-alpine",
-      "purpose": "event bus, JetStream durability, replay and durable consumers"
-    },
-    {
-      "id": "opa",
-      "source": "https://github.com/open-policy-agent/opa",
-      "license": "Apache-2.0",
-      "runtimeRef": "openpolicyagent/opa:1.0.1-static",
-      "purpose": "incident classification, admission and safety policy decisions"
-    },
-    {
-      "id": "postgresql",
-      "source": "https://github.com/postgres/postgres",
-      "license": "PostgreSQL",
-      "runtimeRef": "postgres:17-alpine",
-      "purpose": "authoritative event, incident, verdict, remediation and rating ledger"
-    },
-    {
-      "id": "opentelemetry-collector",
-      "source": "https://github.com/open-telemetry/opentelemetry-collector-contrib",
-      "license": "Apache-2.0",
-      "runtimeRef": "otel/opentelemetry-collector-contrib:0.117.0",
-      "purpose": "open telemetry collection and routing"
-    },
-    {
-      "id": "prometheus",
-      "source": "https://github.com/prometheus/prometheus",
-      "license": "Apache-2.0",
-      "runtimeRef": "prom/prometheus:v3.1.0",
-      "purpose": "metrics storage and alert evaluation"
-    },
-    {
-      "id": "loki",
-      "source": "https://github.com/grafana/loki",
-      "license": "AGPL-3.0-only",
-      "runtimeRef": "grafana/loki:3.3.2",
-      "purpose": "open-source log aggregation"
-    },
-    {
-      "id": "grafana-oss",
-      "source": "https://github.com/grafana/grafana",
-      "license": "AGPL-3.0-only",
-      "runtimeRef": "grafana/grafana-oss:11.4.0",
-      "purpose": "SHERIFF dashboards for scores, incidents, repeats and holds"
-    },
-    {
-      "id": "sheriff-worker",
-      "source": "https://github.com/Lester-Sparx/zorr-blatt-shared-hq",
-      "license": "MIT",
-      "runtimeRef": "local:config/sheriff/Dockerfile.worker",
-      "purpose": "minimal event-driven glue between NATS, OPA, PostgreSQL and metrics"
-    },
-    {
-      "id": "glicko2-py",
-      "source": "https://github.com/whanyu1212/glicko-arena",
-      "license": "MIT",
-      "runtimeRef": "glicko2-py==0.1.0",
-      "purpose": "reused Glicko-2 skill-rating mathematics"
-    },
-    {
-      "id": "nats-py",
-      "source": "https://github.com/nats-io/nats.py",
-      "license": "Apache-2.0",
-      "runtimeRef": "nats-py==2.15.0",
-      "purpose": "official open-source NATS Python client"
-    },
-    {
-      "id": "psycopg",
-      "source": "https://github.com/psycopg/psycopg",
-      "license": "LGPL-3.0-only",
-      "runtimeRef": "psycopg[binary]==3.3.4",
-      "purpose": "open-source PostgreSQL Python client"
-    }
+    {"id":"forgejo","source":"https://codeberg.org/forgejo/forgejo","license":"GPL-3.0-or-later","runtimeRef":"codeberg.org/forgejo/forgejo:15.0.7","purpose":"self-hosted Git forge, pull requests and Actions target runtime"},
+    {"id":"nats","source":"https://github.com/nats-io/nats-server","license":"Apache-2.0","runtimeRef":"nats:2.10-alpine","purpose":"event bus, JetStream durability, replay and durable consumers"},
+    {"id":"opa","source":"https://github.com/open-policy-agent/opa","license":"Apache-2.0","runtimeRef":"openpolicyagent/opa:1.0.1-static","purpose":"incident classification, admission and safety policy decisions"},
+    {"id":"postgresql","source":"https://github.com/postgres/postgres","license":"PostgreSQL","runtimeRef":"postgres:17-alpine","purpose":"authoritative event, incident, verdict, remediation and rating ledger"},
+    {"id":"opentelemetry-collector","source":"https://github.com/open-telemetry/opentelemetry-collector-contrib","license":"Apache-2.0","runtimeRef":"otel/opentelemetry-collector-contrib:0.117.0","purpose":"open telemetry collection and routing"},
+    {"id":"prometheus","source":"https://github.com/prometheus/prometheus","license":"Apache-2.0","runtimeRef":"prom/prometheus:v3.1.0","purpose":"metrics storage and alert evaluation"},
+    {"id":"loki","source":"https://github.com/grafana/loki","license":"AGPL-3.0-only","runtimeRef":"grafana/loki:3.3.2","purpose":"open-source log aggregation"},
+    {"id":"grafana-oss","source":"https://github.com/grafana/grafana","license":"AGPL-3.0-only","runtimeRef":"grafana/grafana-oss:11.4.0","purpose":"SHERIFF dashboards for scores, incidents, repeats and holds"},
+    {"id":"sheriff-worker","source":"https://github.com/Lester-Sparx/zorr-blatt-shared-hq","license":"MIT","runtimeRef":"local:config/sheriff/Dockerfile.worker","purpose":"minimal event-driven glue between NATS, OPA, PostgreSQL and metrics"},
+    {"id":"glicko2-py","source":"https://github.com/whanyu1212/glicko-arena","license":"MIT","runtimeRef":"glicko2-py==0.1.0","purpose":"reused Glicko-2 skill-rating mathematics"},
+    {"id":"nats-py","source":"https://github.com/nats-io/nats.py","license":"Apache-2.0","runtimeRef":"nats-py==2.15.0","purpose":"official open-source NATS Python client"},
+    {"id":"psycopg","source":"https://github.com/psycopg/psycopg","license":"LGPL-3.0-only","runtimeRef":"psycopg[binary]==3.3.4","purpose":"open-source PostgreSQL Python client"},
+    {"id":"jsonschema","source":"https://github.com/python-jsonschema/jsonschema","license":"MIT","runtimeRef":"jsonschema==4.25.1","purpose":"runtime Draft 2020-12 validation of SHERIFF CloudEvents"}
   ]
 }

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import argparse
 import base64
 import json
 from pathlib import Path
-from typing import Callable, Mapping
+import subprocess
+from typing import Any, Callable, Mapping
 
 
 class RecoveryError(RuntimeError):
@@ -33,6 +35,33 @@ def _require_sha(value: object, code: str) -> str:
     if len(token) != 40 or any(char not in "0123456789abcdef" for char in token):
         raise RecoveryError(code)
     return token
+
+
+def _default_runner(args: list[str], **kwargs: Any):
+    return subprocess.run(args, **kwargs)
+
+
+def run_gh_json(
+    endpoint: str,
+    *,
+    runner: Callable[..., Any] | None = None,
+) -> object:
+    command_runner = runner or _default_runner
+    try:
+        result = command_runner(
+            ["gh", "api", endpoint],
+            capture_output=True,
+            text=True,
+            shell=False,
+        )
+    except FileNotFoundError as exc:
+        raise RecoveryError("RECOVERY_GH_CLI_UNAVAILABLE") from exc
+    if result.returncode != 0:
+        raise RecoveryError("RECOVERY_GH_API_FAILED")
+    try:
+        return json.loads(result.stdout or "null")
+    except json.JSONDecodeError as exc:
+        raise RecoveryError("RECOVERY_GH_OUTPUT_INVALID") from exc
 
 
 def _branch_sha(payload: object, code: str) -> str:
@@ -339,3 +368,35 @@ def write_outputs(
     _atomic_write(state_path, render_recovery_state_json(state))
     _atomic_write(packet_path, render_resume_packet(manifest, state))
     return state_path, packet_path
+
+
+def load_manifest(path: Path) -> dict[str, object]:
+    try:
+        value = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RecoveryError("RECOVERY_MANIFEST_INVALID") from exc
+    return _dict(value, "RECOVERY_MANIFEST_INVALID")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--manifest",
+        default="recovery/recovery_manifest.json",
+    )
+    parser.add_argument(
+        "--output",
+        default="recovery/.runtime",
+    )
+    args = parser.parse_args(argv)
+    manifest = load_manifest(Path(args.manifest))
+    state = collect_recovery_state(manifest, run_gh_json)
+    state_path, packet_path = write_outputs(manifest, state, Path(args.output))
+    print("ZB_RECOVERY_CAPSULE = PASS")
+    print(f"RECOVERY_STATE = {state_path}")
+    print(f"RESUME_PACKET = {packet_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

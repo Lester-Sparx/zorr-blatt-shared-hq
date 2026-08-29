@@ -1,0 +1,21 @@
+version: '3'
+
+tasks:
+  doctor:
+    desc: Verify local reusable recovery prerequisites
+    cmds:
+      - python --version
+      - gh --version
+      - gh auth status
+      - task --version
+
+  recover:
+    desc: Build exact local recovery state and resume packet from GitHub
+    deps: [doctor]
+    cmds:
+      - python -m recovery.zb_recovery --manifest recovery/recovery_manifest.json --output recovery/.runtime
+
+  mcp:
+    desc: Start the official GitHub MCP server over stdio
+    cmds:
+      - github-mcp-server stdio

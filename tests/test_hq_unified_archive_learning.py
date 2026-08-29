@@ -95,12 +95,20 @@ class UnifiedArchiveLearningTests(unittest.TestCase):
                 ["github:pr:205", "github:run:33268102845"],
             )
 
-            corpus_path = archive_root / "derived" / "unified-v1" / "learning" / "TRAINING_CORPUS.jsonl"
+            learning_root = archive_root / "derived" / "unified-v1" / "learning"
+            corpus_path = learning_root / "TRAINING_CORPUS.jsonl"
             corpus = [json.loads(line) for line in corpus_path.read_text(encoding="utf-8").splitlines() if line]
             self.assertEqual(len(corpus), 1)
             self.assertEqual(corpus[0]["verdict_id"], "SV1-LEARN-001")
             self.assertIn("NOT_PROVEN", corpus[0]["lesson"])
             self.assertEqual(corpus[0]["regression_test"], "tests/test_hq_unified_archive_learning.py::test_closed_verdict_becomes_relevant_policy")
+
+            current = json.loads((learning_root / "CURRENT_LESSONS.json").read_text(encoding="utf-8"))
+            self.assertEqual(current["schema"], "ZB_CURRENT_LESSONS_V1")
+            self.assertEqual(current["lesson_count"], 1)
+            self.assertEqual(current["lessons"][0]["verdict_id"], "SV1-LEARN-001")
+            self.assertIn("NOT_PROVEN", current["lessons"][0]["lesson_excerpt"])
+            self.assertEqual(current["lessons"][0]["evidence"], ["github:pr:205", "github:run:33268102845"])
 
     def test_open_verdict_never_trains_policy(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -129,6 +137,12 @@ class UnifiedArchiveLearningTests(unittest.TestCase):
             self.assertEqual(policy["status"], "NOT_PROVEN")
             self.assertEqual(policy["lesson_count"], 0)
             self.assertEqual(policy["policy_prefix"], "")
+
+            current = json.loads(
+                (archive_root / "derived" / "unified-v1" / "learning" / "CURRENT_LESSONS.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(current["lesson_count"], 0)
+            self.assertEqual(current["lessons"], [])
 
     def test_closed_verdict_missing_lesson_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

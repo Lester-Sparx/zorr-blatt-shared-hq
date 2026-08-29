@@ -7,8 +7,10 @@ from pathlib import Path
 
 try:
     from .hq_archive_ingest import SCHEMA, ArchiveError
+    from .duncan_night_archive import DuncanNightArchiveError, verify_duncan_archive
 except ImportError:
     from hq_archive_ingest import SCHEMA, ArchiveError
+    from duncan_night_archive import DuncanNightArchiveError, verify_duncan_archive
 
 
 def verify_archive(archive_root: Path) -> dict[str, int]:
@@ -46,7 +48,16 @@ def verify_archive(archive_root: Path) -> dict[str, int]:
         if hashlib.sha256(raw_path.read_bytes()).hexdigest() != digest:
             raise ArchiveError("EVENT_RAW_HASH_MISMATCH")
 
-    return {"events": event_count, "raw_objects": raw_count}
+    try:
+        duncan = verify_duncan_archive(root)
+    except DuncanNightArchiveError as exc:
+        raise ArchiveError(str(exc)) from exc
+
+    return {
+        "events": event_count,
+        "raw_objects": raw_count,
+        **duncan,
+    }
 
 
 def main() -> int:

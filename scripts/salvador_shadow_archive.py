@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 from typing import Mapping
 
 from scripts.hq_archive_ingest import _canonical_json, _write_once
@@ -25,6 +26,39 @@ def _fields(body: str) -> dict[str, str]:
             return {}
         values[key] = value.strip()
     return values
+
+
+def _field(body: str, name: str) -> str | None:
+    match = re.search(rf"(?m)^{re.escape(name)}\s*=\s*(.+?)\s*$", body)
+    return match.group(1).strip() if match else None
+
+
+def _count(body: str, name: str) -> int | None:
+    value = _field(body, name)
+    if value is None:
+        return None
+    token = value.split("/", 1)[0].strip()
+    return int(token) if token.isdigit() else None
+
+
+def _total(body: str) -> int | None:
+    value = _field(body, "PASS")
+    if value is None or "/" not in value:
+        return None
+    token = value.split("/", 1)[1].strip()
+    return int(token) if token.isdigit() else None
+
+
+def _write_record(event_bytes: bytes, archive_root: Path, record: dict[str, object]) -> dict[str, str]:
+    digest = hashlib.sha256(event_bytes).hexdigest()
+    record["source_raw_sha256"] = digest
+    rel = Path("derived") / "salvador-shadow-v1" / "events" / f"{digest}.json"
+    _write_once(
+        Path(archive_root) / rel,
+        _canonical_json(record),
+        collision_code="SALVADOR_SHADOW_EVENT_COLLISION",
+    )
+    return {"shadow_relpath": rel.as_posix(), "source_raw_sha256": digest}
 
 
 def archive_salvador_shadow_event(
@@ -50,31 +84,67 @@ def archive_salvador_shadow_event(
     if actor_login != metadata.get("actor"):
         return None
     body = comment.get("body")
-    if not isinstance(body, str) or not body.startswith("ZB_AGENT_EVENT_V0\n"):
-        return None
-    values = _fields(body)
-    if values.get("AGENT") != "SALVADOR" or values.get("STATE") not in _RUNTIME_STATES:
+    if not isinstance(body, str):
         return None
 
-    digest = hashlib.sha256(event_bytes).hexdigest()
     issue_number = issue.get("number")
     comment_id = comment.get("id")
-    record = {
-        "schema": SCHEMA,
-        "kind": "RUNTIME_OBSERVATION",
-        "source_raw_sha256": digest,
-        "issue": issue_number,
-        "comment_id": comment_id,
-        "task_id": values.get("TASK_ID", ""),
-        "runtime_state": values["STATE"],
-        "execution_id": values.get("EXECUTION_ID", ""),
-        "result_sha256": values.get("RESULT_SHA256", ""),
-        "state_before": "UNTESTED",
-        "state_after": "UNTESTED",
-        "training_eligible": False,
-        "promotion_allowed": False,
-    }
-    rel = Path("derived") / "salvador-shadow-v1" / "events" / f"{digest}.json"
-    encoded = _canonical_json(record)
-    _write_once(Path(archive_root) / rel, encoded, collision_code="SALVADOR_SHADOW_EVENT_COLLISION")
-    return {"shadow_relpath": rel.as_posix(), "source_raw_sha256": digest}
+
+    if body.startswith("ZB_AGENT_EVENT_V0\n"):
+        values = _fields(body)
+        if values.get("AGENT") != "SALVADOR" or values.get("STATE") not in _RUNTIME_STATES:
+            return None
+        return _write_record(
+            event_bytes,
+            archive_root,
+            {
+                "schema": SCHEMA,
+                "kind": "RUNTIME_OBSERVATION",
+                "issue": issue_number,
+                "comment_id": comment_id,
+                "task_id": values.get("TASK_ID", ""),
+                "runtime_state": values["STATE"],
+                "execution_id": values.get("EXECUTION_ID", ""),
+                "result_sha256": values.get("RESULT_SHA256", ""),
+                "state_before": "UNTESTED",
+                "state_after": "UNTESTED",
+                "training_eligible": False,
+                "promotion_allowed": False,
+            },
+        )
+
+    if body.startswith("JINGO_TARGETED_STRESS_R02_EVALUATION\n"):
+        if _field(body, "LOGICAL_EVALUATOR") != "JINGO":
+            return None
+        if _field(body, "CLASS") != "TRAINING DIAGNOSIS / SAME-RUNTIME":
+            return None
+        passed = _count(body, "PASS")
+        total = _total(body)
+        major = _count(body, "MAJOR")
+        critical = _count(body, "CRITICAL")
+        if None in {passed, total, major, critical} or total == 0:
+            return None
+        return _write_record(
+            event_bytes,
+            archive_root,
+            {
+                "schema": SCHEMA,
+                "kind": "TRAINING_EVALUATION",
+                "issue": issue_number,
+                "comment_id": comment_id,
+                "measurements": {
+                    "pass": passed,
+                    "total": total,
+                    "major": major,
+                    "critical": critical,
+                },
+                "state_before": "UNTESTED",
+                "state_after": "PARTIAL",
+                "training_eligible": True,
+                "certification": False,
+                "holdout": False,
+                "promotion_allowed": False,
+            },
+        )
+
+    return None

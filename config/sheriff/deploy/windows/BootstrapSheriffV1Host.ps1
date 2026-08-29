@@ -17,6 +17,7 @@ $Podman5Version = "v5.8.5"
 $Podman5InstallerName = "podman-installer-windows-amd64.msi"
 $Podman5InstallerUrl = "https://github.com/podman-container-tools/podman/releases/download/v5.8.5/podman-installer-windows-amd64.msi"
 $Podman5InstallerSha256 = "a2d78a2460dc4745684ee443ced8878fbf3a2fe4d8c620a290500e85367d2a33"
+$OpenSshClientCapability = "OpenSSH.Client~~~~0.0.1.0"
 
 $Root = Join-Path $env:LOCALAPPDATA "ZORR\SHERIFF_V1_HOST_BOOTSTRAP"
 $Deployer = Join-Path $Root "ZbSheriffV1.ps1"
@@ -160,6 +161,46 @@ function Ensure-WslReady {
     Write-Output "WSL_STATUS = PASS"
 }
 
+function Ensure-OpenSshClient {
+    $sshDir = Join-Path $env:WINDIR "System32\OpenSSH"
+    $sshKeygenPath = Join-Path $sshDir "ssh-keygen.exe"
+
+    $sshKeygen = Get-Command ssh-keygen.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -eq $sshKeygen -and (Test-Path -LiteralPath $sshKeygenPath -PathType Leaf)) {
+        $processPath = [Environment]::GetEnvironmentVariable("PATH", "Process")
+        if (($processPath -split ';') -notcontains $sshDir) {
+            [Environment]::SetEnvironmentVariable("PATH", ($processPath.TrimEnd(';') + ';' + $sshDir), "Process")
+            $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Process")
+        }
+        $sshKeygen = Get-Command ssh-keygen.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    }
+
+    if ($null -eq $sshKeygen) {
+        Invoke-ElevatedSelf
+        $capability = Get-WindowsCapability -Online -Name $OpenSshClientCapability -ErrorAction Stop
+        if ([string]$capability.State -ne "Installed") {
+            Add-WindowsCapability -Online -Name $OpenSshClientCapability -ErrorAction Stop | Out-Null
+        }
+
+        if (-not (Test-Path -LiteralPath $sshKeygenPath -PathType Leaf)) {
+            throw "OPENSSH_CLIENT_INSTALL_FAILED"
+        }
+
+        $processPath = [Environment]::GetEnvironmentVariable("PATH", "Process")
+        if (($processPath -split ';') -notcontains $sshDir) {
+            [Environment]::SetEnvironmentVariable("PATH", ($processPath.TrimEnd(';') + ';' + $sshDir), "Process")
+            $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Process")
+        }
+
+        $sshKeygen = Get-Command ssh-keygen.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -eq $sshKeygen) {
+            throw "OPENSSH_CLIENT_PATH_NOT_READY"
+        }
+    }
+
+    Write-Output "OPENSSH_CLIENT = PASS"
+}
+
 function Patch-ForWindows10([string]$PathValue) {
     $raw = [IO.File]::ReadAllText($PathValue)
 
@@ -176,7 +217,7 @@ $PodmanInstallerSha256 = "1958aac22abb3a9cf7b52626c71ba1a26015c323f0b5fa74671e30
 
     $newPins = @"
 `$PodmanVersion = "$Podman5Version"
-`$PodmanInstallerName = "$Podman5InstallerName"
+`$PodmanInstallerName = "$PodmanInstallerName"
 `$PodmanInstallerUrl = "$Podman5InstallerUrl"
 `$PodmanInstallerSha256 = "$Podman5InstallerSha256"
 "@
@@ -360,6 +401,8 @@ if ($build -lt $MinWindows10Build) {
 if ($build -lt $Windows11Build) {
     Ensure-WslReady
 }
+
+Ensure-OpenSshClient
 
 Invoke-WebRequest -UseBasicParsing -Uri $DeployerUrl -OutFile $Deployer
 if (-not (Test-Path -LiteralPath $Deployer -PathType Leaf)) {

@@ -13,6 +13,8 @@ _SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
 class RecordStatus(StrEnum):
     LOCKED = "LOCKED"
+    PROVEN = "PROVEN"
+    APPROVED = "APPROVED"
     OPEN = "OPEN"
     QUARANTINE = "QUARANTINE"
     DROP = "DROP"
@@ -126,6 +128,7 @@ class ProgressEvent(DurableRecordBase):
     failures: list[str] = Field(default_factory=list)
     root_cause_hypotheses: list[str] = Field(default_factory=list)
     learned_rules: list[str] = Field(default_factory=list)
+    rule_states: dict[str, str] = Field(default_factory=dict)
     progress_delta: str = Field(min_length=1)
     next_target: str = Field(min_length=1)
 

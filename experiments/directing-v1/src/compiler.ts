@@ -65,6 +65,7 @@ export function compileDirectingScene(
       scene,
     );
     camera.setTarget(toVector3(cameraSpec.target));
+    camera.getViewMatrix(true);
     camera.fov = cameraSpec.fovDeg * DEG_TO_RAD;
     camera.minZ = cameraSpec.nearClip ?? DEFAULT_NEAR_CLIP;
     camera.maxZ = cameraSpec.farClip ?? DEFAULT_FAR_CLIP;

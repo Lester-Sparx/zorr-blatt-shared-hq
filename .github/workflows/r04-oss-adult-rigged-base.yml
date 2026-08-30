@@ -12,66 +12,84 @@ permissions:
   contents: read
 
 jobs:
-  asset-probe:
+  clean-mpfb-body-probe:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ZORR branch
         uses: actions/checkout@v4
 
-      - name: Checkout pinned upstream rigged-human assets
+      - name: Checkout pinned upstream MakeHuman builder
         uses: actions/checkout@v4
         with:
           repository: kunalkushwaha/vsim
           ref: 3f97faf85e46d2f9a122b0a8b8d3ccc0af598f91
           path: vendor/vsim
 
+      - name: Checkout pinned MPFB2 2.0.17
+        uses: actions/checkout@v4
+        with:
+          repository: makehumancommunity/mpfb2
+          ref: 80919fa4682335c41847f761a4d79dcad4124732
+          path: vendor/mpfb2
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Stage exact upstream binaries and provenance
-        shell: bash
-        run: |
-          set -euxo pipefail
-          mkdir -p r04-artifact
-          cp vendor/vsim/packages/assets/library/human.glb r04-artifact/human.glb
-          cp vendor/vsim/packages/assets/library/man.glb r04-artifact/man.glb
-          cp vendor/vsim/packages/assets/library/CREDITS.md r04-artifact/VSIM_CREDITS.md
-          cp vendor/vsim/packages/assets/library/manifest.json r04-artifact/vsim-manifest.json
-          sha256sum r04-artifact/human.glb r04-artifact/man.glb > r04-artifact/SHA256SUMS.txt
-          file r04-artifact/human.glb r04-artifact/man.glb | tee r04-artifact/file-report.txt
-
-      - name: Inspect GLB structure with standard OSS CLI
-        shell: bash
-        run: |
-          set -euxo pipefail
-          npx --yes @gltf-transform/cli@4.2.1 inspect r04-artifact/human.glb > r04-artifact/human-inspect.txt
-          npx --yes @gltf-transform/cli@4.2.1 inspect r04-artifact/man.glb > r04-artifact/man-inspect.txt
-          grep -E "SKINS|ANIMATIONS|JOINTS_0|WEIGHTS_0|vertices|primitives" -i r04-artifact/human-inspect.txt | tee r04-artifact/human-rig-proof.txt
-          grep -E "SKINS|ANIMATIONS|JOINTS_0|WEIGHTS_0|vertices|primitives" -i r04-artifact/man-inspect.txt | tee r04-artifact/man-rig-proof.txt
-
       - name: Install official Blender 4.4.3 binary
         shell: bash
         run: |
           set -euxo pipefail
+          mkdir -p r04-artifact
           wget -q https://download.blender.org/release/Blender4.4/blender-4.4.3-linux-x64.tar.xz -O /tmp/blender-4.4.3-linux-x64.tar.xz
           tar -xf /tmp/blender-4.4.3-linux-x64.tar.xz -C /tmp
           /tmp/blender-4.4.3-linux-x64/blender --version | tee r04-artifact/blender-version.txt
 
-      - name: Render upstream adult assets with upstream Cycles renderer
+      - name: Build pinned MPFB2 extension with Blender native extension builder
         shell: bash
         run: |
           set -euxo pipefail
-          /tmp/blender-4.4.3-linux-x64/blender -b --python vendor/vsim/scripts/blender/render-cycles.py -- r04-artifact/human.glb r04-artifact/human-white-stage.png
-          /tmp/blender-4.4.3-linux-x64/blender -b --python vendor/vsim/scripts/blender/render-cycles.py -- r04-artifact/man.glb r04-artifact/man-white-stage.png
-          file r04-artifact/human-white-stage.png r04-artifact/man-white-stage.png | tee r04-artifact/render-file-report.txt
-          sha256sum r04-artifact/human-white-stage.png r04-artifact/man-white-stage.png | tee r04-artifact/render-SHA256SUMS.txt
+          /tmp/blender-4.4.3-linux-x64/blender --background --command extension build --source-dir vendor/mpfb2/src/mpfb --output-filepath /tmp/mpfb2-2.0.17.zip
+          /tmp/blender-4.4.3-linux-x64/blender --background --command extension validate /tmp/mpfb2-2.0.17.zip
+          sha256sum /tmp/mpfb2-2.0.17.zip | tee r04-artifact/mpfb2-extension-SHA256.txt
 
-      - name: Upload exact rigged-base evidence
+      - name: Generate two clean adult bodies with unchanged upstream MakeHuman builder
+        shell: bash
+        run: |
+          set -euxo pipefail
+          /tmp/blender-4.4.3-linux-x64/blender --background --python vendor/vsim/scripts/blender/make-human.py -- /tmp/mpfb2-2.0.17.zip r04-artifact/adult-a.glb gender=1.0 age=0.50 muscle=0.52 weight=0.45 height=0.55 proportions=0.50
+          /tmp/blender-4.4.3-linux-x64/blender --background --python vendor/vsim/scripts/blender/make-human.py -- /tmp/mpfb2-2.0.17.zip r04-artifact/adult-b.glb gender=1.0 age=0.50 muscle=0.42 weight=0.40 height=0.52 proportions=0.50
+          sha256sum r04-artifact/adult-a.glb r04-artifact/adult-b.glb | tee r04-artifact/adult-glb-SHA256SUMS.txt
+
+      - name: Inspect generated GLB rig structure with standard OSS CLI
+        shell: bash
+        run: |
+          set -euxo pipefail
+          npx --yes @gltf-transform/cli@4.2.1 inspect r04-artifact/adult-a.glb > r04-artifact/adult-a-inspect.txt
+          npx --yes @gltf-transform/cli@4.2.1 inspect r04-artifact/adult-b.glb > r04-artifact/adult-b-inspect.txt
+          grep -E "SKINS|ANIMATIONS|JOINTS_0|WEIGHTS_0|vertices|primitives" -i r04-artifact/adult-a-inspect.txt | tee r04-artifact/adult-a-rig-proof.txt
+          grep -E "SKINS|ANIMATIONS|JOINTS_0|WEIGHTS_0|vertices|primitives" -i r04-artifact/adult-b-inspect.txt | tee r04-artifact/adult-b-rig-proof.txt
+
+      - name: Render generated bodies with unchanged upstream Cycles renderer
+        shell: bash
+        run: |
+          set -euxo pipefail
+          /tmp/blender-4.4.3-linux-x64/blender --background --python vendor/vsim/scripts/blender/render-cycles.py -- r04-artifact/adult-a.glb r04-artifact/adult-a-white-stage.png
+          /tmp/blender-4.4.3-linux-x64/blender --background --python vendor/vsim/scripts/blender/render-cycles.py -- r04-artifact/adult-b.glb r04-artifact/adult-b-white-stage.png
+          file r04-artifact/adult-a-white-stage.png r04-artifact/adult-b-white-stage.png | tee r04-artifact/render-file-report.txt
+          sha256sum r04-artifact/adult-a-white-stage.png r04-artifact/adult-b-white-stage.png | tee r04-artifact/render-SHA256SUMS.txt
+
+      - name: Persist upstream provenance
+        shell: bash
+        run: |
+          set -euxo pipefail
+          printf '%s\n' 'vsim=3f97faf85e46d2f9a122b0a8b8d3ccc0af598f91' 'mpfb2=80919fa4682335c41847f761a4d79dcad4124732' 'blender=4.4.3' '@gltf-transform/cli=4.2.1' > r04-artifact/PROVENANCE.txt
+
+      - name: Upload clean MPFB2 body evidence
         uses: actions/upload-artifact@v4
         with:
-          name: r04-rigged-adult-base-probe
+          name: r04-clean-mpfb-body-probe
           path: r04-artifact/
           if-no-files-found: error
           retention-days: 30

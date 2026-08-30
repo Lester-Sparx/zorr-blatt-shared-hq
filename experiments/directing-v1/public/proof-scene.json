@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "babylon-directing-v1",
+  "sceneId": "ZB-BABYLON-DIRECTING-PROOF-001",
+  "stage": {
+    "width": 12,
+    "depth": 8,
+    "groundY": 0,
+    "unit": "m"
+  },
+  "actors": [
+    {
+      "id": "A",
+      "proxyType": "humanoid-basic",
+      "heightM": 1.8,
+      "position": {
+        "x": -1.4,
+        "y": 0,
+        "z": 0
+      },
+      "rotationYDeg": 25,
+      "pose": {
+        "head": {
+          "x": 0,
+          "y": 8,
+          "z": 0
+        },
+        "upperArmL": {
+          "x": 0,
+          "y": 0,
+          "z": -22
+        },
+        "forearmL": {
+          "x": 0,
+          "y": 0,
+          "z": -18
+        }
+      },
+      "rootMotion": [
+        {
+          "timeSec": 0,
+          "position": {
+            "x": -1.4,
+            "y": 0,
+            "z": 0
+          },
+          "rotationYDeg": 25
+        },
+        {
+          "timeSec": 1.5,
+          "position": {
+            "x": -0.7,
+            "y": 0,
+            "z": 0.2
+          },
+          "rotationYDeg": 45
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "proxyType": "humanoid-basic",
+      "heightM": 1.65,
+      "position": {
+        "x": 1.4,
+        "y": 0,
+        "z": 0.45
+      },
+      "rotationYDeg": -145,
+      "pose": {
+        "head": {
+          "x": 0,
+          "y": -6,
+          "z": 0
+        },
+        "upperArmR": {
+          "x": 0,
+          "y": 0,
+          "z": 34
+        },
+        "forearmR": {
+          "x": 0,
+          "y": 0,
+          "z": 20
+        }
+      }
+    }
+  ],
+  "cameras": [
+    {
+      "id": "cam-main",
+      "position": {
+        "x": 0,
+        "y": 2.15,
+        "z": -6.5
+      },
+      "target": {
+        "x": 0,
+        "y": 1.0,
+        "z": 0.2
+      },
+      "fovDeg": 42,
+      "nearClip": 0.05,
+      "farClip": 100
+    }
+  ],
+  "shots": [
+    {
+      "id": "shot-main",
+      "cameraId": "cam-main",
+      "startSec": 0,
+      "endSec": 2,
+      "preferredCaptureSec": 1.5
+    }
+  ],
+  "capture": {
+    "shotId": "shot-main",
+    "timeSec": 1.5,
+    "widthPx": 768,
+    "heightPx": 512,
+    "output": "proof-frame.png"
+  }
+}

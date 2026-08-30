@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
-import re
+from pathlib import Path
+
+from jsonschema import Draft202012Validator, FormatChecker
 
 SKILL_STATES = ("UNTESTED", "FAILED", "PARTIAL", "PROVEN")
 MODES = {"STUDY", "EXECUTION", "TRANSFER"}
@@ -24,23 +26,29 @@ DOMAINS = (
     "windows_linux_runtime",
     "math_scientific_computing",
 )
-EVIDENCE_FIELDS = {
-    "evidenceId",
-    "agentId",
-    "domain",
-    "taskKind",
-    "mode",
-    "result",
-    "verified",
-    "sourceRef",
-    "exactHead",
-    "sequence",
-}
-_SHA40 = re.compile(r"[0-9a-f]{40}")
+EVIDENCE_SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas" / "LESTER_PROGRAMMING_EVIDENCE_V1.schema.json"
 
 
 class LesterProgrammingSchoolError(RuntimeError):
     pass
+
+
+_VALIDATOR: Draft202012Validator | None = None
+
+
+def _validator() -> Draft202012Validator:
+    global _VALIDATOR
+    if _VALIDATOR is None:
+        try:
+            schema = json.loads(EVIDENCE_SCHEMA_PATH.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise LesterProgrammingSchoolError("EVIDENCE_SCHEMA_UNREADABLE") from exc
+        try:
+            Draft202012Validator.check_schema(schema)
+        except Exception as exc:
+            raise LesterProgrammingSchoolError("EVIDENCE_SCHEMA_INVALID") from exc
+        _VALIDATOR = Draft202012Validator(schema, format_checker=FormatChecker())
+    return _VALIDATOR
 
 
 def _canonical_record(record: dict[str, object]) -> str:
@@ -53,57 +61,50 @@ def _canonical_record(record: dict[str, object]) -> str:
     )
 
 
-def _nonempty_string(record: dict[str, object], key: str, error: str) -> str:
-    value = record.get(key)
-    if not isinstance(value, str) or not value.strip():
-        raise LesterProgrammingSchoolError(error)
-    return value
+def _schema_error_code(error: object) -> str:
+    path = list(getattr(error, "absolute_path", []))
+    if "exactHead" in path:
+        return "EXACT_HEAD_INVALID"
+    if "domain" in path:
+        return "DOMAIN_UNKNOWN"
+    if "sourceRef" in path:
+        return "SOURCE_REF_INVALID"
+    if "mode" in path:
+        return "MODE_INVALID"
+    if "result" in path:
+        return "RESULT_INVALID"
+    if "sequence" in path:
+        return "SEQUENCE_INVALID"
+    if "verified" in path:
+        return "VERIFIED_INVALID"
+    if "agentId" in path:
+        return "AGENT_ID_INVALID"
+    if "evidenceId" in path:
+        return "EVIDENCE_ID_INVALID"
+    if "taskKind" in path:
+        return "TASK_KIND_INVALID"
+    return "EVIDENCE_SCHEMA_VALIDATION_FAILED"
 
 
 def validate_evidence(records: list[dict[str, object]]) -> list[dict[str, object]]:
     if not isinstance(records, list):
         raise LesterProgrammingSchoolError("EVIDENCE_LIST_REQUIRED")
 
+    validator = _validator()
     validated: list[dict[str, object]] = []
     seen: dict[str, str] = {}
     for record in records:
         if not isinstance(record, dict):
             raise LesterProgrammingSchoolError("EVIDENCE_OBJECT_REQUIRED")
-        if set(record) != EVIDENCE_FIELDS:
-            raise LesterProgrammingSchoolError("EVIDENCE_FIELDS_INVALID")
 
-        evidence_id = _nonempty_string(record, "evidenceId", "EVIDENCE_ID_INVALID")
-        if record.get("agentId") != "LESTER":
-            raise LesterProgrammingSchoolError("AGENT_ID_INVALID")
+        errors = sorted(validator.iter_errors(record), key=lambda item: list(item.absolute_path))
+        if errors:
+            first = errors[0]
+            code = _schema_error_code(first)
+            location = ".".join(str(part) for part in first.absolute_path) or "$"
+            raise LesterProgrammingSchoolError(f"{code}:{location}:{first.message}")
 
-        domain = _nonempty_string(record, "domain", "DOMAIN_INVALID")
-        if domain not in DOMAINS:
-            raise LesterProgrammingSchoolError("DOMAIN_UNKNOWN")
-        _nonempty_string(record, "taskKind", "TASK_KIND_INVALID")
-
-        mode = record.get("mode")
-        if mode not in MODES:
-            raise LesterProgrammingSchoolError("MODE_INVALID")
-        result = record.get("result")
-        if result not in RESULTS:
-            raise LesterProgrammingSchoolError("RESULT_INVALID")
-        if type(record.get("verified")) is not bool:
-            raise LesterProgrammingSchoolError("VERIFIED_INVALID")
-        _nonempty_string(record, "sourceRef", "SOURCE_REF_INVALID")
-
-        exact_head = record.get("exactHead")
-        if not isinstance(exact_head, str):
-            raise LesterProgrammingSchoolError("EXACT_HEAD_INVALID")
-        if mode in {"EXECUTION", "TRANSFER"}:
-            if _SHA40.fullmatch(exact_head) is None:
-                raise LesterProgrammingSchoolError("EXACT_HEAD_INVALID")
-        elif exact_head and _SHA40.fullmatch(exact_head) is None:
-            raise LesterProgrammingSchoolError("EXACT_HEAD_INVALID")
-
-        sequence = record.get("sequence")
-        if type(sequence) is not int or sequence < 0:
-            raise LesterProgrammingSchoolError("SEQUENCE_INVALID")
-
+        evidence_id = str(record["evidenceId"])
         canonical = _canonical_record(record)
         previous = seen.get(evidence_id)
         if previous is not None:

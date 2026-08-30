@@ -71,15 +71,26 @@ npm run dev
 ```
 
 The browser smoke starts a built Vite preview, performs arbitrary seek/replay,
-repeats the target-time state after a fresh page reload, captures a Babylon
-render target, verifies the PNG signature and exact `768 × 512` dimensions,
-and writes:
+repeats the target-time state after a fresh page reload, captures one exact-size
+Babylon frame from the preserved rendering canvas, verifies the PNG signature
+and exact `768 × 512` dimensions, and writes:
 
 ```text
 artifacts/proof-frame.png
 ```
 
 The generated PNG is evidence only and is intentionally ignored by Git.
+
+### Capture boundary
+
+The app evaluates the requested time and camera, temporarily applies the capture
+pixel dimensions through Babylon's native `engine.setSize()`, renders one frame,
+and encodes the preserved WebGL canvas with the standard browser
+`HTMLCanvasElement.toDataURL('image/png')`. It then restores the original canvas
+size and camera projection. This avoids a headless render-target `readPixels()`
+boundary that can remain pending under software WebGL while keeping all scene,
+camera, timing, and rendering work inside Babylon. No custom pixel-diff or image
+encoder is introduced.
 
 ## Scene contract
 

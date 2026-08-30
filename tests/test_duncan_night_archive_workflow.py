@@ -64,6 +64,11 @@ OWNER_TASTE_MODEL_DELTA =
         self.assertIn("python3 -m scripts.duncan_night_archive", text)
         self.assertNotIn("duncan-night-v1.yml", text)
 
+    def test_permanent_archive_bootstrap_guard_skips_duncan_until_trusted_main_contains_reducer(self) -> None:
+        text = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("if [[ -f scripts/duncan_night_archive.py ]]; then", text)
+        self.assertIn("DUNCAN_NIGHT_ARCHIVE_NOT_ACTIVE_ON_TRUSTED_MAIN", text)
+
     def test_archive_verifier_rejects_tampered_duncan_context(self) -> None:
         raw = self.event()
         with tempfile.TemporaryDirectory() as tmp:

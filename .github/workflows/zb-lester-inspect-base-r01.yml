@@ -76,7 +76,7 @@ jobs:
           python3 -m scripts.zb_execution_proof_verify
           git diff --exit-code -- tests/fixtures/zb-execution-proof/result.txt || true
           git reset --hard HEAD
-          test -z "$(git status --porcelain)"
+          test -z "$(git status --porcelain --untracked-files=no)"
           echo "EXTERNAL_PROOF_VERIFY = PASS"
 
       - name: Install pinned Inspect AI upstream

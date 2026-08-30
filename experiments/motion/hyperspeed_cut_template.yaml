@@ -1,0 +1,126 @@
+version: ZORR_HYPERSPEED_CUT_TEMPLATE_R01
+status: PROVISIONAL
+fps: 24
+duration_frames: 24
+
+intent:
+  motion_type: hyperspeed_run
+  emotional_vector: controlled_pursuit
+  primary_direction: screen_left
+
+layout:
+  character_anchor:
+    x_norm: 0.42
+    y_norm: 0.58
+  vanishing_point:
+    x_norm: 0.92
+    y_norm: 0.50
+  readable_geography_frames:
+    - [1, 15]
+    - [20, 24]
+
+layers:
+  - id: FAR_BG
+    role: distant_environment
+    relative_velocity: 0.15
+  - id: MID_BG
+    role: middle_environment
+    relative_velocity: 0.45
+  - id: NEAR_BG
+    role: near_environment
+    relative_velocity: 0.85
+  - id: SPEED_BG
+    role: nagare_or_streaked_background
+    enabled_frames: [16, 19]
+  - id: CHARACTER_MAIN
+    role: primary_character_drawings
+  - id: CHARACTER_SMEAR
+    role: authored_smear_geometry
+    enabled_frames: [7, 12]
+  - id: CONTACT_FX
+    role: surface_response
+    enabled_frames: [6, 11, 18]
+  - id: FG_OCCLUDERS
+    role: foreground_depth_proof
+    enabled_frames: [9, 17]
+  - id: SELECTIVE_LIGHT
+    role: secondary_motion_readability
+
+engines:
+  character:
+    1-3: load_hold
+    4-5: compression
+    6: push_key
+    7: smear_A
+    8-10: clean_run_phase
+    11: contact_key
+    12: smear_B
+    13-15: flight_recovery
+    16-19: hyper_burst
+    20: destination_key
+    21-22: recovery
+    23-24: hold_or_exit
+
+  camera:
+    1-5: static
+    6-7: catchup_begin
+    8-15: follow_pan_near_lock
+    16-19: qpan_or_nagare_burst
+    20-22: decelerate
+    23-24: settle
+
+  background:
+    1-5: readable_static_or_low_motion
+    6-10: parallax_acceleration
+    11-15: high_parallax
+    16-19: detail_reduction_plus_speed_bg
+    20-24: return_to_readable_geography
+
+  secondary_motion:
+    lapel_lag_frames: 1
+    shirt_hem_lag_frames: 1
+    jacket_tail_lag_frames: 2
+    hair_lag_frames: 1
+    overshoot_after_camera_settle: true
+
+smears:
+  frame_7:
+    type: limb_stretch
+    body_parts: [rear_arm, rear_leg]
+    preserve_identity_anchor: head
+  frame_12:
+    type: wedge_plus_cloth
+    body_parts: [front_leg, jacket_tail]
+    preserve_identity_anchor: torso_head
+
+contact:
+  frame_6:
+    event: push_release
+    residual: minimal
+  frame_11:
+    event: hard_contact
+    residual: floor_reflection_shear
+  frame_18:
+    event: hyper_contact
+    residual: directional_surface_streak
+
+composite_rules:
+  global_motion_blur_primary_device: false
+  permanent_afterimages: false
+  constant_camera_shake: false
+  full_body_neon_rim: false
+  equal_bg_layer_velocity: false
+  particle_soup: false
+  speed_must_read_without_fx: true
+
+qc:
+  required:
+    - readable_key_pose_silhouette
+    - authored_smear_present
+    - camera_and_character_timing_independent
+    - parallax_depth_visible
+    - cloth_hair_lag_visible
+    - contact_force_visible
+    - identity_preserved_on_keys
+    - emotional_vector_readable
+  verdicts: [PASS, RETEST, FAIL]

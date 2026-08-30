@@ -1,9 +1,6 @@
-import { CreateScreenshotUsingRenderTarget } from '@babylonjs/core/Misc/screenshotTools';
 import type { CaptureSpec } from './contract';
 import type { CompiledDirectingScene } from './compiler';
 import { evaluateAtTime } from './timeline';
-
-const SCREENSHOT_TIMEOUT_MS = 30_000;
 
 export async function captureStill(
   compiled: CompiledDirectingScene,
@@ -30,47 +27,37 @@ export async function captureStill(
     throw new Error(`CAPTURE_CAMERA_NOT_FOUND: ${cameraId}`);
   }
 
+  const canvas = compiled.engine.getRenderingCanvas();
+  if (!canvas) {
+    throw new Error('CAPTURE_RENDERING_CANVAS_NOT_FOUND');
+  }
+
+  const originalWidth = canvas.width;
+  const originalHeight = canvas.height;
   compiled.scene.activeCamera = camera;
-  compiled.scene.render();
 
-  return await new Promise<string>((resolve, reject) => {
-    let settled = false;
-    const succeed = (data: string): void => {
-      if (!settled) {
-        settled = true;
-        resolve(data);
-      }
-    };
-    const fail = (error: unknown): void => {
-      if (!settled) {
-        settled = true;
-        reject(error);
-      }
-    };
+  try {
+    compiled.engine.setSize(capture.widthPx, capture.heightPx, true);
+    camera.getProjectionMatrix(true);
 
-    try {
-      CreateScreenshotUsingRenderTarget(
-        compiled.engine,
-        camera,
-        { width: capture.widthPx, height: capture.heightPx },
-        succeed,
-        'image/png',
-        1,
-        false,
-        undefined,
-        false,
-        false,
-        true,
-        undefined,
-        undefined,
-        undefined,
-        SCREENSHOT_TIMEOUT_MS,
-        () => fail(new Error(
-          `CAPTURE_TIMEOUT: screenshot was not ready after ${SCREENSHOT_TIMEOUT_MS}ms`,
-        )),
+    if (
+      canvas.width !== capture.widthPx
+      || canvas.height !== capture.heightPx
+    ) {
+      throw new Error(
+        `CAPTURE_CANVAS_SIZE_MISMATCH: expected ${capture.widthPx}x${capture.heightPx}, got ${canvas.width}x${canvas.height}`,
       );
-    } catch (error) {
-      fail(error);
     }
-  });
+
+    compiled.scene.render();
+    const dataUrl = canvas.toDataURL('image/png');
+    if (!dataUrl.startsWith('data:image/png;base64,')) {
+      throw new Error('CAPTURE_DATA_URL_INVALID');
+    }
+    return dataUrl;
+  } finally {
+    compiled.engine.setSize(originalWidth, originalHeight, true);
+    camera.getProjectionMatrix(true);
+    compiled.scene.render();
+  }
 }

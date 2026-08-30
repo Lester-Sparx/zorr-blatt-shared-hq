@@ -70,10 +70,10 @@ class DrawQCR01Tests(unittest.TestCase):
         # Character Truth black hair mass touching the face component.
         cv2.rectangle(image, (35, 20), (144, 54), (5, 5, 5), -1)
 
-        # Controlled structural lines inside the skin region.
-        cv2.line(image, (62, 78), (118, 78), (10, 10, 10), 1)
-        cv2.line(image, (62, 103), (118, 103), (10, 10, 10), 4)
-        cv2.line(image, (62, 133), (118, 133), (10, 10, 10), 8)
+        # Sparse structural line hierarchy inside the skin region.
+        cv2.line(image, (80, 78), (100, 78), (10, 10, 10), 1)
+        cv2.line(image, (80, 103), (100, 103), (10, 10, 10), 4)
+        cv2.line(image, (80, 133), (100, 133), (10, 10, 10), 8)
 
         face_mask = np.zeros((180, 180), dtype=np.uint8)
         cv2.rectangle(face_mask, (45, 55), (134, 149), 255, -1)

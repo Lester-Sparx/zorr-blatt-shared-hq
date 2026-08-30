@@ -53,6 +53,26 @@ def _largest_foreground_component(image_bgr: np.ndarray) -> tuple[np.ndarray, np
     return crop, mask
 
 
+def _crop_to_mask(image_bgr: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    if image_bgr is None or image_bgr.ndim != 3 or image_bgr.shape[2] != 3:
+        raise ValueError("expected non-empty BGR image with shape HxWx3")
+    if mask is None or mask.ndim != 2:
+        raise ValueError("expected non-empty 2D region mask")
+    if mask.shape != image_bgr.shape[:2]:
+        raise ValueError("region mask shape must match image height/width")
+
+    region = mask.astype(bool)
+    ys, xs = np.where(region)
+    if ys.size == 0:
+        raise ValueError("region mask is empty")
+
+    y0 = int(ys.min())
+    y1 = int(ys.max()) + 1
+    x0 = int(xs.min())
+    x1 = int(xs.max()) + 1
+    return image_bgr[y0:y1, x0:x1], region[y0:y1, x0:x1].astype(np.uint8)
+
+
 def _normalize_head(crop: np.ndarray, mask: np.ndarray, target_width: int) -> tuple[np.ndarray, np.ndarray]:
     if target_width <= 0:
         raise ValueError("target_width must be positive")
@@ -87,11 +107,8 @@ def _tone_band_count(image_bgr: np.ndarray, mask: np.ndarray) -> int:
     return int(np.count_nonzero(occupancy >= KMEANS_OCCUPANCY_MIN))
 
 
-def analyze_image_bgr(image_bgr: np.ndarray, target_width: int = TARGET_HEAD_WIDTH_PX) -> Dict[str, float]:
-    """Measure one front-head candidate using deterministic OpenCV operations."""
-
-    crop, component_mask = _largest_foreground_component(image_bgr)
-    crop, mask = _normalize_head(crop, component_mask, target_width)
+def _measure_normalized_region(crop: np.ndarray, mask: np.ndarray, target_width: int) -> Dict[str, float]:
+    crop, mask = _normalize_head(crop, mask, target_width)
     gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
 
     gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
@@ -120,6 +137,35 @@ def analyze_image_bgr(image_bgr: np.ndarray, target_width: int = TARGET_HEAD_WID
         "line_hierarchy_ratio": float(line_hierarchy_ratio),
         "high_freq_laplacian_variance": high_freq_laplacian_variance,
     }
+
+
+def analyze_image_bgr(image_bgr: np.ndarray, target_width: int = TARGET_HEAD_WIDTH_PX) -> Dict[str, float]:
+    """Measure the largest connected foreground component.
+
+    This remains the legacy whole-component measurement. For character regions
+    whose semantic meaning matters (for example face/skin vs solid black hair),
+    callers should provide an explicit mask to :func:`analyze_region_bgr`.
+    """
+
+    crop, component_mask = _largest_foreground_component(image_bgr)
+    return _measure_normalized_region(crop, component_mask, target_width)
+
+
+def analyze_region_bgr(
+    image_bgr: np.ndarray,
+    region_mask: np.ndarray,
+    target_width: int = TARGET_HEAD_WIDTH_PX,
+) -> Dict[str, float]:
+    """Measure one explicit semantic region using the same deterministic metrics.
+
+    ``region_mask`` is intentionally supplied by the caller instead of inferred
+    from colors. This keeps identity/Character Truth segmentation upstream of
+    style QC and prevents solid black hair, clothing, or accessories from being
+    misclassified as excessive facial ink.
+    """
+
+    crop, mask = _crop_to_mask(image_bgr, region_mask)
+    return _measure_normalized_region(crop, mask, target_width)
 
 
 def evaluate_metrics(metrics: Mapping[str, float]) -> Dict[str, object]:

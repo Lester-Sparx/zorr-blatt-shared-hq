@@ -1,0 +1,12 @@
+self-hosted-runner:
+  labels:
+    - zorr-blatt-exec-r01
+
+paths:
+  .github/workflows/zb-r03-lester-agent.lock.yml:
+    ignore:
+      - 'unexpected key "queue" for "concurrency" section'
+      - 'property "workflow_repository" is not defined in object type'
+      - 'property "workflow_sha" is not defined in object type'
+      - 'property "workflow_ref" is not defined in object type'
+      - 'property "workflow_file_path" is not defined in object type'

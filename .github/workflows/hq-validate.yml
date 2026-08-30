@@ -8,18 +8,24 @@ jobs:
   hq-schema:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
       - run: python3 scripts/hq_validate.py
       - run: python3 -m unittest discover -s tests -v
   hq-scope-guard:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
       - run: python3 -m unittest discover -s tests -p 'test_scope_guard.py' -v
   hq-control-tower-integrity:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
       - name: Download immutable locked Control Tower release
         env: {GH_TOKEN: "${{ github.token }}"}
         run: |

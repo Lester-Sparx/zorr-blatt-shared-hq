@@ -182,3 +182,105 @@ For RETEST/FAIL record only the dominant proven reasons and change one major var
 The character may be used in neutral model-sheet poses, changed poses, movement, action, posters, and expressive close-ups. Pose/expression/camera variation is allowed. The invariant is identity and the intended adult fashion character language, not a single frozen base pose.
 
 The long-term target is a repeatable ZORR decision language that remains recognizable even when palette, location, costume lighting, camera, and FX family change completely.
+
+## OP-ART / OPTICAL FIELD REFERENCE STUDY R01
+
+The current OWNER reference pack establishes a useful visual family: warped checkerboards, spirals, stripe tunnels, curved line fields, checker spheres, black-white interiors, and a fashion figure partially dissolving into a geometric environment. These are treated as production references, not as canon objects and not as motifs to paste literally into every shot.
+
+### Core extraction
+
+The important concept is **FIELD DISTORTION**, not checkerboard decoration.
+
+A ZORR optical field may:
+
+- wrap around a face, body, sphere, wall, floor, or garment as if the surface itself bends the pattern;
+- compress line spacing near a focal point to create psychological pull;
+- expand line spacing to make a surface bulge toward camera;
+- bend a checker grid continuously through depth instead of using a flat texture;
+- use alternating black/white masses to create shape without extra outline;
+- continue one field from environment into character or FX to imply temporary merging of realities;
+- use one selective color family over a black/white field, rather than filling the frame with many competing colors.
+
+### Reference mechanisms extracted
+
+**CHECKER SPHERE / BULGE**
+
+Use: surface curvature, face-plane wrapping, body-volume distortion.
+Rule: cell size and direction must change with the implied surface; a constant flat grid is a fail.
+Potential ZORR use: cheek/forehead psychic bulge, garment distortion, room walls swelling toward character.
+
+**SPIRAL / VORTEX FIELDS**
+
+Use: gaze control, obsession, inward pull, temporal or psychological collapse.
+Rule: the convergence point is a compositional target and must be chosen deliberately.
+Potential ZORR use: E05 PSYCHIC OBSESSION, eye-focused FX, portal-like background state, motion transition.
+
+**WARPED STRIPES**
+
+Use: continuous deformation of a surface and strong black-mass rhythm.
+Rule: stripes must bend coherently around the implied volume or force field.
+Potential ZORR use: B06 INNER FRACTURE, projected face pattern, suit/material deformation, spatial pressure around a moving body.
+
+**CHECKER / STRIPE TUNNELS**
+
+Use: extreme depth, vanishing-point control, psychological corridor, impossible interior.
+Rule: pattern density increases with depth; architecture and graphic field should share perspective rather than behave as separate layers.
+Potential ZORR use: surreal interiors, pursuit shots, dread pans, fashion walk sequences.
+
+**BODY DISSOLVING INTO FIELD**
+
+Use: motion language and character-world interaction.
+Rule: preserve the readable primary silhouette while selected rear or trailing regions are converted into field-aligned streaks or cells.
+Potential ZORR use: speed, psychic displacement, teleport-like state, emotional exit from normal space.
+
+**MONOCHROME FIELD + SELECTIVE COLOR ISLANDS**
+
+Use: preserve adult fashion restraint while permitting psychedelia.
+Rule: black/white structure remains dominant; color is a controlled semantic event.
+Potential ZORR use: emotion accents, eyes, mouth, jewelry, one garment plane, one environmental anchor.
+
+### ZORR conversion rule
+
+Do not make the character stand in front of an op-art wallpaper by default.
+
+Preferred integration order:
+
+`ENVIRONMENT FIELD -> SURFACE WARP -> CHARACTER INTERACTION -> EMOTIONAL FOCUS`
+
+The pattern should react to form, depth, motion, or emotion.
+
+Bad shortcut:
+
+`normal character + random checker/spiral background`
+
+Stronger solution:
+
+`character emotion/pose causes one coherent optical field to bend across face, garment, floor, or surrounding space`
+
+### Relationship to the B01-B07 training route
+
+- `B01 LIGHT`: optical field may be used only as a projected light/shadow structure; no full pattern overload.
+- `B02 BLACK MASS`: black/white field teaches how large dark regions can define form without micro-detail.
+- `B03 COLOR PLANE`: selective color islands can interrupt a monochrome field while preserving hierarchy.
+- `B04 LINE SUBTRACTION`: field density can replace some contour information; do not keep every original line underneath.
+- `B05 TEMPORAL EYES`: spiral or shifted stripe fragments may appear only around the eye zone as discrete time states.
+- `B06 INNER FRACTURE`: two incompatible field directions can occupy different facial or spatial regions without literal cracks.
+- `B07 PSYKODELIC FACE STATE`: combine at most one optical-field family with one supporting color/light event.
+
+### Anti-patterns
+
+- checkerboard as automatic psychedelic wallpaper;
+- spiral centered randomly with no relation to gaze or composition;
+- identical stripe spacing over curved anatomy;
+- black/white pattern covering every surface with equal intensity;
+- character silhouette lost inside the field;
+- optical distortion used simultaneously with neon rim, RGB glitch, heavy particles, bloom, and smoke;
+- literal copying of a reference composition instead of extracting the transformation rule.
+
+### New provisional ZORR term
+
+**PSYCHIC FIELD** = a designed optical deformation layer whose geometry reacts to character form, camera depth, motion, or emotional state.
+
+This is a production term only. It does not establish an in-world supernatural mechanic.
+
+A PSYCHIC FIELD passes only when it changes the emotional/spatial read of the shot and remains integrated with the character or environment rather than functioning as standalone decoration.

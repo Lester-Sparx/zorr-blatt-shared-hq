@@ -1,13 +1,15 @@
 """Deterministic sandbox QC for the ZORR character drawing law.
 
 This module is intentionally small glue around OpenCV primitives. It does not
-render, train, or mutate production/canon state. Thresholds are sandbox R01
-values derived from the OWNER-approved drawing anchor and durable law #199.
+render, train, or mutate production/canon state. R01 absolute thresholds are
+derived from the OWNER-approved drawing anchor and durable law #199. R02
+transfer thresholds are provisional consistency limits measured from the
+current C00-B model-sheet front/3/4 study set; they are not canon locks.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Mapping
+from typing import Dict, Mapping, Sequence
 
 import cv2
 import numpy as np
@@ -28,6 +30,13 @@ STRONG_EDGE_DENSITY_MAX = 0.14
 DEEP_INK_COVERAGE_MAX = 0.05
 LINE_HIERARCHY_RATIO_MIN = 4.0
 HIGH_FREQ_LAPLACIAN_VARIANCE_MAX = 800.0
+
+TRANSFER_MIN_VIEWS = 3
+TRANSFER_TONE_RANGE_MAX = 1.0
+TRANSFER_EDGE_CV_MAX = 0.06
+TRANSFER_INK_CV_MAX = 0.12
+TRANSFER_LINE_CV_MAX = 0.06
+TRANSFER_HIGH_FREQ_CV_MAX = 0.30
 
 
 def _largest_foreground_component(image_bgr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -139,6 +148,17 @@ def _measure_normalized_region(crop: np.ndarray, mask: np.ndarray, target_width:
     }
 
 
+def _coefficient_of_variation(values: Sequence[float]) -> float:
+    data = np.asarray(values, dtype=np.float64)
+    if data.size == 0 or not np.all(np.isfinite(data)):
+        raise ValueError("transfer metrics must be finite and non-empty")
+    mean = float(np.mean(data))
+    std = float(np.std(data))
+    if abs(mean) <= 1e-12:
+        return 0.0 if std <= 1e-12 else float("inf")
+    return std / abs(mean)
+
+
 def analyze_image_bgr(image_bgr: np.ndarray, target_width: int = TARGET_HEAD_WIDTH_PX) -> Dict[str, float]:
     """Measure the largest connected foreground component.
 
@@ -169,7 +189,7 @@ def analyze_region_bgr(
 
 
 def evaluate_metrics(metrics: Mapping[str, float]) -> Dict[str, object]:
-    """Apply the R01 measurable envelope and return fail-closed reasons."""
+    """Apply the R01 absolute anchor envelope and return fail-closed reasons."""
 
     failures = []
     tone_bands = float(metrics["tone_bands"])
@@ -192,4 +212,63 @@ def evaluate_metrics(metrics: Mapping[str, float]) -> Dict[str, object]:
     return {
         "verdict": "PASS" if not failures else "FAIL",
         "failures": failures,
+    }
+
+
+def evaluate_transfer_consistency(samples: Sequence[Mapping[str, float]]) -> Dict[str, object]:
+    """Check cross-view style stability without reusing the absolute R01 envelope.
+
+    The current C00-B yaw sheet intentionally has a denser close-up treatment
+    than the older absolute R01 anchor. Transfer QC therefore measures relative
+    drift across equivalent views rather than pretending both domains share the
+    same absolute density. Thresholds are provisional sandbox values measured
+    from the three current front/3/4 study regions and must not be treated as a
+    production or canon lock.
+    """
+
+    if len(samples) < TRANSFER_MIN_VIEWS:
+        raise ValueError("transfer consistency requires at least three views")
+
+    metric_names = (
+        "tone_bands",
+        "strong_edge_density",
+        "deep_ink_coverage",
+        "line_hierarchy_ratio",
+        "high_freq_laplacian_variance",
+    )
+    columns = {
+        name: np.asarray([float(sample[name]) for sample in samples], dtype=np.float64)
+        for name in metric_names
+    }
+    if any(not np.all(np.isfinite(values)) for values in columns.values()):
+        raise ValueError("transfer metrics must be finite")
+
+    tone_range = float(np.max(columns["tone_bands"]) - np.min(columns["tone_bands"]))
+    edge_cv = _coefficient_of_variation(columns["strong_edge_density"])
+    ink_cv = _coefficient_of_variation(columns["deep_ink_coverage"])
+    line_cv = _coefficient_of_variation(columns["line_hierarchy_ratio"])
+    high_freq_cv = _coefficient_of_variation(columns["high_freq_laplacian_variance"])
+
+    failures = []
+    if tone_range > TRANSFER_TONE_RANGE_MAX:
+        failures.append("TRANSFER_TONE_DRIFT_FAIL")
+    if edge_cv > TRANSFER_EDGE_CV_MAX:
+        failures.append("TRANSFER_EDGE_DRIFT_FAIL")
+    if ink_cv > TRANSFER_INK_CV_MAX:
+        failures.append("TRANSFER_INK_DRIFT_FAIL")
+    if line_cv > TRANSFER_LINE_CV_MAX:
+        failures.append("TRANSFER_LINE_DRIFT_FAIL")
+    if high_freq_cv > TRANSFER_HIGH_FREQ_CV_MAX:
+        failures.append("TRANSFER_HIGH_FREQ_DRIFT_FAIL")
+
+    return {
+        "verdict": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "diagnostics": {
+            "tone_range": tone_range,
+            "edge_cv": edge_cv,
+            "ink_cv": ink_cv,
+            "line_cv": line_cv,
+            "high_freq_cv": high_freq_cv,
+        },
     }

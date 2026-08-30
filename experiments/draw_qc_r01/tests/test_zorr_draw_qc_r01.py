@@ -4,8 +4,10 @@ import cv2
 import numpy as np
 
 from experiments.draw_qc_r01.zorr_draw_qc import (
+    analyze_head_geometry_masks,
     analyze_image_bgr,
     analyze_region_bgr,
+    evaluate_head_geometry_consistency,
     evaluate_metrics,
     evaluate_transfer_consistency,
 )
@@ -63,19 +65,13 @@ class DrawQCR01Tests(unittest.TestCase):
 
     def test_region_mask_excludes_character_truth_black_mass(self):
         image = np.full((180, 180, 3), 250, dtype=np.uint8)
-
-        # Skin field with five controlled tone bands.
         cv2.rectangle(image, (45, 50), (134, 149), (112, 88, 72), -1)
         cv2.rectangle(image, (45, 50), (134, 69), (104, 82, 68), -1)
         cv2.rectangle(image, (45, 70), (134, 89), (96, 76, 64), -1)
         cv2.rectangle(image, (45, 90), (134, 109), (88, 70, 60), -1)
         cv2.rectangle(image, (45, 110), (134, 129), (80, 64, 56), -1)
         cv2.rectangle(image, (45, 130), (134, 149), (72, 58, 52), -1)
-
-        # Character Truth black hair mass touching the face component.
         cv2.rectangle(image, (35, 20), (144, 54), (5, 5, 5), -1)
-
-        # Sparse structural line hierarchy inside the skin region.
         cv2.line(image, (80, 78), (100, 78), (10, 10, 10), 1)
         cv2.line(image, (80, 103), (100, 103), (10, 10, 10), 4)
         cv2.line(image, (80, 133), (100, 133), (10, 10, 10), 8)
@@ -94,76 +90,32 @@ class DrawQCR01Tests(unittest.TestCase):
     def test_region_mask_requires_same_image_shape(self):
         image = np.full((100, 100, 3), 250, dtype=np.uint8)
         wrong_mask = np.ones((50, 50), dtype=np.uint8)
-
         with self.assertRaises(ValueError):
             analyze_region_bgr(image, wrong_mask)
 
     def test_region_mask_requires_non_empty_region(self):
         image = np.full((100, 100, 3), 250, dtype=np.uint8)
         empty_mask = np.zeros((100, 100), dtype=np.uint8)
-
         with self.assertRaises(ValueError):
             analyze_region_bgr(image, empty_mask)
 
     def test_transfer_consistency_passes_observed_c00b_front_three(self):
-        # Fresh measurements from the three OpenCV-detected front/3/4 regions
-        # in C00-B. This is a transfer-consistency domain, not R01 anchor QC.
         samples = [
-            {
-                "tone_bands": 8.0,
-                "strong_edge_density": 0.2014669213,
-                "deep_ink_coverage": 0.0586260937,
-                "line_hierarchy_ratio": 2.6666666667,
-                "high_freq_laplacian_variance": 80.2548037129,
-            },
-            {
-                "tone_bands": 8.0,
-                "strong_edge_density": 0.2225570875,
-                "deep_ink_coverage": 0.0708144839,
-                "line_hierarchy_ratio": 2.9103737536,
-                "high_freq_laplacian_variance": 123.8768193954,
-            },
-            {
-                "tone_bands": 7.0,
-                "strong_edge_density": 0.2035543656,
-                "deep_ink_coverage": 0.0589116104,
-                "line_hierarchy_ratio": 2.9291998545,
-                "high_freq_laplacian_variance": 69.0116770847,
-            },
+            {"tone_bands": 8.0, "strong_edge_density": 0.2014669213, "deep_ink_coverage": 0.0586260937, "line_hierarchy_ratio": 2.6666666667, "high_freq_laplacian_variance": 80.2548037129},
+            {"tone_bands": 8.0, "strong_edge_density": 0.2225570875, "deep_ink_coverage": 0.0708144839, "line_hierarchy_ratio": 2.9103737536, "high_freq_laplacian_variance": 123.8768193954},
+            {"tone_bands": 7.0, "strong_edge_density": 0.2035543656, "deep_ink_coverage": 0.0589116104, "line_hierarchy_ratio": 2.9291998545, "high_freq_laplacian_variance": 69.0116770847},
         ]
-
         verdict = evaluate_transfer_consistency(samples)
-
         self.assertEqual(verdict["verdict"], "PASS")
         self.assertEqual(verdict["failures"], [])
 
     def test_transfer_consistency_rejects_single_view_style_drift(self):
         samples = [
-            {
-                "tone_bands": 8.0,
-                "strong_edge_density": 0.202,
-                "deep_ink_coverage": 0.060,
-                "line_hierarchy_ratio": 2.75,
-                "high_freq_laplacian_variance": 82.0,
-            },
-            {
-                "tone_bands": 8.0,
-                "strong_edge_density": 0.210,
-                "deep_ink_coverage": 0.064,
-                "line_hierarchy_ratio": 2.82,
-                "high_freq_laplacian_variance": 90.0,
-            },
-            {
-                "tone_bands": 11.0,
-                "strong_edge_density": 0.340,
-                "deep_ink_coverage": 0.120,
-                "line_hierarchy_ratio": 1.45,
-                "high_freq_laplacian_variance": 510.0,
-            },
+            {"tone_bands": 8.0, "strong_edge_density": 0.202, "deep_ink_coverage": 0.060, "line_hierarchy_ratio": 2.75, "high_freq_laplacian_variance": 82.0},
+            {"tone_bands": 8.0, "strong_edge_density": 0.210, "deep_ink_coverage": 0.064, "line_hierarchy_ratio": 2.82, "high_freq_laplacian_variance": 90.0},
+            {"tone_bands": 11.0, "strong_edge_density": 0.340, "deep_ink_coverage": 0.120, "line_hierarchy_ratio": 1.45, "high_freq_laplacian_variance": 510.0},
         ]
-
         verdict = evaluate_transfer_consistency(samples)
-
         self.assertEqual(verdict["verdict"], "FAIL")
         self.assertIn("TRANSFER_TONE_DRIFT_FAIL", verdict["failures"])
         self.assertIn("TRANSFER_EDGE_DRIFT_FAIL", verdict["failures"])
@@ -172,25 +124,52 @@ class DrawQCR01Tests(unittest.TestCase):
         self.assertIn("TRANSFER_HIGH_FREQ_DRIFT_FAIL", verdict["failures"])
 
     def test_transfer_consistency_requires_three_views(self):
+        sample = {"tone_bands": 8.0, "strong_edge_density": 0.20, "deep_ink_coverage": 0.06, "line_hierarchy_ratio": 2.8, "high_freq_laplacian_variance": 80.0}
         with self.assertRaises(ValueError):
-            evaluate_transfer_consistency(
-                [
-                    {
-                        "tone_bands": 8.0,
-                        "strong_edge_density": 0.20,
-                        "deep_ink_coverage": 0.06,
-                        "line_hierarchy_ratio": 2.8,
-                        "high_freq_laplacian_variance": 80.0,
-                    },
-                    {
-                        "tone_bands": 8.0,
-                        "strong_edge_density": 0.21,
-                        "deep_ink_coverage": 0.06,
-                        "line_hierarchy_ratio": 2.8,
-                        "high_freq_laplacian_variance": 82.0,
-                    },
-                ]
-            )
+            evaluate_transfer_consistency([sample, sample])
+
+    def _symmetric_head_masks(self):
+        profile_left = np.zeros((160, 120), dtype=np.uint8)
+        cv2.ellipse(profile_left, (58, 75), (42, 62), 0, 0, 360, 255, -1)
+        cv2.rectangle(profile_left, (47, 118), (82, 158), 255, -1)
+        profile_right = cv2.flip(profile_left, 1)
+
+        threequarter_left = np.zeros((170, 130), dtype=np.uint8)
+        cv2.ellipse(threequarter_left, (64, 78), (46, 66), 0, 0, 360, 255, -1)
+        cv2.rectangle(threequarter_left, (43, 125), (87, 168), 255, -1)
+        threequarter_right = cv2.flip(threequarter_left, 1)
+
+        front = np.zeros((180, 136), dtype=np.uint8)
+        cv2.ellipse(front, (68, 82), (48, 70), 0, 0, 360, 255, -1)
+        cv2.rectangle(front, (46, 132), (90, 178), 255, -1)
+
+        return {
+            "profile_left": profile_left,
+            "threequarter_left": threequarter_left,
+            "front": front,
+            "threequarter_right": threequarter_right,
+            "profile_right": profile_right,
+        }
+
+    def test_head_geometry_consistency_passes_symmetric_yaw_set(self):
+        metrics = analyze_head_geometry_masks(self._symmetric_head_masks())
+        verdict = evaluate_head_geometry_consistency(metrics)
+        self.assertEqual(verdict["verdict"], "PASS")
+        self.assertEqual(verdict["failures"], [])
+        self.assertGreater(metrics["profile_mirror_dice"], 0.99)
+        self.assertGreater(metrics["threequarter_mirror_dice"], 0.99)
+        self.assertGreater(metrics["front_self_mirror_dice"], 0.99)
+
+    def test_head_geometry_consistency_rejects_single_side_bulge(self):
+        masks = self._symmetric_head_masks()
+        cv2.rectangle(masks["profile_right"], (0, 70), (30, 145), 255, -1)
+        metrics = analyze_head_geometry_masks(masks)
+        verdict = evaluate_head_geometry_consistency(metrics)
+        self.assertEqual(verdict["verdict"], "FAIL")
+        self.assertTrue(
+            "HEAD_PROFILE_MIRROR_FAIL" in verdict["failures"]
+            or "HEAD_PROFILE_ASPECT_DRIFT_FAIL" in verdict["failures"]
+        )
 
 
 if __name__ == "__main__":

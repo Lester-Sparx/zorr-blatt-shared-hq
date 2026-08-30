@@ -61,9 +61,13 @@ jobs:
         run: |
           set -euo pipefail
           cd "$GITHUB_WORKSPACE/source"
-          python3 -m scripts.duncan_night_archive \
-            --event-path "$GITHUB_EVENT_PATH" \
-            --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
+          if [[ -f scripts/duncan_night_archive.py ]]; then
+            python3 -m scripts.duncan_night_archive \
+              --event-path "$GITHUB_EVENT_PATH" \
+              --archive-root "$GITHUB_WORKSPACE/archive/hq/archive-v1"
+          else
+            echo "DUNCAN_NIGHT_ARCHIVE_NOT_ACTIVE_ON_TRUSTED_MAIN"
+          fi
 
       - name: Verify complete archive before commit
         shell: bash

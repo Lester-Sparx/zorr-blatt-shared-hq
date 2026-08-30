@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zorr-blatt.local/schemas/LESTER_PROGRAMMING_EVIDENCE_V1.schema.json",
+  "title": "LESTER_PROGRAMMING_EVIDENCE_V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidenceId",
+    "agentId",
+    "domain",
+    "taskKind",
+    "mode",
+    "result",
+    "verified",
+    "sourceRef",
+    "exactHead",
+    "sequence"
+  ],
+  "properties": {
+    "evidenceId": {"type": "string", "minLength": 1},
+    "agentId": {"const": "LESTER"},
+    "domain": {
+      "type": "string",
+      "enum": [
+        "python",
+        "typescript_javascript",
+        "git_github",
+        "testing_tdd",
+        "debugging_root_cause",
+        "software_architecture",
+        "oss_reuse",
+        "ci_cd_automation",
+        "security_supply_chain",
+        "data_storage_search",
+        "graphics_realtime",
+        "computer_vision",
+        "ai_agent_integration",
+        "performance_reliability",
+        "windows_linux_runtime",
+        "math_scientific_computing"
+      ]
+    },
+    "taskKind": {"type": "string", "minLength": 1},
+    "mode": {"type": "string", "enum": ["STUDY", "EXECUTION", "TRANSFER"]},
+    "result": {"type": "string", "enum": ["PASS", "FAIL"]},
+    "verified": {"type": "boolean"},
+    "sourceRef": {"type": "string", "minLength": 1},
+    "exactHead": {
+      "type": "string",
+      "pattern": "^(?:|[0-9a-f]{40})$"
+    },
+    "sequence": {"type": "integer", "minimum": 0}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {"enum": ["EXECUTION", "TRANSFER"]}
+        },
+        "required": ["mode"]
+      },
+      "then": {
+        "properties": {
+          "exactHead": {"pattern": "^[0-9a-f]{40}$"}
+        }
+      }
+    }
+  ]
+}

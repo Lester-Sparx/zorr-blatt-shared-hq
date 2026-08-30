@@ -200,3 +200,58 @@ def build_profile(records: list[dict[str, object]]) -> dict[str, object]:
         "disciplineAffectsCompetence": False,
         "domains": domains,
     }
+
+
+def choose_next_training_target(
+    profile: dict[str, object],
+    preferred_domains: list[str] | None = None,
+) -> dict[str, str]:
+    if not isinstance(profile, dict) or profile.get("schemaVersion") != "LESTER_PROGRAMMING_PROFILE_V1":
+        raise LesterProgrammingSchoolError("PROFILE_INVALID")
+    domains = profile.get("domains")
+    if not isinstance(domains, dict) or set(domains) != set(DOMAINS):
+        raise LesterProgrammingSchoolError("PROFILE_DOMAINS_INVALID")
+
+    order = list(DOMAINS)
+    if preferred_domains is not None:
+        if not isinstance(preferred_domains, list) or len(set(preferred_domains)) != len(preferred_domains):
+            raise LesterProgrammingSchoolError("PREFERRED_DOMAINS_INVALID")
+        if any(domain not in DOMAINS for domain in preferred_domains):
+            raise LesterProgrammingSchoolError("PREFERRED_DOMAIN_UNKNOWN")
+        order = preferred_domains + [domain for domain in DOMAINS if domain not in preferred_domains]
+
+    state_priority = {"FAILED": 0, "UNTESTED": 1, "PARTIAL": 2, "PROVEN": 3}
+    ranked: list[tuple[int, int, int, str, dict[str, object]]] = []
+    for index, domain in enumerate(order):
+        bucket = domains[domain]
+        if not isinstance(bucket, dict):
+            raise LesterProgrammingSchoolError("PROFILE_BUCKET_INVALID")
+        state = bucket.get("state")
+        if state not in state_priority:
+            raise LesterProgrammingSchoolError("PROFILE_STATE_INVALID")
+        passes = bucket.get("verifiedPasses")
+        failures = bucket.get("verifiedFailures")
+        if type(passes) is not int or type(failures) is not int or passes < 0 or failures < 0:
+            raise LesterProgrammingSchoolError("PROFILE_ATTEMPTS_INVALID")
+        ranked.append((state_priority[str(state)], passes + failures, index, domain, bucket))
+
+    _, _, _, domain, bucket = min(ranked)
+    state = str(bucket["state"])
+    if state == "FAILED":
+        recommended_mode = "EXECUTION"
+        reason = "REMEDIATE_VERIFIED_FAILURE"
+    elif state == "UNTESTED":
+        recommended_mode = "EXECUTION"
+        reason = "ESTABLISH_VERIFIED_BASELINE"
+    elif state == "PARTIAL":
+        recommended_mode = "TRANSFER"
+        reason = "REQUIRE_CHANGED_UNSEEN_TRANSFER"
+    else:
+        recommended_mode = "TRANSFER"
+        reason = "MAINTAIN_PROVEN_SKILL_WITH_TRANSFER"
+    return {
+        "domain": domain,
+        "state": state,
+        "recommendedMode": recommended_mode,
+        "reason": reason,
+    }

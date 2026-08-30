@@ -11,6 +11,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Install existing SHERIFF JSON Schema validator
+        run: python3 -m pip install jsonschema==4.25.1
       - run: python3 scripts/hq_validate.py
       - run: python3 -m unittest discover -s tests -v
   hq-scope-guard:

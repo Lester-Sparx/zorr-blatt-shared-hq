@@ -6,6 +6,8 @@ PRODUCTION_MUTATION = NO
 CANON_MUTATION = NO
 IMAGE_GENERATION = NO
 IMAGE_GENERATION_WITHOUT_EXPLICIT_OWNER_COMMAND = TABOO
+CUSTOM_CODE = TABOO
+CUSTOM_GLUE = TABOO
 
 ## Exact context
 
@@ -16,6 +18,20 @@ IMAGE_GENERATION_WITHOUT_EXPLICIT_OWNER_COMMAND = TABOO
 - active draft PR: `#214`
 - durable texture authority: issue `#199`
 - open-code / learning authority: issue `#206`
+
+## HARD OWNER CODE LAW
+
+Use only this order:
+
+`EXISTING ZORR CODE -> NATIVE / STANDARD PLATFORM -> MATURE OPEN-SOURCE / UPSTREAM`
+
+Do not write new ZORR scripts, algorithms, frameworks, test harnesses, custom CV metrics, adapters, wrappers or minimal glue for this research.
+
+If an existing/native/upstream route does not provide the required capability:
+
+`CUSTOM_CODE_REQUIRED_BUT_FORBIDDEN -> BLOCKED`
+
+No threshold weakening, substitute evidence, or custom implementation is allowed to manufacture progress.
 
 ## Source register
 
@@ -152,24 +168,20 @@ Forbidden by default:
 - pores
 - tiny fabric information
 
-## QC / measurement plan
+## QC / measurement plan — EXISTING / NATIVE / OSS ONLY
 
 No numeric per-material PASS is claimed yet unless directly covered by #199 and measured in the correct semantic domain.
 
 Next deterministic measurement work on EXISTING assets only:
 
-1. create semantic masks/crops for Duncan material regions without altering source pixels;
-2. measure per region with OpenCV/NumPy:
-   - calm-area fraction;
-   - structural edge coverage;
-   - dominant tone-band count;
-   - coarse/fine residual energy;
-   - fine residual p90;
-3. compare NEAR-equivalent detail sheet regions against MID/FAR-equivalent turnaround/master-front regions;
-4. verify that microdetail collapses with scale instead of persisting unchanged;
-5. use controlled synthetic NEGATIVE fixtures in code for uniform grain, excessive edge density and distance-invariant microdetail;
-6. run fresh CI on exact HEAD;
-7. record PASS/FAIL per material independently.
+1. reuse existing ZORR analysis/QC code already present on `duncan3/zorr-draw-qc-r01` where it already implements the required measurement;
+2. otherwise use native/standard platform functions or mature upstream tools (for example existing OpenCV/NumPy/Krita/OpenToonz/G'MIC capabilities) without writing a new algorithm or wrapper;
+3. measure only metrics already supported by the selected existing/upstream path, such as calm-area/gradient statistics, edge coverage, palette/value grouping or scale-frequency behavior;
+4. compare NEAR-equivalent detail-sheet regions against MID/FAR-equivalent turnaround/master-front regions using existing tool operations only;
+5. reuse existing negative fixtures/tests if they already exist; do not author new synthetic test code;
+6. run existing fresh CI on the exact HEAD after durable record changes where applicable;
+7. record PASS/FAIL per material independently;
+8. if a required measurement has no existing/native/mature-OSS route, record `CUSTOM_CODE_REQUIRED_BUT_FORBIDDEN` and mark that metric/path `BLOCKED`.
 
 ## Current confidence
 
@@ -185,15 +197,23 @@ Next deterministic measurement work on EXISTING assets only:
 
 ## Owner signal / process law
 
-Explicit OWNER correction in current session:
+Explicit OWNER corrections in current session:
 
 `IMAGE GENERATION / REDRAW / EDIT WITHOUT EXPLICIT OWNER COMMAND = TABOO`
 
-Therefore all autonomous texture work remains ANALYSIS / CODE / QC / EVIDENCE only. If a transfer test would require a newly generated or edited image, record:
+`WRITE CUSTOM CODE = TABOO`
+
+`WRITE CUSTOM GLUE = TABOO`
+
+Therefore autonomous texture work is limited to ANALYSIS / EXISTING-CODE OR UPSTREAM-TOOL USE / QC / EVIDENCE. If a transfer test would require a newly generated or edited image, record:
 
 `IMAGE_GENERATION_REQUIRES_OWNER_COMMAND`
 
-and stop that generation path.
+If a required capability would require new custom code, record:
+
+`CUSTOM_CODE_REQUIRED_BUT_FORBIDDEN`
+
+and stop that path.
 
 ## Durable update protocol
 
@@ -203,9 +223,9 @@ For each material-learning cycle append/update:
 
 - exact source/hash;
 - variable under test;
-- measurement method/tool/version;
-- RED fixture / failure evidence;
-- GREEN implementation/evidence;
+- existing/native/upstream tool and exact version/ref when known;
+- failure evidence;
+- existing/upstream diagnostic or verification evidence;
 - transfer result on changed/unseen EXISTING source when available;
 - confidence delta;
 - status: `UNKNOWN / PROVISIONAL / SANDBOX_PASS / BLOCKED`;
@@ -221,4 +241,8 @@ No single observation becomes a universal owner taste lock.
 
 `IMAGE_GENERATION = FORBIDDEN WITHOUT EXPLICIT OWNER COMMAND`
 
-`NEXT = SEMANTIC_MATERIAL_MEASUREMENT_R01 ON EXISTING DUNCAN SOURCES`
+`CUSTOM_CODE = FORBIDDEN`
+
+`CUSTOM_GLUE = FORBIDDEN`
+
+`NEXT = SEMANTIC_MATERIAL_MEASUREMENT_R01 USING EXISTING ZORR / NATIVE / MATURE OSS ONLY`

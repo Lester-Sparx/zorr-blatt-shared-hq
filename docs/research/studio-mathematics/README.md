@@ -26,29 +26,37 @@ CURRENT MAIN
 
 Do not restore mathematics from chat memory when GitHub contains a fresher result.
 
-### Current high-priority perspective path
+### Current high-priority perspective / Babylon camera path
 
-For perspective / camera / location / object-placement work, read in this order:
+For perspective / camera / location / Babylon object-placement work, read in this order:
 
 1. `MATHEMATICAL_WORLD_PERSPECTIVE_LEARNING_R01.md` — pixel-first learning, free-space separation, first real-frame homography/Jacobian lessons and truth boundaries.
 2. `PERSPECTIVE_GEOMETRY_MASTER_R01.md` — projective-space master: homogeneous points/ideal VPs, camera matrix, vanishing geometry, homography, Jacobians, metric tensor, uncertainty, multi-plane direction, character projection and stylized-perspective residuals.
 3. `code/zorr_perspective_master_r01.py` — executable research kernel; use mature OpenCV estimators instead of inventing duplicate RANSAC/PnP/calibration infrastructure.
+4. `BABYLON_CAMERA_PLACEMENT_MATHEMATICS_R02.md` — strict inverse-camera formulation for Babylon: screen targets, normalized/robust residuals, hard constraints, ArcRotate derivatives, analytic inverse seeds, observability, occlusion, uncertainty, null-space safe editing, temporal camera mathematics and Babylon-native verification.
+5. `BABYLON_CAMERA_MATH_CHAT_PROMPT_R02.md` — copy/paste durable prompt for a fresh mathematics chat to continue this exact Babylon camera research line.
 
-Perspective research rule:
+Perspective / Babylon camera research rule:
 
 ```text
-PIXEL EVIDENCE
+ART INTENT
+-> PIXEL/SCREEN TARGETS
 -> PROJECTIVE GEOMETRY
--> CAMERA / PLANE MODEL
--> WORLD-SPACE CONSTRAINTS
--> REPROJECT
--> NUMERICAL ERROR
+-> CAMERA / PLANE / WORLD MODEL
+-> HARD CONSTRAINTS + SOFT OBJECTIVES
+-> ANALYTIC SEED
+-> NUMERICAL SOLVE
+-> BABYLON NATIVE REPROJECT / RAY / FRUSTUM VERIFY
+-> OBSERVABILITY + UNCERTAINTY
 -> STYLE RESIDUAL IF INTENTIONAL
 -> RECORD
 ```
 
 `PHYSICAL BASE != ART DIRECTION`.
 A deliberate anime perspective break should be represented as an explicit, measurable residual from the physical/projective base rather than being confused with an accidental geometry error.
+
+`BABYLON ENGINE PRIMITIVE != ZORR CAMERA OBJECTIVE`.
+Babylon remains authoritative for native matrices/projection/rays/bounds/camera execution; ZORR mathematics defines the inverse staging problem and verifies the result instead of building a second engine.
 
 ### Shared visibility contract
 
@@ -153,6 +161,7 @@ MAIN/CANON AUTHORITY = unchanged
 8. `INFORMATION_VALUE` — which study/reference/test removes the most uncertainty per unit cost.
 9. `RESOURCE_OPTIMIZATION` — allocation of artists, review attention, render capacity and hero-shot budget.
 10. `PERSPECTIVE_MASTER` — homogeneous projective geometry, camera calibration, multi-plane reconstruction, local perspective tensors, world-space placement, reprojection QC and controlled stylized-perspective residuals.
+11. `BABYLON_CAMERA_MATH` — constrained inverse camera placement, screen-target algebra, ArcRotate sensitivity/Jacobians, hard feasibility constraints, native Babylon reprojection/visibility/frustum verification, uncertainty and safe null-space camera edits.
 
 ## PASS discipline
 

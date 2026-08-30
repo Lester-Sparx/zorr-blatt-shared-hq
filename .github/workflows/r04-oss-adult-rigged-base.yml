@@ -51,6 +51,23 @@ jobs:
           grep -E "SKINS|ANIMATIONS|JOINTS_0|WEIGHTS_0|vertices|primitives" -i r04-artifact/human-inspect.txt | tee r04-artifact/human-rig-proof.txt
           grep -E "SKINS|ANIMATIONS|JOINTS_0|WEIGHTS_0|vertices|primitives" -i r04-artifact/man-inspect.txt | tee r04-artifact/man-rig-proof.txt
 
+      - name: Install official Blender 4.4.3 binary
+        shell: bash
+        run: |
+          set -euxo pipefail
+          wget -q https://download.blender.org/release/Blender4.4/blender-4.4.3-linux-x64.tar.xz -O /tmp/blender-4.4.3-linux-x64.tar.xz
+          tar -xf /tmp/blender-4.4.3-linux-x64.tar.xz -C /tmp
+          /tmp/blender-4.4.3-linux-x64/blender --version | tee r04-artifact/blender-version.txt
+
+      - name: Render upstream adult assets with upstream Cycles renderer
+        shell: bash
+        run: |
+          set -euxo pipefail
+          /tmp/blender-4.4.3-linux-x64/blender -b --python vendor/vsim/scripts/blender/render-cycles.py -- r04-artifact/human.glb r04-artifact/human-white-stage.png
+          /tmp/blender-4.4.3-linux-x64/blender -b --python vendor/vsim/scripts/blender/render-cycles.py -- r04-artifact/man.glb r04-artifact/man-white-stage.png
+          file r04-artifact/human-white-stage.png r04-artifact/man-white-stage.png | tee r04-artifact/render-file-report.txt
+          sha256sum r04-artifact/human-white-stage.png r04-artifact/man-white-stage.png | tee r04-artifact/render-SHA256SUMS.txt
+
       - name: Upload exact rigged-base evidence
         uses: actions/upload-artifact@v4
         with:

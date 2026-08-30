@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "LESTER_OSS_EVAL_R01",
+  "tracker": "issue:216",
+  "baseMain": "b18ca6b9cce2dce6fe304ca8ae36c05df4f4dcb1",
+  "executor": "LESTER",
+  "evaluator": {
+    "name": "Inspect AI",
+    "repository": "UKGovernmentBEIS/inspect_ai",
+    "ref": "fbee5b35c656f1c7653af3adf682172033ee0590",
+    "license": "MIT",
+    "install": "git+https://github.com/UKGovernmentBEIS/inspect_ai.git@fbee5b35c656f1c7653af3adf682172033ee0590"
+  },
+  "expansion": {
+    "inspectEvals": "UKGovernmentBEIS/inspect_evals",
+    "sweGym": "SWE-Gym/SWE-Gym",
+    "sweSmith": "FUTURE_AFTER_R01",
+    "miniSweAgent": "FUTURE_CONTROL_BASELINE"
+  },
+  "sheriffEventSchema": "schemas/SHERIFF_AGENT_EVENT_V1.schema.json",
+  "historicalBackfill": false,
+  "singlePassState": "PARTIAL_ONLY",
+  "transferRequired": true,
+  "disciplineAffectsCompetence": false,
+  "customEvalFramework": false,
+  "customScoringEngine": false,
+  "customTrainingFramework": false
+}

@@ -1,7 +1,9 @@
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { captureStill } from './capture';
+import { buildCinematicSet } from './cinematicSet';
 import { compileDirectingScene } from './compiler';
 import { parseSceneDocument } from './contract';
+import { exportCanonicalBabylonScene } from './sceneExport';
 import { createEvaluatedSnapshot } from './snapshot';
 import { evaluateAtTime } from './timeline';
 
@@ -11,6 +13,7 @@ declare global {
       seek(timeSec: number): ReturnType<typeof createEvaluatedSnapshot>;
       snapshot(): ReturnType<typeof createEvaluatedSnapshot>;
       capture(): Promise<string>;
+      exportScene(): string;
     };
   }
 }
@@ -21,9 +24,11 @@ const bootstrap = async (): Promise<void> => {
     throw new Error('RENDER_CANVAS_NOT_FOUND');
   }
 
-  const response = await fetch('/proof-scene.json', { cache: 'no-store' });
+  const response = await fetch('/cinematic-scene-r01.json', {
+    cache: 'no-store',
+  });
   if (!response.ok) {
-    throw new Error(`PROOF_SCENE_FETCH_FAILED: ${response.status}`);
+    throw new Error(`CINEMATIC_SCENE_FETCH_FAILED: ${response.status}`);
   }
   const sceneDocument = parseSceneDocument(await response.json());
 
@@ -32,6 +37,7 @@ const bootstrap = async (): Promise<void> => {
     stencil: true,
   });
   const compiled = compileDirectingScene(engine, sceneDocument);
+  buildCinematicSet(compiled.scene);
 
   let lastSeekSec = sceneDocument.capture.timeSec;
   evaluateAtTime(compiled, lastSeekSec);
@@ -48,8 +54,13 @@ const bootstrap = async (): Promise<void> => {
     capture() {
       return captureStill(compiled, sceneDocument.capture);
     },
+    exportScene() {
+      evaluateAtTime(compiled, lastSeekSec);
+      return exportCanonicalBabylonScene(compiled.scene);
+    },
   };
 
+  document.body.dataset.zbSceneId = sceneDocument.sceneId;
   document.body.dataset.zbDirecting = 'ready';
   engine.runRenderLoop(() => {
     compiled.scene.render();
@@ -60,6 +71,6 @@ const bootstrap = async (): Promise<void> => {
 void bootstrap().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   document.body.dataset.zbDirecting = 'error';
-  document.body.textContent = `BABYLON DIRECTING BOOT FAILED: ${message}`;
+  document.body.textContent = `BABYLON CINEMATIC SCENE BOOT FAILED: ${message}`;
   console.error(error);
 });

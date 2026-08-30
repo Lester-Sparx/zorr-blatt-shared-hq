@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "babylon-directing-v1",
+  "sceneId": "ZB-CINEMATIC-SCENE-R01",
+  "stage": {
+    "width": 20,
+    "depth": 14,
+    "groundY": 0,
+    "unit": "m"
+  },
+  "actors": [
+    {
+      "id": "A",
+      "label": "DRIFTER_A",
+      "proxyType": "humanoid-basic",
+      "heightM": 1.82,
+      "position": {
+        "x": -1.25,
+        "y": 0,
+        "z": 0.65
+      },
+      "rotationYDeg": 28,
+      "pose": {
+        "head": {
+          "x": -4,
+          "y": 12,
+          "z": 0
+        },
+        "upperArmL": {
+          "x": 0,
+          "y": 0,
+          "z": -18
+        },
+        "forearmL": {
+          "x": 0,
+          "y": 0,
+          "z": -28
+        },
+        "upperArmR": {
+          "x": 0,
+          "y": 0,
+          "z": 12
+        }
+      }
+    },
+    {
+      "id": "B",
+      "label": "DRIFTER_B",
+      "proxyType": "humanoid-basic",
+      "heightM": 1.68,
+      "position": {
+        "x": 1.45,
+        "y": 0,
+        "z": 2.35
+      },
+      "rotationYDeg": -138,
+      "pose": {
+        "head": {
+          "x": 0,
+          "y": -10,
+          "z": 0
+        },
+        "upperArmR": {
+          "x": 0,
+          "y": 0,
+          "z": 42
+        },
+        "forearmR": {
+          "x": 0,
+          "y": 0,
+          "z": 24
+        },
+        "upperArmL": {
+          "x": 0,
+          "y": 0,
+          "z": -8
+        }
+      }
+    }
+  ],
+  "cameras": [
+    {
+      "id": "cam-scene-main",
+      "position": {
+        "x": 0.65,
+        "y": 2.15,
+        "z": -8.4
+      },
+      "target": {
+        "x": 0,
+        "y": 1.25,
+        "z": 1.75
+      },
+      "fovDeg": 47,
+      "nearClip": 0.05,
+      "farClip": 120
+    }
+  ],
+  "shots": [
+    {
+      "id": "shot-scene-main",
+      "label": "METAPHYSICAL_DRIFT_GATE",
+      "cameraId": "cam-scene-main",
+      "startSec": 0,
+      "endSec": 4,
+      "preferredCaptureSec": 2.25
+    }
+  ],
+  "capture": {
+    "shotId": "shot-scene-main",
+    "timeSec": 2.25,
+    "widthPx": 1280,
+    "heightPx": 720,
+    "output": "zorr-cinematic-scene-r01.png"
+  }
+}

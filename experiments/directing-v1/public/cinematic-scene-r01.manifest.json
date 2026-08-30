@@ -1,0 +1,106 @@
+{
+  "schemaVersion": "zorr-scene-manifest-v1",
+  "sceneId": "ZB-CINEMATIC-SCENE-R01",
+  "sceneVersion": "R01",
+  "authority": "PROTOTYPE_NON_CANON",
+  "designIntent": "METAPHYSICAL_DRIFT_GATE",
+  "sourceImplementationHead": "650e94d359388066e51c2ec2caad8a448fdf6ae1",
+  "openSourceOnly": true,
+  "codeDependencies": [
+    {
+      "name": "@babylonjs/core",
+      "version": "9.22.2",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "@playwright/test",
+      "version": "1.62.1",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "@types/node",
+      "version": "26.2.0",
+      "license": "MIT"
+    },
+    {
+      "name": "typescript",
+      "version": "7.0.2",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "vite",
+      "version": "8.2.2",
+      "license": "MIT"
+    },
+    {
+      "name": "vitest",
+      "version": "4.1.10",
+      "license": "MIT"
+    }
+  ],
+  "externalArtAssets": [],
+  "materials": [
+    {
+      "id": "set:material:graphite",
+      "source": "PROCEDURAL_CODE_AUTHORED"
+    },
+    {
+      "id": "set:material:threshold",
+      "source": "PROCEDURAL_CODE_AUTHORED"
+    },
+    {
+      "id": "set:material:stone",
+      "source": "PROCEDURAL_CODE_AUTHORED"
+    },
+    {
+      "id": "set:material:distant-stone",
+      "source": "PROCEDURAL_CODE_AUTHORED"
+    },
+    {
+      "id": "set:material:magenta-emissive",
+      "source": "PROCEDURAL_CODE_AUTHORED"
+    },
+    {
+      "id": "set:material:cyan-emissive",
+      "source": "PROCEDURAL_CODE_AUTHORED"
+    }
+  ],
+  "geometry": {
+    "source": "BABYLON_NATIVE_PROCEDURAL_PRIMITIVES",
+    "externalMeshes": []
+  },
+  "textures": [],
+  "hdris": [],
+  "fonts": [],
+  "audio": [],
+  "remoteServices": [],
+  "setMeshNames": [
+    "set:platform",
+    "set:threshold",
+    "set:portal:left",
+    "set:portal:right",
+    "set:portal:top",
+    "set:monolith:left",
+    "set:monolith:right",
+    "set:horizon-slab",
+    "set:accent:portal-left",
+    "set:accent:portal-right",
+    "set:accent:floor-line"
+  ],
+  "capture": {
+    "widthPx": 1280,
+    "heightPx": 720,
+    "timeSec": 2.25,
+    "cameraId": "cam-scene-main",
+    "output": "zorr-cinematic-scene-r01.png"
+  },
+  "deterministicInputs": [
+    "cinematic-scene-r01.json",
+    "cinematicSet.ts",
+    "compiler.ts",
+    "proxy.ts",
+    "timeline.ts",
+    "capture.ts",
+    "sceneExport.ts"
+  ]
+}

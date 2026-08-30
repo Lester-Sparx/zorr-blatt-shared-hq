@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
+from pathlib import Path
 import unittest
 
 from scripts import lester_programming_school as school
 
 
 HEAD = "1" * 40
+ROOT = Path(__file__).resolve().parents[1]
+SCHEMA_PATH = ROOT / "schemas" / "LESTER_PROGRAMMING_EVIDENCE_V1.schema.json"
 
 
 def evidence(
@@ -39,6 +43,13 @@ def evidence(
 class LesterProgrammingSchoolModuleTests(unittest.TestCase):
     def test_module_exists(self) -> None:
         self.assertIsNotNone(importlib.util.find_spec("scripts.lester_programming_school"))
+
+    def test_evidence_rules_live_in_draft_2020_12_json_schema(self) -> None:
+        self.assertEqual(school.EVIDENCE_SCHEMA_PATH.resolve(), SCHEMA_PATH.resolve())
+        schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
+        self.assertEqual(tuple(schema["properties"]["domain"]["enum"]), school.DOMAINS)
+        self.assertFalse(schema["additionalProperties"])
 
 
 class LesterProgrammingEvidenceTests(unittest.TestCase):

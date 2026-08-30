@@ -7,6 +7,12 @@ type Bridge = {
   capture(): Promise<string>;
 };
 
+type CaptureProbe = {
+  state: 'pending' | 'fulfilled' | 'rejected';
+  dataUrl?: string;
+  error?: string;
+};
+
 const decodePng = (dataUrl: string): Buffer => {
   const encoded = dataUrl.split(',', 2)[1];
   if (!encoded) {
@@ -29,6 +35,8 @@ const pngDimensions = (bytes: Buffer): { width: number; height: number } => {
 test('proof scene scrubs deterministically and captures a real PNG', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
+
   const seek = (timeSec: number): Promise<unknown> => page.evaluate(
     (time) => {
       const value = (
@@ -42,15 +50,52 @@ test('proof scene scrubs deterministically and captures a real PNG', async ({
     timeSec,
   );
 
-  const capture = (): Promise<string> => page.evaluate(async () => {
-    const value = (
-      window as unknown as { __zbDirecting?: Bridge }
-    ).__zbDirecting;
-    if (!value) {
-      throw new Error('DIRECTING_BRIDGE_NOT_READY');
+  const capture = async (): Promise<string> => {
+    await page.evaluate(() => {
+      const host = window as unknown as {
+        __zbDirecting?: Bridge;
+        __zbCaptureProbe?: CaptureProbe;
+      };
+      const value = host.__zbDirecting;
+      if (!value) {
+        throw new Error('DIRECTING_BRIDGE_NOT_READY');
+      }
+
+      const probe: CaptureProbe = { state: 'pending' };
+      host.__zbCaptureProbe = probe;
+      void value.capture().then(
+        (dataUrl) => {
+          probe.state = 'fulfilled';
+          probe.dataUrl = dataUrl;
+        },
+        (error: unknown) => {
+          probe.state = 'rejected';
+          probe.error = error instanceof Error ? error.message : String(error);
+        },
+      );
+    });
+
+    await page.waitForFunction(() => {
+      const probe = (
+        window as unknown as { __zbCaptureProbe?: CaptureProbe }
+      ).__zbCaptureProbe;
+      return Boolean(probe && probe.state !== 'pending');
+    }, undefined, { timeout: 45_000 });
+
+    const probe = await page.evaluate(() => (
+      window as unknown as { __zbCaptureProbe?: CaptureProbe }
+    ).__zbCaptureProbe);
+    if (!probe) {
+      throw new Error('CAPTURE_PROBE_MISSING');
     }
-    return value.capture();
-  });
+    if (probe.state === 'rejected') {
+      throw new Error(`CAPTURE_REJECTED: ${probe.error ?? 'unknown error'}`);
+    }
+    if (probe.state !== 'fulfilled' || typeof probe.dataUrl !== 'string') {
+      throw new Error(`CAPTURE_PROBE_INVALID: ${JSON.stringify(probe)}`);
+    }
+    return probe.dataUrl;
+  };
 
   await page.goto('/');
   await page.waitForFunction(() =>

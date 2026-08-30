@@ -5,6 +5,9 @@ source:
   expected_size: [1086, 1448]
   sha256: "bd00c26373180a8678675dd9e7dc74a34c12899add8be246c82c6107b5f12d30"
 
+limits:
+  max_control_displacement_px: 24
+
 animation:
   t_values: [0.0, 0.1666667, 0.3333333, 0.5, 0.6666667, 0.8333333, 1.0]
   easing: smootherstep

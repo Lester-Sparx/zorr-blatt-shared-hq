@@ -157,5 +157,47 @@ class LesterProgrammingProfileTests(unittest.TestCase):
         self.assertEqual(kinds["workflow_fix"]["state"], "FAILED")
 
 
+class LesterProgrammingTargetTests(unittest.TestCase):
+    def test_failed_domain_beats_untested_for_remediation(self) -> None:
+        profile = school.build_profile([evidence("F1", domain="git_github", result="FAIL")])
+        target = school.choose_next_training_target(profile)
+        self.assertEqual(target["domain"], "git_github")
+        self.assertEqual(target["state"], "FAILED")
+        self.assertEqual(target["recommendedMode"], "EXECUTION")
+
+    def test_untested_beats_partial(self) -> None:
+        profile = school.build_profile([evidence("P1", domain="python")])
+        target = school.choose_next_training_target(profile)
+        self.assertEqual(target["domain"], "typescript_javascript")
+        self.assertEqual(target["state"], "UNTESTED")
+        self.assertEqual(target["recommendedMode"], "EXECUTION")
+
+    def test_partial_requires_changed_unseen_transfer(self) -> None:
+        profile = school.build_profile([evidence("P1", domain="python")])
+        for domain in school.DOMAINS[1:]:
+            profile["domains"][domain]["state"] = "PROVEN"
+            profile["domains"][domain]["verifiedPasses"] = 2
+            profile["domains"][domain]["verifiedTransferPasses"] = 1
+        target = school.choose_next_training_target(profile)
+        self.assertEqual(target["domain"], "python")
+        self.assertEqual(target["state"], "PARTIAL")
+        self.assertEqual(target["recommendedMode"], "TRANSFER")
+
+    def test_preferred_domains_break_equal_state_ties(self) -> None:
+        profile = school.build_profile([])
+        target = school.choose_next_training_target(profile, ["git_github", "python"])
+        self.assertEqual(target["domain"], "git_github")
+
+    def test_all_proven_returns_deterministic_transfer_maintenance(self) -> None:
+        profile = school.build_profile([])
+        for domain in school.DOMAINS:
+            profile["domains"][domain]["state"] = "PROVEN"
+            profile["domains"][domain]["verifiedPasses"] = 2
+            profile["domains"][domain]["verifiedTransferPasses"] = 1
+        target = school.choose_next_training_target(profile)
+        self.assertEqual(target["domain"], "python")
+        self.assertEqual(target["recommendedMode"], "TRANSFER")
+
+
 if __name__ == "__main__":
     unittest.main()

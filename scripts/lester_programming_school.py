@@ -115,3 +115,88 @@ def validate_evidence(records: list[dict[str, object]]) -> list[dict[str, object
         validated.append(record)
 
     return validated
+
+
+def _empty_bucket(*, with_task_kinds: bool) -> dict[str, object]:
+    bucket: dict[str, object] = {
+        "state": "UNTESTED",
+        "studyEvents": 0,
+        "verifiedPasses": 0,
+        "verifiedFailures": 0,
+        "verifiedTransferPasses": 0,
+        "evidenceIds": [],
+        "sourceRefs": [],
+        "lastSequence": None,
+    }
+    if with_task_kinds:
+        bucket["taskKinds"] = {}
+    return bucket
+
+
+def _derive_state(bucket: dict[str, object]) -> str:
+    passes = int(bucket["verifiedPasses"])
+    failures = int(bucket["verifiedFailures"])
+    transfers = int(bucket["verifiedTransferPasses"])
+    if passes == 0 and failures == 0:
+        return "UNTESTED"
+    if passes == 0:
+        return "FAILED"
+    if passes >= 2 and transfers >= 1:
+        return "PROVEN"
+    return "PARTIAL"
+
+
+def _apply_record(bucket: dict[str, object], record: dict[str, object]) -> None:
+    evidence_ids = bucket["evidenceIds"]
+    source_refs = bucket["sourceRefs"]
+    assert isinstance(evidence_ids, list)
+    assert isinstance(source_refs, list)
+    evidence_ids.append(str(record["evidenceId"]))
+    source_ref = str(record["sourceRef"])
+    if source_ref not in source_refs:
+        source_refs.append(source_ref)
+    bucket["lastSequence"] = int(record["sequence"])
+
+    mode = str(record["mode"])
+    if mode == "STUDY":
+        bucket["studyEvents"] = int(bucket["studyEvents"]) + 1
+        bucket["state"] = _derive_state(bucket)
+        return
+    if record["verified"] is not True:
+        bucket["state"] = _derive_state(bucket)
+        return
+
+    if record["result"] == "PASS":
+        bucket["verifiedPasses"] = int(bucket["verifiedPasses"]) + 1
+        if mode == "TRANSFER":
+            bucket["verifiedTransferPasses"] = int(bucket["verifiedTransferPasses"]) + 1
+    else:
+        bucket["verifiedFailures"] = int(bucket["verifiedFailures"]) + 1
+    bucket["state"] = _derive_state(bucket)
+
+
+def build_profile(records: list[dict[str, object]]) -> dict[str, object]:
+    validated = validate_evidence(records)
+    ordered = sorted(validated, key=lambda item: (int(item["sequence"]), str(item["evidenceId"])))
+    domains: dict[str, dict[str, object]] = {
+        domain: _empty_bucket(with_task_kinds=True) for domain in DOMAINS
+    }
+
+    for record in ordered:
+        domain_bucket = domains[str(record["domain"])]
+        _apply_record(domain_bucket, record)
+        task_kinds = domain_bucket["taskKinds"]
+        assert isinstance(task_kinds, dict)
+        task_kind = str(record["taskKind"])
+        task_bucket = task_kinds.setdefault(task_kind, _empty_bucket(with_task_kinds=False))
+        assert isinstance(task_bucket, dict)
+        _apply_record(task_bucket, record)
+
+    return {
+        "schemaVersion": "LESTER_PROGRAMMING_PROFILE_V1",
+        "agentId": "LESTER",
+        "historicalBackfill": False,
+        "disciplineSource": "hq/sheriff/SHERIFF_SCOREBOARD_V1.json",
+        "disciplineAffectsCompetence": False,
+        "domains": domains,
+    }

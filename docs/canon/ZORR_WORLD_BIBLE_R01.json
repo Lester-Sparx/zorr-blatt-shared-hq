@@ -1,0 +1,208 @@
+{
+  "title": "ZORR BLATT — WORLD BIBLE R01",
+  "status": "RECOVERY_CANDIDATE_OWNER_REVIEW_REQUIRED",
+  "canon_mutation": false,
+  "production_mutation": false,
+  "base_main": "b18ca6b9cce2dce6fe304ca8ae36c05df4f4dcb1",
+  "status_classes": [
+    "LOCKED_CORE",
+    "APPROVED_STORY_FACT",
+    "RECOVERED_STORY_SOURCE",
+    "OPEN",
+    "QUARANTINE",
+    "SOURCE_ONLY"
+  ],
+  "laws": [
+    "OLD TEXT != CURRENT CANON",
+    "OPEN != INVENT",
+    "EXISTENCE IN A STORY EVENT != ALL OLD LORE ABOUT THAT ENTITY IS CONFIRMED",
+    "WORLD TRUTH != IN-WORLD BELIEF"
+  ],
+  "locked_core": {
+    "terms": ["Кхарн", "Кхарест", "Тэвра", "Асхен", "Грани", "Асхарат", "Сарта"],
+    "facets": {
+      "claim": "Через Грани раскрывается всё: оружие, артефакты, умения и другие элементы развития. Каждый развивающийся элемент имеет собственную Грань.",
+      "not_fixed": ["universal numeric ladder", "number of Facets", "absolute maximum", "universal power scale"]
+    },
+    "kairoah": {
+      "members_confirmed": ["Карсен", "Сетсо", "Сайко"],
+      "traits": [
+        "мертвенно-белая кожа",
+        "постоянный широкий анатомический оскал с полностью обнажёнными ровными зубами",
+        "оскал не является эмоцией",
+        "эмоции читаются по другим каналам",
+        "гуманоидное телосложение может быть вытянутым, сухим и хищным"
+      ],
+      "setso_blindness": "individual anomaly, not racial trait",
+      "karsen_setso": "biological brothers of one family line",
+      "boundary": "KAIROAH BIOLOGY != BLACK-WHITE TECHNOLOGY"
+    },
+    "ancient_black_white_technology": {
+      "knowledge_link": "Карсен",
+      "carrier_specific_growth": ["mask", "armour", "weapon"],
+      "white_material": "Белый камень Эсмус",
+      "white_location": "sector ЗЕРА",
+      "black_material_name": null,
+      "black_location": "extremely distant and difficult-to-access location outside sector ЗЕРА",
+      "zerayn_minimal": "access to Эсмус and process knowledge through Карсен; does not directly control both resources",
+      "requirements": ["Эсмус", "Чёрный камень", "process knowledge", "carrier recognition"],
+      "pattern": "individual pattern is born during fusion, not painted afterward",
+      "boundary": "TECH_RECOGNITION != SARTA"
+    },
+    "world_scale": {
+      "cosmic": true,
+      "valid_structures": ["planets", "star systems", "larger cosmic structures"],
+      "not_fixed": ["number of galaxies", "number of civilizations", "absolute universe age", "interstellar/intergalactic transport physics"]
+    }
+  },
+  "story_recovery": {
+    "arc_1_ohra_5": {
+      "status": "RECOVERED_STORY_SOURCE",
+      "facts": [
+        "reporter investigates missing shift workers on ОХРА-5",
+        "investigation reaches night level near docking belt and an unnamed bar",
+        "reporter encounters Зорр Блатт at the far end of the bar",
+        "Зорр carries an old rapier",
+        "Ксио is present as a voice associated with a living/smoking pipe rather than a visible walking body",
+        "Афес Конгамар appears in recovered Arc I material"
+      ]
+    },
+    "transition_ohra5_to_sn348": {
+      "status": "RECOVERED_STORY_SOURCE",
+      "facts": [
+        "Афес exposes Зорр's speed/strength limit",
+        "Зорр decides to seek greater strength",
+        "Зорр's rapier gains a new Грань",
+        "Ксио physically walks beside Зорр by СН-348",
+        "pipe is no longer the mode through which Ксио remains beside Зорр",
+        "rapier remains carried on anatomical left"
+      ],
+      "open": ["exact mechanism of Ксио's transition"]
+    },
+    "arc_2_sn348_sanair": {
+      "status": "RECOVERED_STORY_SOURCE",
+      "facts": [
+        "Зорр and Ксио arrive at СН-348 and enter a research complex",
+        "Зорр seeks knowledge connected to change/development of a Грань",
+        "Саалур is a researcher/contact in the scientific sector",
+        "masked attack occurs in scientific sector/laboratory area",
+        "Орсон Дейк and Райсо meet Зорр and Ксио during/after the incident",
+        "Орсон and Райсо identify with Клятвенный корпус Тысячного Союза",
+        "attackers knew where they were going and pursued a specific target",
+        "trail leads toward an old fortress roughly two days away"
+      ]
+    },
+    "fortress_approved": {
+      "status": "APPROVED_STORY_FACT",
+      "source": "GitHub issue #93 / APPROVED ZB FACTS ONLY",
+      "facts": [
+        "Зорр meets a red-cloak duelist on the lower platform before first attack",
+        "Райсо has a mechanical arm and extends it to grab the blue-coat swordsman by the neck and slam him into a wall",
+        "blue-coat swordsman later breaks into pieces/disappears as a decoy; Райсо reacts angry-surprised",
+        "blue-coat swordsman lunges and Райсо performs a one-hand swing with a standard-handle sword; swords collide in motion",
+        "dense fog covers courtyard during Амарел reveal",
+        "Орсон is cautious in fog",
+        "Амарел is later visible on a broken column",
+        "approved final relation includes Орсон back to camera looking at Амарел with fog around waist height",
+        "lower-platform 1v1 pairs include Орсон vs Амарел and Райсо vs blue-coat swordsman"
+      ],
+      "open": ["exact simultaneous pair coordinates/floorplan positions"]
+    }
+  },
+  "entities": {
+    "Зорр Блатт": {
+      "status": "RECOVERED_STORY_SOURCE",
+      "facts": ["central protagonist/intergalactic drifter", "rapier user", "Ксио continuing companion/entity relationship", "seeks greater strength after Афес encounter", "rapier carried on anatomical left in recovered Arc II source"]
+    },
+    "Ксио": {
+      "status": "RECOVERED_STORY_SOURCE",
+      "facts": ["voice through/with living pipe on ОХРА-5", "physically walks beside Зорр by СН-348", "recovered source explicitly says not Velori"],
+      "open": ["origin", "transition mechanism"]
+    },
+    "Афес Конгамар": {
+      "status": "RECOVERED_STORY_SOURCE",
+      "facts": ["independent assassin", "specializes in highly protected targets", "restrained", "precise", "self-confident", "important Arc I encounter exposing Зорр's limit"]
+    },
+    "Саалур": {
+      "status": "RECOVERED_STORY_SOURCE",
+      "facts": ["researcher/contact in СН-348 scientific sector", "Sanairka", "cold blue skin", "long white hair", "light clothing", "dark-burgundy gloves"]
+    },
+    "Орсон Дейк": {
+      "status": "RECOVERED_STORY_SOURCE + APPROVED_STORY_FACT_FOR_EXACT_FORTRESS_BEATS"
+    },
+    "Райсо": {
+      "status": "RECOVERED_STORY_SOURCE + APPROVED_STORY_FACT_FOR_EXACT_FORTRESS_BEATS"
+    },
+    "Амарел": {
+      "status": "APPROVED_STORY_FACT_FOR_EXACT_LISTED_BEATS_ONLY"
+    },
+    "Карсен": {"status": "LOCKED_CORE"},
+    "Сетсо": {"status": "LOCKED_CORE"},
+    "Сайко": {"status": "LOCKED_CORE"}
+  },
+  "organizations": {
+    "Тысячный Союз": {
+      "story_existence": "RECOVERED_STORY_SOURCE",
+      "expanded_doctrine_history": "QUARANTINE",
+      "law": "ENTITY EXISTS IN STORY != ALL OLD UNION LORE CONFIRMED"
+    },
+    "SAVIAN": {"status": "QUARANTINE"},
+    "ЗЕРАЙН": {
+      "status": "LOCKED_CORE_MINIMAL_ONLY",
+      "facts": ["access to Эсмус", "access to process knowledge through Карсен", "does not directly control both required materials"]
+    }
+  },
+  "open": [
+    "proper name of Black Stone",
+    "exact origin/mining location of Black Stone",
+    "associated race/people/organization",
+    "protection/mining mechanism",
+    "physical mechanism of technology recognition",
+    "relationship of technology recognition to Sarta beyond current non-equivalence rule",
+    "full ontology of Кхарн/Кхарест beyond directly confirmed statements",
+    "exact mechanics of Тэвра",
+    "exact mechanics of Асхен",
+    "number/full catalogue of Грани",
+    "absolute meaning/limit of Асхарат",
+    "absolute chronology",
+    "number of galaxies/civilizations",
+    "interstellar/intergalactic transport physics",
+    "death/afterlife",
+    "old world-memory/imprint/witness/cosmic-debt/name-force concepts",
+    "hidden character geometry not proven by approved Character Truth"
+  ],
+  "quarantine": [
+    "Аро",
+    "Ахра-Ноур",
+    "SAVIAN full lore",
+    "Тысячный Союз expanded doctrine/history beyond story existence facts",
+    "ZERAIGO as lore entity and exact relationship to ЗЕРАЙН",
+    "fixed number of Грани",
+    "detailed old True/Artificial Sarta scheme",
+    "old 25 Laws of the Universe",
+    "old models of death/time/world memory/relics",
+    "old assistant-expanded detailed formulas for Кхарн/Тэвра/Асхен",
+    "automatically generated ancient civilizations/wars/galaxies/expeditions/philosophical schools/mysteries"
+  ],
+  "drop_as_method": ["quota-driven lore such as fixed minimum counts of civilizations or mysteries"],
+  "source_only": {
+    "github_issue_197": "organization/ZERAYN archives are source/reference only; no automatic canon, Character Truth, body-family or approved-style authority"
+  },
+  "provenance": [
+    "ZORR_CANON_CORE_R02_MINIMAL.md/json",
+    "ZORR_LORE_QUARANTINE_R01.md",
+    "Library recovered story export: Вставленная ​​уценка(7).md",
+    "Library recovered Arc II continuity fragments including Вставленная ​​уценка(1).md",
+    "GitHub issue #93 / APPROVED ZB FACTS ONLY",
+    "GitHub issue #197 / SOURCE ONLY archive boundary"
+  ],
+  "boot_contract_candidate": [
+    "CURRENT MAIN",
+    "ZORR_EXECUTION_CONSTITUTION.md",
+    "AGENTS.md",
+    "docs/canon/ZORR_WORLD_BIBLE_R01.md",
+    "exact current task/tracker/PR",
+    "latest evidence"
+  ],
+  "owner_review_required": true
+}

@@ -1,0 +1,23 @@
+name: zorr-draw-qc-r01
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/draw_qc_r01/**'
+      - '.github/workflows/zorr-draw-qc-r01.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  draw-qc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install pinned open-source image stack
+        run: python3 -m pip install --disable-pip-version-check numpy==2.3.5 opencv-python-headless==4.14.0.94
+      - name: Run DRAW_QC_R01 tests
+        run: python3 -m unittest discover -s experiments/draw_qc_r01/tests -p 'test_*.py' -v

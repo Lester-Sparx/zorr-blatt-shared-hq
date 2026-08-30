@@ -16,6 +16,7 @@ type SceneSnapshot = {
     fovDeg: number;
   } | null;
   capture: {
+    shotId: string;
     widthPx: number;
     heightPx: number;
     timeSec: number;
@@ -153,6 +154,7 @@ test('cinematic scene exports deterministic PNG and Babylon scene', async ({
   const initial = await snapshot();
   expect(initial.sceneId).toBe('ZB-CINEMATIC-SCENE-R01');
   expect(initial.capture).toEqual({
+    shotId: 'shot-scene-main',
     widthPx: 1280,
     heightPx: 720,
     timeSec: 2.25,

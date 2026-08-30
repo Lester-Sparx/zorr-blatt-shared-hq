@@ -1,7 +1,9 @@
-import { CreateScreenshotUsingRenderTargetAsync } from '@babylonjs/core/Misc/screenshotTools';
+import { CreateScreenshotUsingRenderTarget } from '@babylonjs/core/Misc/screenshotTools';
 import type { CaptureSpec } from './contract';
 import type { CompiledDirectingScene } from './compiler';
 import { evaluateAtTime } from './timeline';
+
+const SCREENSHOT_TIMEOUT_MS = 30_000;
 
 export async function captureStill(
   compiled: CompiledDirectingScene,
@@ -31,12 +33,44 @@ export async function captureStill(
   compiled.scene.activeCamera = camera;
   compiled.scene.render();
 
-  return CreateScreenshotUsingRenderTargetAsync(
-    compiled.engine,
-    camera,
-    { width: capture.widthPx, height: capture.heightPx },
-    'image/png',
-    1,
-    false,
-  );
+  return await new Promise<string>((resolve, reject) => {
+    let settled = false;
+    const succeed = (data: string): void => {
+      if (!settled) {
+        settled = true;
+        resolve(data);
+      }
+    };
+    const fail = (error: unknown): void => {
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    };
+
+    try {
+      CreateScreenshotUsingRenderTarget(
+        compiled.engine,
+        camera,
+        { width: capture.widthPx, height: capture.heightPx },
+        succeed,
+        'image/png',
+        1,
+        false,
+        undefined,
+        false,
+        false,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        SCREENSHOT_TIMEOUT_MS,
+        () => fail(new Error(
+          `CAPTURE_TIMEOUT: screenshot was not ready after ${SCREENSHOT_TIMEOUT_MS}ms`,
+        )),
+      );
+    } catch (error) {
+      fail(error);
+    }
+  });
 }

@@ -83,5 +83,79 @@ class LesterProgrammingEvidenceTests(unittest.TestCase):
             school.validate_evidence([invalid])
 
 
+class LesterProgrammingProfileTests(unittest.TestCase):
+    def test_empty_profile_is_neutral_untested(self) -> None:
+        profile = school.build_profile([])
+        self.assertEqual(profile["schemaVersion"], "LESTER_PROGRAMMING_PROFILE_V1")
+        self.assertEqual(profile["agentId"], "LESTER")
+        self.assertFalse(profile["historicalBackfill"])
+        self.assertFalse(profile["disciplineAffectsCompetence"])
+        self.assertTrue(all(item["state"] == "UNTESTED" for item in profile["domains"].values()))
+
+    def test_study_and_unverified_pass_do_not_promote(self) -> None:
+        study = evidence("S1", mode="STUDY", exact_head="", source_ref="github:repo:study", sequence=1)
+        unverified = evidence("U1", verified=False, sequence=2)
+        profile = school.build_profile([study, unverified])
+        python = profile["domains"]["python"]
+        self.assertEqual(python["state"], "UNTESTED")
+        self.assertEqual(python["studyEvents"], 1)
+        self.assertEqual(python["verifiedPasses"], 0)
+
+    def test_verified_fail_without_pass_is_failed(self) -> None:
+        profile = school.build_profile([evidence("F1", result="FAIL")])
+        self.assertEqual(profile["domains"]["python"]["state"], "FAILED")
+
+    def test_one_verified_execution_pass_is_partial(self) -> None:
+        profile = school.build_profile([evidence("P1")])
+        self.assertEqual(profile["domains"]["python"]["state"], "PARTIAL")
+
+    def test_two_execution_passes_without_transfer_remain_partial(self) -> None:
+        records = [
+            evidence("P1", sequence=1),
+            evidence("P2", exact_head="2" * 40, source_ref="github:pr:2#run:2", sequence=2),
+        ]
+        profile = school.build_profile(records)
+        python = profile["domains"]["python"]
+        self.assertEqual(python["verifiedPasses"], 2)
+        self.assertEqual(python["verifiedTransferPasses"], 0)
+        self.assertEqual(python["state"], "PARTIAL")
+
+    def test_execution_plus_changed_unseen_transfer_can_be_proven(self) -> None:
+        records = [
+            evidence("P1", sequence=1),
+            evidence(
+                "T1",
+                mode="TRANSFER",
+                exact_head="3" * 40,
+                source_ref="github:pr:3#run:4",
+                task_kind="changed_unseen_fix",
+                sequence=2,
+            ),
+        ]
+        profile = school.build_profile(records)
+        python = profile["domains"]["python"]
+        self.assertEqual(python["verifiedPasses"], 2)
+        self.assertEqual(python["verifiedTransferPasses"], 1)
+        self.assertEqual(python["state"], "PROVEN")
+
+    def test_task_kinds_are_derived_separately(self) -> None:
+        records = [
+            evidence("P1", task_kind="parser_fix", sequence=1),
+            evidence(
+                "T1",
+                task_kind="parser_fix",
+                mode="TRANSFER",
+                exact_head="4" * 40,
+                source_ref="github:pr:4#run:5",
+                sequence=2,
+            ),
+            evidence("F1", task_kind="workflow_fix", result="FAIL", exact_head="5" * 40, sequence=3),
+        ]
+        profile = school.build_profile(records)
+        kinds = profile["domains"]["python"]["taskKinds"]
+        self.assertEqual(kinds["parser_fix"]["state"], "PROVEN")
+        self.assertEqual(kinds["workflow_fix"]["state"], "FAILED")
+
+
 if __name__ == "__main__":
     unittest.main()

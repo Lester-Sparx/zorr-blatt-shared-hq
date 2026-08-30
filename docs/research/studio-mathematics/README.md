@@ -59,6 +59,33 @@ A deliberate anime perspective break should be represented as an explicit, measu
 `BABYLON ENGINE PRIMITIVE != ZORR CAMERA OBJECTIVE`.
 Babylon remains authoritative for native matrices/projection/rays/bounds/camera execution; ZORR mathematics defines the inverse staging problem and verifies the result instead of building a second engine.
 
+### GAUZ mathematical learning path
+
+OWNER has named the active mathematics-machine prototype `GAUZ`. The working research expansion is `Generalized Adaptive Uncertainty-Zeroing`; the expansion itself is not an OWNER-locked naming law.
+
+For mathematics-of-learning / research-selection work, read:
+
+1. `GAUZ_MATHEMATICAL_LEARNING_MACHINE_R01.md` — Bayesian uncertainty state, expected information gain, weak-direction targeting, optimal experimental design, learning-as-control, anti-Goodhart transfer, calibration, knowledge graphs, safe learning and stopping/value-of-information.
+2. `code/gauz_active_learning_proof_r01.py` — deterministic synthetic proof that information-gain experiment selection can reduce posterior uncertainty more efficiently than equal-budget random curricula in the declared linear-Gaussian construction.
+
+GAUZ research rule:
+
+```text
+UNKNOWN
+-> REPRESENT UNCERTAINTY
+-> FIND WEAK DIRECTION
+-> CHOOSE HIGHEST-VALUE ADMISSIBLE EXPERIMENT
+-> MEASURE
+-> UPDATE
+-> TEST CHANGED/UNSEEN TRANSFER
+-> CALIBRATE
+-> INVALIDATE STALE DEPENDENCIES
+-> DURABLE RECORD
+```
+
+`GAUZ != OMNISCIENCE`.
+The prototype is a bounded mathematical controller for learning/research decisions; it does not claim consciousness, literal omnipotence or autonomous modification of model weights.
+
 ### Shared visibility contract
 
 OWNER directive: mathematics learning must be visible and reusable by later chats.
@@ -163,6 +190,7 @@ MAIN/CANON AUTHORITY = unchanged
 9. `RESOURCE_OPTIMIZATION` — allocation of artists, review attention, render capacity and hero-shot budget.
 10. `PERSPECTIVE_MASTER` — homogeneous projective geometry, camera calibration, multi-plane reconstruction, local perspective tensors, world-space placement, reprojection QC and controlled stylized-perspective residuals.
 11. `BABYLON_CAMERA_MATH` — constrained inverse camera placement, screen-target algebra, ArcRotate sensitivity/Jacobians, hard feasibility constraints, native Babylon reprojection/visibility/frustum verification, uncertainty and safe null-space camera edits.
+12. `GAUZ_META_LEARNING_MATH` — mathematical control of what to study/test next using uncertainty, information gain, optimal design, transfer evidence, calibration, knowledge-dependency invalidation and value-of-information stopping.
 
 ## PASS discipline
 

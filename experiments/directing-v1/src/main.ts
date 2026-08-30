@@ -1,4 +1,5 @@
 import { Engine } from '@babylonjs/core/Engines/engine';
+import { buildBladeDodgeAction } from './actionScene';
 import { captureStill } from './capture';
 import { buildCinematicSet } from './cinematicSet';
 import { compileDirectingScene } from './compiler';
@@ -38,6 +39,10 @@ const bootstrap = async (): Promise<void> => {
   });
   const compiled = compileDirectingScene(engine, sceneDocument);
   buildCinematicSet(compiled.scene);
+  for (const actor of compiled.actors.values()) {
+    for (const mesh of actor.meshes) mesh.setEnabled(false);
+  }
+  await buildBladeDodgeAction(compiled.scene);
 
   let lastSeekSec = sceneDocument.capture.timeSec;
   evaluateAtTime(compiled, lastSeekSec);

@@ -228,13 +228,13 @@ export function buildCinematicSet(scene: Scene): CinematicSet {
     ...scene.metadata,
     zorrCinematicScene: {
       sceneId: 'ZB-CINEMATIC-SCENE-R01',
-      sceneVersion: 'R01',
+      sceneVersion: 'R03',
       authority: 'PROTOTYPE_NON_CANON',
-      designIntent: 'METAPHYSICAL_DRIFT_GATE',
+      designIntent: 'BLADE_DODGE_PRODUCTION_GREYBOX',
     },
     zorrOpenSourcePolicy: {
-      externalArtAssets: [],
-      geometry: 'PROCEDURAL_BABYLON_PRIMITIVES',
+      externalArtAssets: ['OXIHUMAN_B0_DERIVED_GLB'],
+      geometry: 'PROCEDURAL_SET_PLUS_OXIHUMAN_DERIVED_BODY',
       materials: 'CODE_AUTHORED_STANDARD_MATERIALS',
       remoteInference: false,
     },

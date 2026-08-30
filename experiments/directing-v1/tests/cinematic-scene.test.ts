@@ -78,7 +78,7 @@ const compileScene = () => {
   return { engine, compiled, set };
 };
 
-describe('Babylon cinematic scene base R01', () => {
+describe('Babylon blade-dodge scene R03', () => {
   it('builds the exact named set and light inventory', () => {
     const { engine, compiled, set } = compileScene();
     try {
@@ -124,9 +124,9 @@ describe('Babylon cinematic scene base R01', () => {
       };
       expect(exported.metadata?.zorrCinematicScene).toEqual({
         sceneId: 'ZB-CINEMATIC-SCENE-R01',
-        sceneVersion: 'R01',
+        sceneVersion: 'R03',
         authority: 'PROTOTYPE_NON_CANON',
-        designIntent: 'METAPHYSICAL_DRIFT_GATE',
+        designIntent: 'BLADE_DODGE_PRODUCTION_GREYBOX',
       });
       expect(exported.cameras?.map(({ name }) => name)).toContain(
         'camera:cam-scene-main',

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 type SceneManifest = {
@@ -32,7 +33,7 @@ describe('cinematic scene OSS-only provenance', () => {
     const allowedLicenses = new Set(['Apache-2.0', 'MIT']);
 
     expect(manifest.openSourceOnly).toBe(true);
-    expect(manifest.codeDependencies).toHaveLength(6);
+    expect(manifest.codeDependencies).toHaveLength(8);
     for (const dependency of manifest.codeDependencies) {
       expect(dependency.name.length).toBeGreaterThan(0);
       expect(dependency.version).toMatch(/^\d+\.\d+\.\d+$/);
@@ -40,9 +41,18 @@ describe('cinematic scene OSS-only provenance', () => {
     }
   });
 
-  it('uses no external art, texture, HDRI, font, audio, or remote service', () => {
+  it('pins the only external mesh and uses no remote production surface', () => {
     const manifest = readManifest();
-    expect(manifest.externalArtAssets).toEqual([]);
+    expect(manifest.externalArtAssets).toEqual([expect.objectContaining({
+      path: 'public/oxihuman-b0-body.glb',
+      sourceCommit: '603b446854c3d5a9ca478214e7b85008d54786b9',
+      license: 'Apache-2.0',
+      sha256: '626be02ae16ddf2bfd8760633761489a3c24f5b35d1e5b3f4a0c9a602cbffaf0',
+    })]);
+    const glb = readFileSync(new URL('../public/oxihuman-b0-body.glb', import.meta.url));
+    expect(createHash('sha256').update(glb).digest('hex')).toBe(
+      '626be02ae16ddf2bfd8760633761489a3c24f5b35d1e5b3f4a0c9a602cbffaf0',
+    );
     expect(manifest.textures).toEqual([]);
     expect(manifest.hdris).toEqual([]);
     expect(manifest.fonts).toEqual([]);

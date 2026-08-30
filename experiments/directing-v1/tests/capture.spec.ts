@@ -189,8 +189,8 @@ test('cinematic scene exports deterministic PNG and Babylon scene', async ({
     authority: 'PROTOTYPE_NON_CANON',
   });
   expect(exported.metadata?.zorrOpenSourcePolicy).toEqual({
-    externalArtAssets: [],
-    geometry: 'PROCEDURAL_BABYLON_PRIMITIVES',
+    externalArtAssets: ['OXIHUMAN_B0_DERIVED_GLB'],
+    geometry: 'PROCEDURAL_SET_PLUS_OXIHUMAN_DERIVED_BODY',
     materials: 'CODE_AUTHORED_STANDARD_MATERIALS',
     remoteInference: false,
   });
@@ -245,7 +245,10 @@ test('cinematic scene exports deterministic PNG and Babylon scene', async ({
     remoteServices?: unknown[];
   };
   expect(manifest.openSourceOnly).toBe(true);
-  expect(manifest.externalArtAssets).toEqual([]);
+  expect(manifest.externalArtAssets).toEqual([expect.objectContaining({
+    sourceCommit: '603b446854c3d5a9ca478214e7b85008d54786b9',
+    license: 'Apache-2.0',
+  })]);
   expect(manifest.remoteServices).toEqual([]);
 
   await mkdir('artifacts', { recursive: true });

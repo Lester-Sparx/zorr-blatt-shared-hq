@@ -1,14 +1,24 @@
 {
   "schemaVersion": "zorr-scene-manifest-v1",
   "sceneId": "ZB-CINEMATIC-SCENE-R01",
-  "sceneVersion": "R01",
+  "sceneVersion": "R03",
   "authority": "PROTOTYPE_NON_CANON",
-  "designIntent": "METAPHYSICAL_DRIFT_GATE",
+  "designIntent": "BLADE_DODGE_PRODUCTION_GREYBOX",
   "sourceImplementationHead": "650e94d359388066e51c2ec2caad8a448fdf6ae1",
   "openSourceOnly": true,
   "codeDependencies": [
     {
       "name": "@babylonjs/core",
+      "version": "9.22.2",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "@babylonjs/loaders",
+      "version": "9.22.2",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "babylonjs-gltf2interface",
       "version": "9.22.2",
       "license": "Apache-2.0"
     },
@@ -38,7 +48,16 @@
       "license": "MIT"
     }
   ],
-  "externalArtAssets": [],
+  "externalArtAssets": [
+    {
+      "path": "public/oxihuman-b0-body.glb",
+      "sourceRepository": "cool-japan/oxihuman",
+      "sourceCommit": "603b446854c3d5a9ca478214e7b85008d54786b9",
+      "license": "Apache-2.0",
+      "sha256": "626be02ae16ddf2bfd8760633761489a3c24f5b35d1e5b3f4a0c9a602cbffaf0",
+      "authority": "DERIVED_NON_CANON_BODY_SURFACE"
+    }
+  ],
   "materials": [
     {
       "id": "set:material:graphite",
@@ -66,8 +85,8 @@
     }
   ],
   "geometry": {
-    "source": "BABYLON_NATIVE_PROCEDURAL_PRIMITIVES",
-    "externalMeshes": []
+    "source": "BABYLON_NATIVE_PROCEDURAL_SET_PLUS_PINNED_OXIHUMAN_GLB",
+    "externalMeshes": ["public/oxihuman-b0-body.glb"]
   },
   "textures": [],
   "hdris": [],

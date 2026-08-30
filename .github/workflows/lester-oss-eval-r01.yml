@@ -1,0 +1,58 @@
+name: lester-oss-eval-r01
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-oss-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install exact upstream Inspect AI and existing schema validator
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check \
+            "git+https://github.com/UKGovernmentBEIS/inspect_ai.git@fbee5b35c656f1c7653af3adf682172033ee0590" \
+            "jsonschema==4.25.1"
+      - name: Focused ZORR bridge contract
+        run: python3 -m unittest discover -s tests -p 'test_lester_oss_eval_r01.py' -v
+      - name: Run real Inspect AI smoke
+        env:
+          GITHUB_SHA: "${{ github.event.pull_request.head.sha || github.sha }}"
+          GITHUB_RUN_ID: "${{ github.run_id }}"
+          GITHUB_RUN_ATTEMPT: "${{ github.run_attempt }}"
+        run: python3 scripts/lester_oss_eval_r01.py --output-dir "$RUNNER_TEMP/lester-oss-eval-r01"
+      - name: Validate emitted event against existing SHERIFF schema
+        env:
+          EVENT_PATH: "${{ runner.temp }}/lester-oss-eval-r01/sheriff-event.json"
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          schema = json.loads(Path("schemas/SHERIFF_AGENT_EVENT_V1.schema.json").read_text(encoding="utf-8"))
+          event = json.loads(Path(os.environ["EVENT_PATH"]).read_text(encoding="utf-8"))
+          errors = sorted(
+              Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(event),
+              key=lambda error: list(error.absolute_path),
+          )
+          if errors:
+              error = errors[0]
+              location = ".".join(str(part) for part in error.absolute_path) or "$"
+              raise SystemExit(f"SHERIFF_EVENT_SCHEMA_FAIL:{location}:{error.message}")
+          data = event["data"]
+          assert data["agentId"] == "LESTER"
+          assert data["verifiedPass"] is True
+          assert data["skillStateAfter"] == "PARTIAL_ONLY"
+          assert data["transferRequired"] is True
+          assert data["historicalBackfill"] is False
+          assert data["evalUpstreamRef"] == "fbee5b35c656f1c7653af3adf682172033ee0590"
+          print("SHERIFF_EVENT_SCHEMA=PASS")
+          print("ONE_PASS_PROVEN=NO")
+          print("CHANGED_UNSEEN_TRANSFER_REQUIRED=YES")
+          PY

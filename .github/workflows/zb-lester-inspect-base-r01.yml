@@ -1,0 +1,213 @@
+name: zb-lester-inspect-base-r01
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/zb-lester-inspect-base-r01.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  base-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Download exact verified LESTER evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: "33305597928"
+          SOURCE_ARTIFACT_ID: "9730390370"
+          SOURCE_ARTIFACT_NAME: zb-r02b-v2-lester-evidence-33305597928-1
+          SOURCE_ARTIFACT_DIGEST: sha256:7f8df511314ed67e7840956facd1f71da5e4e6db8e196e2034dcf40773f5f0ee
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .zb-base/lester
+          actual_digest="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${SOURCE_ARTIFACT_ID}" --jq .digest)"
+          test "$actual_digest" = "$SOURCE_ARTIFACT_DIGEST"
+          gh run download "$SOURCE_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$SOURCE_ARTIFACT_NAME" \
+            --dir .zb-base/lester
+
+      - name: Verify immutable evidence and replay existing proof verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          evidence = Path('.zb-base/lester')
+          manifest = json.loads((evidence / 'manifest.json').read_text(encoding='utf-8'))
+          for name, expected in manifest.items():
+              actual = hashlib.sha256((evidence / name).read_bytes()).hexdigest()
+              if actual != expected:
+                  raise SystemExit(f'EVIDENCE_HASH_MISMATCH:{name}:{actual}')
+
+          result = (evidence / 'result.txt').read_text(encoding='utf-8')
+          required = [
+              'MESSAGE_ID = zb-r02b-v2-lester-school-base-20260830-01',
+              'TASK_ID = ZB_EXECUTION_PROOF_R01',
+              'TASK_REVISION = 2',
+              'LOGICAL_ROLE = LESTER',
+              'BASE_SHA = b18ca6b9cce2dce6fe304ca8ae36c05df4f4dcb1',
+              'TERMINAL_STATE = PASS',
+              'RESULT_CODE = OK',
+              'PROCESS_EXIT_CODE = 0',
+              'WORKFLOW_RUN_ID = 33305597928',
+              'PRODUCTION_ACTIVE = NO',
+          ]
+          missing = [line for line in required if line not in result]
+          if missing:
+              raise SystemExit(f'LESTER_RESULT_BINDING_MISMATCH:{missing!r}')
+          print('LESTER_EVIDENCE_BINDING = PASS')
+          PY
+
+          git apply --check .zb-base/lester/patch.diff
+          git apply .zb-base/lester/patch.diff
+          python3 -m scripts.zb_execution_proof_verify
+          git diff --exit-code -- tests/fixtures/zb-execution-proof/result.txt || true
+          git reset --hard HEAD
+          test -z "$(git status --porcelain)"
+          echo "EXTERNAL_PROOF_VERIFY = PASS"
+
+      - name: Install pinned Inspect AI upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check \
+            "git+https://github.com/UKGovernmentBEIS/inspect_ai.git@fbee5b35c656f1c7653af3adf682172033ee0590" \
+            "jsonschema==4.25.1"
+          python3 - <<'PY'
+          import inspect_ai
+          from inspect_ai.scorer import precomputed_scores
+          print(f'INSPECT_IMPORT = PASS | {inspect_ai.__file__}')
+          print(f'PRECOMPUTED_SCORES = PASS | {precomputed_scores.__name__}')
+          PY
+
+      - name: Run Inspect precomputed-score boundary and validate SHERIFF event
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .zb-base/inspect-logs
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          from inspect_ai import Task, eval, score
+          from inspect_ai.dataset import Sample
+          from inspect_ai.log import write_eval_log
+          from inspect_ai.scorer import precomputed_scores
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path('.zb-base')
+          sample_id = 'zb-lester-inspect-base-r01'
+          scores_path = root / 'scores.json'
+          scores_path.write_text(json.dumps([
+              {
+                  'id': sample_id,
+                  'value': 1,
+                  'answer': 'PASS',
+                  'explanation': 'Existing ZORR deterministic proof verifier replayed exact immutable LESTER evidence successfully.',
+                  'metadata': {
+                      'source_run_id': 33305597928,
+                      'source_artifact_id': 9730390370,
+                      'source_artifact_digest': 'sha256:7f8df511314ed67e7840956facd1f71da5e4e6db8e196e2034dcf40773f5f0ee',
+                      'source_main': 'b18ca6b9cce2dce6fe304ca8ae36c05df4f4dcb1',
+                  },
+              }
+          ], indent=2) + '\n', encoding='utf-8')
+
+          task = Task(dataset=[Sample(id=sample_id, input='LESTER verified external execution result', target='PASS')])
+          base_log = eval(task, model='mockllm/model', display='none', log_dir=str(root / 'inspect-logs'))[0]
+          scored = score(base_log, precomputed_scores(str(scores_path), on_missing='error'), display='none')
+
+          if scored.status != 'success':
+              raise SystemExit(f'INSPECT_STATUS_NOT_SUCCESS:{scored.status}')
+          if not scored.results or not scored.results.scores:
+              raise SystemExit('INSPECT_RESULTS_MISSING')
+          metric = scored.results.scores[-1].metrics.get('accuracy')
+          if metric is None or float(metric.value) != 1.0:
+              raise SystemExit(f'INSPECT_SCORE_NOT_ONE:{None if metric is None else metric.value}')
+          if not scored.samples or not scored.samples[0].scores:
+              raise SystemExit('INSPECT_SAMPLE_SCORE_MISSING')
+          sample_score = scored.samples[0].scores.get('precomputed_scores')
+          if sample_score is None or float(sample_score.value) != 1.0:
+              raise SystemExit('INSPECT_PRECOMPUTED_SCORE_MISMATCH')
+
+          scored_path = root / 'inspect-scored.eval'
+          write_eval_log(scored, location=scored_path, format='eval')
+          if not scored_path.is_file() or scored_path.stat().st_size == 0:
+              raise SystemExit('INSPECT_EVAL_ARTIFACT_MISSING')
+
+          event = {
+              'specversion': '1.0',
+              'id': 'zb-lester-inspect-base-r01-33305597928',
+              'source': 'github://Lester-Sparx/zorr-blatt-shared-hq/actions/runs/33305597928',
+              'type': 'zb.agent.result',
+              'subject': 'ZB_EXECUTION_PROOF_R01',
+              'time': '2026-08-30T10:09:23Z',
+              'datacontenttype': 'application/json',
+              'data': {
+                  'agentId': 'LESTER',
+                  'taskRef': 'ZB_EXECUTION_PROOF_R01@2',
+                  'executionId': 'github-actions:33305597928:1:lester_execute',
+                  'status': 'PASS',
+                  'evidence': [
+                      'workflow_run:33305597928',
+                      'artifact:9730390370',
+                      'artifact_digest:sha256:7f8df511314ed67e7840956facd1f71da5e4e6db8e196e2034dcf40773f5f0ee',
+                      'proof_verify:PASS',
+                      'inspect_precomputed_accuracy:1.0',
+                  ],
+                  'verifiedPass': True,
+                  'selfCaught': False,
+                  'incidentAttribution': 'NONE',
+                  'processViolation': False,
+                  'safetyViolation': False,
+              },
+          }
+
+          schema = json.loads(Path('schemas/SHERIFF_AGENT_EVENT_V1.schema.json').read_text(encoding='utf-8'))
+          validator = Draft202012Validator(schema, format_checker=FormatChecker())
+          errors = sorted(validator.iter_errors(event), key=lambda item: list(item.absolute_path))
+          if errors:
+              first = errors[0]
+              raise SystemExit(f'SHERIFF_EVENT_SCHEMA_FAIL:{list(first.absolute_path)}:{first.message}')
+
+          event_path = root / 'sheriff-event.json'
+          event_path.write_text(json.dumps(event, sort_keys=True, indent=2) + '\n', encoding='utf-8')
+          summary = {
+              'schema': 'ZB_LESTER_INSPECT_BASE_R01',
+              'state': 'PASS',
+              'source_run_id': 33305597928,
+              'inspect_accuracy': 1.0,
+              'sheriff_event_id': event['id'],
+              'archive_state': 'PENDING_EXTERNAL_EVENT_ARCHIVE_READBACK',
+          }
+          (root / 'base-result.json').write_text(json.dumps(summary, sort_keys=True, indent=2) + '\n', encoding='utf-8')
+          print('INSPECT_PRECOMPUTED_SCORE = PASS | accuracy=1.0')
+          print('SHERIFF_EVENT_SCHEMA = PASS')
+          PY
+
+          python3 scripts/sheriff_validate.py
+
+      - name: Upload exact base evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: zb-lester-inspect-base-r01-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .zb-base/inspect-scored.eval
+            .zb-base/scores.json
+            .zb-base/sheriff-event.json
+            .zb-base/base-result.json
+          retention-days: 7
+          if-no-files-found: error

@@ -3,7 +3,12 @@ import unittest
 import cv2
 import numpy as np
 
-from experiments.draw_qc_r01.zorr_draw_qc import analyze_image_bgr, analyze_region_bgr, evaluate_metrics
+from experiments.draw_qc_r01.zorr_draw_qc import (
+    analyze_image_bgr,
+    analyze_region_bgr,
+    evaluate_metrics,
+    evaluate_transfer_consistency,
+)
 
 
 class DrawQCR01Tests(unittest.TestCase):
@@ -99,6 +104,93 @@ class DrawQCR01Tests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             analyze_region_bgr(image, empty_mask)
+
+    def test_transfer_consistency_passes_observed_c00b_front_three(self):
+        # Fresh measurements from the three OpenCV-detected front/3/4 regions
+        # in C00-B. This is a transfer-consistency domain, not R01 anchor QC.
+        samples = [
+            {
+                "tone_bands": 8.0,
+                "strong_edge_density": 0.2014669213,
+                "deep_ink_coverage": 0.0586260937,
+                "line_hierarchy_ratio": 2.6666666667,
+                "high_freq_laplacian_variance": 80.2548037129,
+            },
+            {
+                "tone_bands": 8.0,
+                "strong_edge_density": 0.2225570875,
+                "deep_ink_coverage": 0.0708144839,
+                "line_hierarchy_ratio": 2.9103737536,
+                "high_freq_laplacian_variance": 123.8768193954,
+            },
+            {
+                "tone_bands": 7.0,
+                "strong_edge_density": 0.2035543656,
+                "deep_ink_coverage": 0.0589116104,
+                "line_hierarchy_ratio": 2.9291998545,
+                "high_freq_laplacian_variance": 69.0116770847,
+            },
+        ]
+
+        verdict = evaluate_transfer_consistency(samples)
+
+        self.assertEqual(verdict["verdict"], "PASS")
+        self.assertEqual(verdict["failures"], [])
+
+    def test_transfer_consistency_rejects_single_view_style_drift(self):
+        samples = [
+            {
+                "tone_bands": 8.0,
+                "strong_edge_density": 0.202,
+                "deep_ink_coverage": 0.060,
+                "line_hierarchy_ratio": 2.75,
+                "high_freq_laplacian_variance": 82.0,
+            },
+            {
+                "tone_bands": 8.0,
+                "strong_edge_density": 0.210,
+                "deep_ink_coverage": 0.064,
+                "line_hierarchy_ratio": 2.82,
+                "high_freq_laplacian_variance": 90.0,
+            },
+            {
+                "tone_bands": 11.0,
+                "strong_edge_density": 0.340,
+                "deep_ink_coverage": 0.120,
+                "line_hierarchy_ratio": 1.45,
+                "high_freq_laplacian_variance": 510.0,
+            },
+        ]
+
+        verdict = evaluate_transfer_consistency(samples)
+
+        self.assertEqual(verdict["verdict"], "FAIL")
+        self.assertIn("TRANSFER_TONE_DRIFT_FAIL", verdict["failures"])
+        self.assertIn("TRANSFER_EDGE_DRIFT_FAIL", verdict["failures"])
+        self.assertIn("TRANSFER_INK_DRIFT_FAIL", verdict["failures"])
+        self.assertIn("TRANSFER_LINE_DRIFT_FAIL", verdict["failures"])
+        self.assertIn("TRANSFER_HIGH_FREQ_DRIFT_FAIL", verdict["failures"])
+
+    def test_transfer_consistency_requires_three_views(self):
+        with self.assertRaises(ValueError):
+            evaluate_transfer_consistency(
+                [
+                    {
+                        "tone_bands": 8.0,
+                        "strong_edge_density": 0.20,
+                        "deep_ink_coverage": 0.06,
+                        "line_hierarchy_ratio": 2.8,
+                        "high_freq_laplacian_variance": 80.0,
+                    },
+                    {
+                        "tone_bands": 8.0,
+                        "strong_edge_density": 0.21,
+                        "deep_ink_coverage": 0.06,
+                        "line_hierarchy_ratio": 2.8,
+                        "high_freq_laplacian_variance": 82.0,
+                    },
+                ]
+            )
 
 
 if __name__ == "__main__":

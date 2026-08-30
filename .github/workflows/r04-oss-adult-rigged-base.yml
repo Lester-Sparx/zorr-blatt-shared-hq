@@ -1,0 +1,60 @@
+name: R04 OSS Adult Rigged Base
+
+on:
+  push:
+    branches:
+      - lester/r04-oss-adult-rigged-base
+    paths:
+      - .github/workflows/r04-oss-adult-rigged-base.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  asset-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ZORR branch
+        uses: actions/checkout@v4
+
+      - name: Checkout pinned upstream rigged-human assets
+        uses: actions/checkout@v4
+        with:
+          repository: kunalkushwaha/vsim
+          ref: 3f97faf85e46d2f9a122b0a8b8d3ccc0af598f91
+          path: vendor/vsim
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Stage exact upstream binaries and provenance
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p r04-artifact
+          cp vendor/vsim/packages/assets/library/human.glb r04-artifact/human.glb
+          cp vendor/vsim/packages/assets/library/man.glb r04-artifact/man.glb
+          cp vendor/vsim/packages/assets/library/CREDITS.md r04-artifact/VSIM_CREDITS.md
+          cp vendor/vsim/packages/assets/library/manifest.json r04-artifact/vsim-manifest.json
+          sha256sum r04-artifact/human.glb r04-artifact/man.glb > r04-artifact/SHA256SUMS.txt
+          file r04-artifact/human.glb r04-artifact/man.glb | tee r04-artifact/file-report.txt
+
+      - name: Inspect GLB structure with standard OSS CLI
+        shell: bash
+        run: |
+          set -euxo pipefail
+          npx --yes @gltf-transform/cli@4.2.1 inspect r04-artifact/human.glb > r04-artifact/human-inspect.txt
+          npx --yes @gltf-transform/cli@4.2.1 inspect r04-artifact/man.glb > r04-artifact/man-inspect.txt
+          grep -E "SKINS|ANIMATIONS|JOINTS_0|WEIGHTS_0|vertices|primitives" -i r04-artifact/human-inspect.txt | tee r04-artifact/human-rig-proof.txt
+          grep -E "SKINS|ANIMATIONS|JOINTS_0|WEIGHTS_0|vertices|primitives" -i r04-artifact/man-inspect.txt | tee r04-artifact/man-rig-proof.txt
+
+      - name: Upload exact rigged-base evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: r04-rigged-adult-base-probe
+          path: r04-artifact/
+          if-no-files-found: error
+          retention-days: 30

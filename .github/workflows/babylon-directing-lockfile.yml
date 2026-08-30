@@ -1,0 +1,75 @@
+name: Babylon Directing v1 lockfile one-shot
+
+on:
+  push:
+    branches:
+      - automation/babylon-directing-lockfile
+    paths:
+      - '.github/workflows/babylon-directing-lockfile.yml'
+
+permissions:
+  contents: write
+
+env:
+  IMPLEMENTATION_BRANCH: lester/babylon-directing-v1-implementation
+  EXPECTED_HEAD: 41402f1ca66fd713677d5fd4ef73ad62a09334bc
+  PROJECT_NPM: 10.9.2
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact implementation branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.IMPLEMENTATION_BRANCH }}
+          fetch-depth: 0
+
+      - name: Prove exact implementation parent
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test ! -e experiments/directing-v1/package-lock.json
+          echo "EXPECTED_HEAD=$EXPECTED_HEAD"
+          node --version
+          npx --yes "npm@$PROJECT_NPM" --version
+
+      - name: Generate exact npm lockfile only
+        working-directory: experiments/directing-v1
+        run: npx --yes "npm@$PROJECT_NPM" install --package-lock-only
+
+      - name: Validate lockfile and isolated diff
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const packageJson = JSON.parse(fs.readFileSync('experiments/directing-v1/package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('experiments/directing-v1/package-lock.json', 'utf8'));
+          if (lock.lockfileVersion !== 3) throw new Error(`LOCKFILE_VERSION=${lock.lockfileVersion}`);
+          const expected = {
+            '@babylonjs/core': '9.22.2',
+            '@playwright/test': '1.62.1',
+            '@types/node': '26.2.0',
+            typescript: '7.0.2',
+            vite: '8.2.2',
+            vitest: '4.1.10',
+          };
+          for (const [name, version] of Object.entries(expected)) {
+            const declared = packageJson.dependencies?.[name] ?? packageJson.devDependencies?.[name];
+            const locked = lock.packages?.[`node_modules/${name}`]?.version;
+            if (declared !== version || locked !== version) {
+              throw new Error(`LOCK_DRIFT ${name} declared=${declared} locked=${locked}`);
+            }
+            console.log(`${name}=${version}`);
+          }
+          NODE
+          git add experiments/directing-v1/package-lock.json
+          changed="$(git diff --cached --name-only)"
+          printf '%s\n' "$changed"
+          test "$changed" = 'experiments/directing-v1/package-lock.json'
+
+      - name: Commit lockfile to implementation branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore: lock Babylon directing dependencies'
+          git push origin "HEAD:$IMPLEMENTATION_BRANCH"

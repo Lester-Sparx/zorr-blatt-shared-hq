@@ -4,7 +4,8 @@ This module is intentionally small glue around OpenCV primitives. It does not
 render, train, or mutate production/canon state. R01 absolute thresholds are
 derived from the OWNER-approved drawing anchor and durable law #199. R02
 transfer thresholds are provisional consistency limits measured from the
-current C00-B model-sheet front/3/4 study set; they are not canon locks.
+current C00-B model-sheet front/3/4 study set; they are not canon locks. R03
+head geometry thresholds measure mirrored yaw consistency only.
 """
 
 from __future__ import annotations
@@ -37,6 +38,10 @@ TRANSFER_EDGE_CV_MAX = 0.06
 TRANSFER_INK_CV_MAX = 0.12
 TRANSFER_LINE_CV_MAX = 0.06
 TRANSFER_HIGH_FREQ_CV_MAX = 0.30
+
+HEAD_GEOMETRY_CANVAS_SIZE = 512
+HEAD_MIRROR_DICE_MIN = 0.96
+HEAD_PAIR_ASPECT_DRIFT_MAX = 0.03
 
 
 def _largest_foreground_component(image_bgr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -159,14 +164,62 @@ def _coefficient_of_variation(values: Sequence[float]) -> float:
     return std / abs(mean)
 
 
+def _normalize_binary_mask(mask: np.ndarray, canvas_size: int = HEAD_GEOMETRY_CANVAS_SIZE) -> np.ndarray:
+    if mask is None or mask.ndim != 2:
+        raise ValueError("head geometry mask must be a non-empty 2D array")
+    region = mask.astype(bool)
+    ys, xs = np.where(region)
+    if ys.size == 0:
+        raise ValueError("head geometry mask is empty")
+    if canvas_size < 32:
+        raise ValueError("head geometry canvas_size is too small")
+
+    y0, y1 = int(ys.min()), int(ys.max()) + 1
+    x0, x1 = int(xs.min()), int(xs.max()) + 1
+    crop = region[y0:y1, x0:x1].astype(np.uint8) * 255
+
+    margin = max(4, canvas_size // 25)
+    usable = canvas_size - 2 * margin
+    scale = min(float(usable) / float(crop.shape[1]), float(usable) / float(crop.shape[0]))
+    width = max(1, int(round(crop.shape[1] * scale)))
+    height = max(1, int(round(crop.shape[0] * scale)))
+    resized = cv2.resize(crop, (width, height), interpolation=cv2.INTER_NEAREST)
+
+    canvas = np.zeros((canvas_size, canvas_size), dtype=np.uint8)
+    x = (canvas_size - width) // 2
+    y = (canvas_size - height) // 2
+    canvas[y : y + height, x : x + width] = resized
+    return canvas
+
+
+def _binary_dice(mask_a: np.ndarray, mask_b: np.ndarray) -> float:
+    a = mask_a.astype(bool)
+    b = mask_b.astype(bool)
+    denominator = int(a.sum()) + int(b.sum())
+    if denominator == 0:
+        raise ValueError("cannot compare two empty masks")
+    return float(2.0 * np.logical_and(a, b).sum() / denominator)
+
+
+def _mask_aspect_ratio(mask: np.ndarray) -> float:
+    region = mask.astype(bool)
+    ys, xs = np.where(region)
+    if ys.size == 0:
+        raise ValueError("head geometry mask is empty")
+    width = float(xs.max() - xs.min() + 1)
+    height = float(ys.max() - ys.min() + 1)
+    return width / height
+
+
+def _relative_pair_drift(value_a: float, value_b: float) -> float:
+    mean = (abs(value_a) + abs(value_b)) / 2.0
+    if mean <= 1e-12:
+        return 0.0 if abs(value_a - value_b) <= 1e-12 else float("inf")
+    return abs(value_a - value_b) / mean
+
+
 def analyze_image_bgr(image_bgr: np.ndarray, target_width: int = TARGET_HEAD_WIDTH_PX) -> Dict[str, float]:
-    """Measure the largest connected foreground component.
-
-    This remains the legacy whole-component measurement. For character regions
-    whose semantic meaning matters (for example face/skin vs solid black hair),
-    callers should provide an explicit mask to :func:`analyze_region_bgr`.
-    """
-
+    """Measure the largest connected foreground component."""
     crop, component_mask = _largest_foreground_component(image_bgr)
     return _measure_normalized_region(crop, component_mask, target_width)
 
@@ -176,21 +229,48 @@ def analyze_region_bgr(
     region_mask: np.ndarray,
     target_width: int = TARGET_HEAD_WIDTH_PX,
 ) -> Dict[str, float]:
-    """Measure one explicit semantic region using the same deterministic metrics.
-
-    ``region_mask`` is intentionally supplied by the caller instead of inferred
-    from colors. This keeps identity/Character Truth segmentation upstream of
-    style QC and prevents solid black hair, clothing, or accessories from being
-    misclassified as excessive facial ink.
-    """
-
+    """Measure one explicit semantic region using the same deterministic metrics."""
     crop, mask = _crop_to_mask(image_bgr, region_mask)
     return _measure_normalized_region(crop, mask, target_width)
 
 
+def analyze_head_geometry_masks(masks: Mapping[str, np.ndarray]) -> Dict[str, float]:
+    """Measure mirrored yaw consistency from five caller-supplied silhouette masks."""
+    required = (
+        "profile_left",
+        "threequarter_left",
+        "front",
+        "threequarter_right",
+        "profile_right",
+    )
+    missing = [name for name in required if name not in masks]
+    if missing:
+        raise ValueError(f"missing head geometry masks: {', '.join(missing)}")
+
+    normalized = {name: _normalize_binary_mask(masks[name]) for name in required}
+
+    profile_dice = _binary_dice(normalized["profile_left"], cv2.flip(normalized["profile_right"], 1))
+    threequarter_dice = _binary_dice(
+        normalized["threequarter_left"], cv2.flip(normalized["threequarter_right"], 1)
+    )
+    front_dice = _binary_dice(normalized["front"], cv2.flip(normalized["front"], 1))
+
+    profile_left_aspect = _mask_aspect_ratio(masks["profile_left"])
+    profile_right_aspect = _mask_aspect_ratio(masks["profile_right"])
+    threequarter_left_aspect = _mask_aspect_ratio(masks["threequarter_left"])
+    threequarter_right_aspect = _mask_aspect_ratio(masks["threequarter_right"])
+
+    return {
+        "profile_mirror_dice": profile_dice,
+        "threequarter_mirror_dice": threequarter_dice,
+        "front_self_mirror_dice": front_dice,
+        "profile_aspect_drift": _relative_pair_drift(profile_left_aspect, profile_right_aspect),
+        "threequarter_aspect_drift": _relative_pair_drift(threequarter_left_aspect, threequarter_right_aspect),
+    }
+
+
 def evaluate_metrics(metrics: Mapping[str, float]) -> Dict[str, object]:
     """Apply the R01 absolute anchor envelope and return fail-closed reasons."""
-
     failures = []
     tone_bands = float(metrics["tone_bands"])
     edge_density = float(metrics["strong_edge_density"])
@@ -209,23 +289,11 @@ def evaluate_metrics(metrics: Mapping[str, float]) -> Dict[str, object]:
     if not high_freq <= HIGH_FREQ_LAPLACIAN_VARIANCE_MAX:
         failures.append("STYLE_TOO_NOISY")
 
-    return {
-        "verdict": "PASS" if not failures else "FAIL",
-        "failures": failures,
-    }
+    return {"verdict": "PASS" if not failures else "FAIL", "failures": failures}
 
 
 def evaluate_transfer_consistency(samples: Sequence[Mapping[str, float]]) -> Dict[str, object]:
-    """Check cross-view style stability without reusing the absolute R01 envelope.
-
-    The current C00-B yaw sheet intentionally has a denser close-up treatment
-    than the older absolute R01 anchor. Transfer QC therefore measures relative
-    drift across equivalent views rather than pretending both domains share the
-    same absolute density. Thresholds are provisional sandbox values measured
-    from the three current front/3/4 study regions and must not be treated as a
-    production or canon lock.
-    """
-
+    """Check cross-view style stability without reusing the absolute R01 envelope."""
     if len(samples) < TRANSFER_MIN_VIEWS:
         raise ValueError("transfer consistency requires at least three views")
 
@@ -272,3 +340,26 @@ def evaluate_transfer_consistency(samples: Sequence[Mapping[str, float]]) -> Dic
             "high_freq_cv": high_freq_cv,
         },
     }
+
+
+def evaluate_head_geometry_consistency(metrics: Mapping[str, float]) -> Dict[str, object]:
+    """Apply the provisional R03 mirrored-yaw geometry envelope."""
+    failures = []
+    profile_dice = float(metrics["profile_mirror_dice"])
+    threequarter_dice = float(metrics["threequarter_mirror_dice"])
+    front_dice = float(metrics["front_self_mirror_dice"])
+    profile_aspect_drift = float(metrics["profile_aspect_drift"])
+    threequarter_aspect_drift = float(metrics["threequarter_aspect_drift"])
+
+    if profile_dice < HEAD_MIRROR_DICE_MIN:
+        failures.append("HEAD_PROFILE_MIRROR_FAIL")
+    if threequarter_dice < HEAD_MIRROR_DICE_MIN:
+        failures.append("HEAD_THREEQUARTER_MIRROR_FAIL")
+    if front_dice < HEAD_MIRROR_DICE_MIN:
+        failures.append("HEAD_FRONT_SYMMETRY_FAIL")
+    if profile_aspect_drift > HEAD_PAIR_ASPECT_DRIFT_MAX:
+        failures.append("HEAD_PROFILE_ASPECT_DRIFT_FAIL")
+    if threequarter_aspect_drift > HEAD_PAIR_ASPECT_DRIFT_MAX:
+        failures.append("HEAD_THREEQUARTER_ASPECT_DRIFT_FAIL")
+
+    return {"verdict": "PASS" if not failures else "FAIL", "failures": failures}

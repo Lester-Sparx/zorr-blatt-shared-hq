@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -19,6 +20,13 @@ jobs:
         working-directory: experiments/directing-v1
     steps:
       - uses: actions/checkout@v4
+      - name: Restore exact verified B0 body artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/Lester-Sparx/zorr-blatt-shared-hq/actions/artifacts/9593126818/zip > /tmp/b0.zip
+          unzip -p /tmp/b0.zip b0-body.glb > public/oxihuman-b0-body.glb
+          test "$(sha256sum public/oxihuman-b0-body.glb | cut -d' ' -f1)" = "626be02ae16ddf2bfd8760633761489a3c24f5b35d1e5b3f4a0c9a602cbffaf0"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 import unittest
 
 from scripts.hq_engine_profiles import (
@@ -73,6 +74,25 @@ class FourEngineCommandTests(unittest.TestCase):
         self.assertEqual(ENGINE_PROFILES["GAUZZ"]["scope"], "MATH_QC")
         self.assertEqual(ENGINE_PROFILES["LYNCH"]["scope"], "SCENE_DIRECTING")
         self.assertEqual(ENGINE_PROFILES["HOKUSAI"]["scope"], "DESIGN")
+
+    def test_bootstrap_names_exact_four_commands_and_root_is_not_fifth_engine(self) -> None:
+        agents = Path("AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("There are exactly four production engines", agents)
+        self.assertIn("DUNCAN PRIME` is their shared root identity/memory/learning authority and is NOT a fifth engine", agents)
+        for engine_id in ("SALVADOR", "GAUZZ", "LYNCH", "HOKUSAI"):
+            self.assertIn(f"`{engine_id}`", agents)
+
+    def test_durable_profile_files_match_registry_scope_and_learning_gate(self) -> None:
+        root = Path("hq/engine-profiles")
+        index = (root / "FOUR_ENGINE_R01.md").read_text(encoding="utf-8")
+        self.assertIn("ENGINE_COUNT = 4", index)
+        self.assertIn("DUNCAN PRIME", index)
+        for engine_id, profile in ENGINE_PROFILES.items():
+            text = (root / f"{engine_id}.md").read_text(encoding="utf-8")
+            self.assertIn(f"ROOT = DUNCAN PRIME", text)
+            self.assertIn(f"SCOPE = {profile['scope']}", text)
+            self.assertIn("CHANGED_OR_UNSEEN_TRANSFER", text)
+            self.assertIn("DURABLE_EVIDENCE", text)
 
 
 if __name__ == "__main__":

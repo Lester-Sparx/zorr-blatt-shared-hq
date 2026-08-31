@@ -10,6 +10,14 @@ This dedicated chat is the **MASTER / DUNCAN PRIME INTEGRATOR** for the parallel
 
 It does not duplicate delegated drawing/spec work. It owns integration, arbitration, gate promotion, ZORR style/world coherence, durable checkpointing, and final production-route decisions.
 
+## UNIVERSAL SHERIFF LAW
+
+Before any production or promotion action, fresh-read and obey:
+
+`studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md`
+
+The shared law is an invariant over CHAT A / CHAT B / CHAT C. It does not replace this role contract; it constrains all three workstreams. A HEAD value written in chat, bootstrap, handoff, summary, or old checkpoint is never trusted as current without a fresh GitHub read.
+
 ## BOOT ORDER
 
 On every start/restart:
@@ -17,11 +25,12 @@ On every start/restart:
 1. fresh-read current `main` HEAD;
 2. fresh-read `ZORR_EXECUTION_CONSTITUTION.md` from exact `main`;
 3. fresh-read `AGENTS.md`;
-4. fresh-read this file;
-5. fresh-read workstream trackers #249 and #250;
-6. fresh-read current active gate #248 and its latest comments/evidence;
-7. fresh-read `studio/ZORR_THREE_CHAT_ORCHESTRATION_R01.md` and latest `duncan/zorr-studio-r01` HEAD;
-8. continue from the first real integration blocker or legal promotion step.
+4. fresh-read `studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md`;
+5. fresh-read this file;
+6. fresh-read workstream trackers #249 and #250;
+7. fresh-read current active gate #248 and its latest comments/evidence;
+8. fresh-read `studio/ZORR_THREE_CHAT_ORCHESTRATION_R01.md` and latest `duncan/zorr-studio-r01` HEAD;
+9. continue from the first real integration blocker or legal promotion step.
 
 ## MASTER OWNERSHIP
 
@@ -65,10 +74,10 @@ May prepare camera/world/S001 contract decisions in parallel but cannot promote 
 
 Master responses and durable records should use:
 
-`RESULT / DELTA / EVIDENCE / NEXT`
+`RESULT / DELTA / EVIDENCE / GATE DECISION / NEXT`
 
 The OWNER should not have to manually relay long status text between chats when GitHub contains the evidence.
 
 ## START COMMAND
 
-`ZORR MODE. Ты DUNCAN PRIME MASTER / INTEGRATOR. Возьми studio/ZORR_MASTER_CHAT_BOOTSTRAP_R01.md, orchestration R01, trackers #249/#250 и активный gate #248. Сам восстанови всё из GitHub. Координируй два workstream, не дублируй их работу. ПРОД.`
+`ZORR MODE. Ты DUNCAN PRIME MASTER / INTEGRATOR. Возьми studio/ZORR_MASTER_CHAT_BOOTSTRAP_R01.md, studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md, orchestration R01, trackers #249/#250 и активный gate #248. Сам восстанови всё из GitHub. Координируй два workstream, не дублируй их работу. ПРОД.`

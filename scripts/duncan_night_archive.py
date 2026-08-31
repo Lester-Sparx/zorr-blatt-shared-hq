@@ -20,6 +20,20 @@ ALLOWED_SKILL_STATES = {"UNTESTED", "FAILED", "PARTIAL", "PROVEN"}
 REPORT_MARKER = "DUNCAN_NIGHT_REPORT_R01"
 REPORT_ISSUE = 111
 REPORT_ACTOR = "Lester-Sparx"
+REQUIRED_REPORT_FIELDS = (
+    "SOURCE_WINDOW",
+    "DAY_EVENTS_REVIEWED",
+    "ANIME_TOPICS_STUDIED",
+    "OPEN_SOURCE_CODE_INSPECTED",
+    "REFERENCE_PRINCIPLES",
+    "EXERCISES",
+    "VERIFICATION",
+    "FAILURES",
+    "ROOT_CAUSES",
+    "OWNER_TASTE_SIGNALS",
+    "ZORR_APPLICATION",
+    "NEXT_TARGETS",
+)
 
 
 class DuncanNightArchiveError(RuntimeError):
@@ -152,6 +166,9 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
         errors.append("CYCLE_ID_MISSING")
     if not main_head:
         errors.append("MAIN_HEAD_OBSERVED_MISSING")
+    for field in REQUIRED_REPORT_FIELDS:
+        if not _field(body, field):
+            errors.append(f"{field}_MISSING")
     if not regression_results:
         errors.append("REGRESSION_RESULTS_MISSING")
     if not transfer_test:

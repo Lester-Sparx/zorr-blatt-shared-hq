@@ -222,8 +222,17 @@ def evaluate_pre_action(
     fresh_active_head: str | None = None,
 ) -> dict[str, Any]:
     _validate_context(context)
+    action = context["action"]
     if fresh_active_head is not None and (not isinstance(fresh_active_head, str) or not fresh_active_head):
         raise PreActionError("FRESH_ACTIVE_HEAD_INVALID")
+    if context_packet is None and action not in READ_ONLY_WHILE_ACTIVE:
+        return _decision(
+            context,
+            "BLOCK",
+            "DURABLE_CONTEXT_NOT_PROVEN",
+            learning_policy,
+            None,
+        )
     if context_packet is not None:
         _validate_context_packet(context_packet)
         if context_packet["status"] != "PROVEN":
@@ -252,8 +261,6 @@ def evaluate_pre_action(
                     learning_policy,
                     context_packet,
                 )
-
-    action = context["action"]
 
     if action == "IMAGE_MUTATION" and not context["explicitOwnerImageMutationCommand"]:
         return _decision(context, "BLOCK", "OWNER_IMAGE_MUTATION_COMMAND_REQUIRED", learning_policy, context_packet)

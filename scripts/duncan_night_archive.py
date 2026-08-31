@@ -27,7 +27,7 @@ class DuncanNightArchiveError(RuntimeError):
 
 
 def _field(body: str, name: str) -> str | None:
-    match = re.search(rf"(?m)^{re.escape(name)}\s*=\s*(.*?)\s*$", body)
+    match = re.search(rf"(?m)^{re.escape(name)}[ \t]*=[ \t]*(.*?)[ \t]*$", body)
     if not match:
         return None
     value = match.group(1).strip()

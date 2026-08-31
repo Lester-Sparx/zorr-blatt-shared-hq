@@ -84,13 +84,14 @@ def result_body(
     profile: str,
     execution_id: str,
     *,
-    execution_request_id: str = "claim-gate-request-1",
+    execution_request_id: str | None = None,
     process_exit_code: int = 0,
     test_evidence_refs: tuple[str, ...] = ("run:123:test:unit",),
 ) -> str:
+    expected_request_id = "claim-gate-request-1" if role == "LESTER" else "claim-gate-request-1-qc"
     return render_execution_result(
         ExecutionResult(
-            execution_request_id=execution_request_id,
+            execution_request_id=expected_request_id if execution_request_id is None else execution_request_id,
             execution_id=execution_id,
             attempt=1,
             message_id="claim-gate-message-1",

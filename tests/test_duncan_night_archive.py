@@ -47,29 +47,50 @@ class DuncanNightArchiveTests(unittest.TestCase):
         production_mutation: str = "NO",
         regression_results: str | None = "Prior lesson replay PASS on bounded changed fixture.",
         transfer_test: str | None = "Changed/unseen fixture PASS; not used to tune the original exercise.",
+        omit_fields: set[str] | None = None,
     ) -> str:
-        regression_line = (
-            f"REGRESSION_RESULTS = {regression_results}\n" if regression_results is not None else ""
+        omitted = set(omit_fields or set())
+        scalar_fields: list[tuple[str, str | None]] = [
+            ("CYCLE_ID", cycle),
+            ("SOURCE_WINDOW", "2026-08-31 bounded learning cycle"),
+            ("MAIN_HEAD_OBSERVED", "deadbeef"),
+            ("DAY_EVENTS_REVIEWED", "issue:206 learning law and current durable evidence"),
+            ("ANIME_TOPICS_STUDIED", "silhouette and negative-space readability"),
+            (
+                "OPEN_SOURCE_CODE_INSPECTED",
+                "opencv/opencv; ref=4.x; license=Apache-2.0; modules=imgproc; APIs=connectedComponentsWithStats",
+            ),
+            ("REFERENCE_PRINCIPLES", "preserve identity-bearing structure under simplification"),
+            ("EXERCISES", "bounded original synthetic exercise plus changed fixture"),
+            ("VERIFICATION", "objective structure metric checked against expected result"),
+            ("FAILURES", "aggressive variant intentionally failed identity preservation"),
+            ("ROOT_CAUSES", "over-cleaning destroyed identity-bearing structure"),
+            ("REGRESSION_RESULTS", regression_results),
+            ("TRANSFER_TEST", transfer_test),
+            ("OWNER_TASTE_SIGNALS", "no new preference inferred; existing durable law only"),
+            ("ZORR_APPLICATION", "candidate QC method only; no production mutation"),
+            ("PRIME_CORE_CHANGED", prime_core_changed),
+            ("PRODUCTION_MUTATION", production_mutation),
+            ("NEXT_TARGETS", "one further changed/unseen bounded case"),
+        ]
+        lines = ["DUNCAN_NIGHT_REPORT_R01"]
+        for key, value in scalar_fields:
+            if key in omitted or value is None:
+                continue
+            lines.append(f"{key} = {value}")
+        lines.extend(
+            [
+                "SKILL_DELTA =",
+                f"- silhouette_qc: UNTESTED -> {skill_state}",
+                "",
+                "SELF_MODEL_DELTA =",
+                "- DUNCAN_METHOD_TEST = prefer measurable OSS verification",
+                "",
+                "OWNER_TASTE_MODEL_DELTA =",
+                "- SILHOUETTE_FIRST = CONFIRMED_HIGH",
+            ]
         )
-        transfer_line = f"TRANSFER_TEST = {transfer_test}\n" if transfer_test is not None else ""
-        return f"""DUNCAN_NIGHT_REPORT_R01
-CYCLE_ID = {cycle}
-MAIN_HEAD_OBSERVED = deadbeef
-PRIME_CORE_CHANGED = {prime_core_changed}
-PRODUCTION_MUTATION = {production_mutation}
-{regression_line}{transfer_line}
-SKILL_DELTA =
-- silhouette_qc: UNTESTED -> {skill_state}
-
-SELF_MODEL_DELTA =
-- DUNCAN_METHOD_TEST = prefer measurable OSS verification
-
-OWNER_TASTE_MODEL_DELTA =
-- SILHOUETTE_FIRST = CONFIRMED_HIGH
-
-NEXT_TARGETS =
-- transfer test
-"""
+        return "\n".join(lines) + "\n"
 
     def test_valid_partial_skill_delta_updates_rebuildable_context(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -86,6 +107,40 @@ NEXT_TARGETS =
             self.assertEqual(context["latest_cycle_id"], "DNR01-TEST-001")
             self.assertEqual(len(context["source_events"]), 1)
             self.assertTrue((root / CONTEXT_REL).is_file())
+
+    def test_missing_authoritative_report_contract_field_cannot_train(self) -> None:
+        required_fields = (
+            "SOURCE_WINDOW",
+            "DAY_EVENTS_REVIEWED",
+            "ANIME_TOPICS_STUDIED",
+            "OPEN_SOURCE_CODE_INSPECTED",
+            "REFERENCE_PRINCIPLES",
+            "EXERCISES",
+            "VERIFICATION",
+            "FAILURES",
+            "ROOT_CAUSES",
+            "OWNER_TASTE_SIGNALS",
+            "ZORR_APPLICATION",
+            "NEXT_TARGETS",
+        )
+        for index, field in enumerate(required_fields, start=1):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = archive_duncan_night_event(
+                    self.event(
+                        self.report(
+                            cycle=f"DNR01-CONTRACT-{index:03d}",
+                            omit_fields={field},
+                        ),
+                        comment_id=7200 + index,
+                    ),
+                    root,
+                    self.metadata(str(99200 + index)),
+                )
+                self.assertIsNotNone(result)
+                self.assertFalse(result["training_eligible"])
+                self.assertIn(f"{field}_MISSING", result["validation_errors"])
+                self.assertEqual(rebuild_duncan_context(root)["skills"], {})
 
     def test_missing_regression_or_unseen_transfer_cannot_train(self) -> None:
         cases = (

@@ -42,6 +42,7 @@ class DuncanNightArchiveTests(unittest.TestCase):
     def report(
         *,
         cycle: str = "DNR01-TEST-001",
+        skill_before: str = "UNTESTED",
         skill_state: str = "PARTIAL",
         prime_core_changed: str = "NO",
         production_mutation: str = "NO",
@@ -81,7 +82,7 @@ class DuncanNightArchiveTests(unittest.TestCase):
         lines.extend(
             [
                 "SKILL_DELTA =",
-                f"- silhouette_qc: UNTESTED -> {skill_state}",
+                f"- silhouette_qc: {skill_before} -> {skill_state}",
                 "",
                 "SELF_MODEL_DELTA =",
                 "- DUNCAN_METHOD_TEST = prefer measurable OSS verification",
@@ -202,7 +203,11 @@ class DuncanNightArchiveTests(unittest.TestCase):
             )
             archive_duncan_night_event(
                 self.event(
-                    self.report(cycle="DNR01-TEST-002", skill_state="PARTIAL"),
+                    self.report(
+                        cycle="DNR01-TEST-002",
+                        skill_before="PARTIAL",
+                        skill_state="PARTIAL",
+                    ),
                     comment_id=7002,
                 ),
                 root,

@@ -1,7 +1,6 @@
 import '@babylonjs/loaders/glTF';
 import type { AnimationGroup } from '@babylonjs/core/Animations/animationGroup';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
@@ -11,16 +10,16 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { Skeleton } from '@babylonjs/core/Bones/skeleton';
 
 export const ACTION_LOCK = {
-  attackerPositionM: [-0.62, 0.00951, 0.05] as const,
+  attackerPositionM: [-0.50, 0.00951, 0.05] as const,
   attackerYawDeg: -8,
-  dodgerPositionM: [0.62, 0.00951, -0.05] as const,
+  dodgerPositionM: [0.50, 0.00951, -0.05] as const,
   dodgerYawDeg: 15,
   bladeLengthM: 1.08,
   bladeScale: 0.34076,
   attackClip: 'Sword_Attack',
   attackPoseFraction: 0.35,
   dodgeClip: 'Roll',
-  dodgePoseFraction: 0.48,
+  dodgePoseFraction: 0.55,
   measuredPrototypeClearanceM: 0.0970096418,
   cameraPositionM: [3.10, 1.55, 3.65] as const,
   cameraTargetM: [0.12, 1.02, -0.38] as const,
@@ -111,7 +110,8 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
   const platform = scene.getMeshByName('set:platform');
   if (platform) {
     const floor = new StandardMaterial('action:material:white-floor', scene);
-    floor.diffuseColor = new Color3(0.92, 0.92, 0.92);
+    floor.diffuseColor = new Color3(0.18, 0.18, 0.18);
+    floor.emissiveColor = new Color3(0.76, 0.76, 0.76);
     floor.specularColor = Color3.Black();
     platform.material = floor;
   }
@@ -198,7 +198,7 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
   const socket = new TransformNode('action:blade:socket', scene);
   socket.parent = hand;
   socket.position.copyFromFloats(0, 0, 0);
-  socket.rotation.z = -Math.PI / 2;
+  socket.rotation.x = Math.PI / 2;
   socket.scaling.copyFromFloats(
     ACTION_LOCK.bladeScale,
     ACTION_LOCK.bladeScale,

@@ -1,0 +1,39 @@
+=== R20 TESTS ===
+test_begin_index_one_skips_timestep_951_sigma (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_begin_index_one_skips_timestep_951_sigma) ... ok
+test_controlnet_stays_unjustified_without_measured_failure (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_controlnet_stays_unjustified_without_measured_failure) ... ok
+test_effective_denoise_and_successor_fingerprints_are_exact (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_effective_denoise_and_successor_fingerprints_are_exact) ... ok
+test_full_sigma_content_fingerprint_is_exact_on_measured_host (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_full_sigma_content_fingerprint_is_exact_on_measured_host) ... ok
+test_full_sigma_vector_is_binary32_with_terminal_zero (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_full_sigma_vector_is_binary32_with_terminal_zero) ... ok
+test_initial_add_noise_and_first_step_use_same_begin_sigma (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_initial_add_noise_and_first_step_use_same_begin_sigma) ... ok
+test_last_effective_step_transitions_to_exact_zero_sigma (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_last_effective_step_transitions_to_exact_zero_sigma) ... ok
+test_no_visual_or_real_runtime_pass_is_encoded (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_no_visual_or_real_runtime_pass_is_encoded) ... ok
+test_predecessor_identities_are_exact (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_predecessor_identities_are_exact) ... ok
+test_scheduler_config_drift_changes_contract_gate (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_scheduler_config_drift_changes_contract_gate) ... ok
+test_sigma_affecting_defaults_are_fail_closed (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_sigma_affecting_defaults_are_fail_closed) ... ok
+test_strength_drift_is_rejected_by_r04_predecessor_contract (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_strength_drift_is_rejected_by_r04_predecessor_contract) ... ok
+test_upstream_identity_constants_are_exact (test_zorr_sigma_contract_r20.TestSigmaContractR20.test_upstream_identity_constants_are_exact) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.006s
+
+OK
+
+=== R16 REGRESSION ===
+test_effective_schedule_and_initial_noise_timestep_are_exact (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_effective_schedule_and_initial_noise_timestep_are_exact) ... ok
+test_manifest_records_identical_relevant_blobs_at_fresh_main (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_manifest_records_identical_relevant_blobs_at_fresh_main) ... ok
+test_r04_baseline_drift_fails_closed (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_r04_baseline_drift_fails_closed) ... ok
+test_r04_selected_baseline_is_exact (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_r04_selected_baseline_is_exact) ... ok
+test_requested_euler_leading_schedule_is_exact (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_requested_euler_leading_schedule_is_exact) ... ok
+test_requested_steps_are_not_mislabeled_as_actual_unet_iterations (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_requested_steps_are_not_mislabeled_as_actual_unet_iterations) ... ok
+test_scheduler_config_is_exact (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_scheduler_config_is_exact) ... ok
+test_scheduler_drift_fails_closed (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_scheduler_drift_fails_closed) ... ok
+test_strength_099_means_nineteen_effective_steps (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_strength_099_means_nineteen_effective_steps) ... ok
+test_truth_boundary_stays_non_runtime (test_zorr_timestep_contract_r16.TestTimestepContractR16.test_truth_boundary_stays_non_runtime) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.000s
+
+OK
+
+=== COMPILEALL ===
+PASS

@@ -86,9 +86,9 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
         result = self._decide(self._context(action="SEARCH_ASSET", directlyAdvancesPhysicalResult=False, exactOwnerInputProvided=True))
         self.assertEqual((result["decision"], result["reason"]), ("BLOCK", "EXACT_OWNER_INPUT_SUPERSEDES_SEARCH"))
 
-    def test_incident_replay_proven_prerequisite_blocks_reverification(self) -> None:
+    def test_incident_replay_prerequisite_self_report_does_not_suppress_verification(self) -> None:
         result = self._decide(self._context(action="VERIFY_PREREQUISITE", directlyAdvancesPhysicalResult=False, prerequisiteAlreadyProven=True))
-        self.assertEqual((result["decision"], result["reason"]), ("BLOCK", "PREREQUISITE_ALREADY_PROVEN"))
+        self.assertEqual((result["decision"], result["reason"]), ("ALLOW", "PRE_ACTION_GATE_PASS"))
 
     def test_incident_replay_process_mutation_requires_proven_process_blocker(self) -> None:
         result = self._decide(self._context(action="PROCESS_MUTATION", directlyAdvancesPhysicalResult=False, provenProcessBlocker=False))

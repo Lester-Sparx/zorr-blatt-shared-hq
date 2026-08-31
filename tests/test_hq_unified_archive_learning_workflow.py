@@ -32,6 +32,15 @@ class UnifiedArchiveLearningWorkflowTests(unittest.TestCase):
         self.assertIn("do not apply", agents.lower())
         self.assertIn("CURRENT_LESSONS.json", agents)
 
+    def test_restart_map_requires_pre_action_gate_before_substantive_action(self) -> None:
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("scripts/hq_pre_action.py", agents)
+        self.assertIn("ZB_PRE_ACTION_DECISION_V1", agents)
+        self.assertIn("ACTIVE_ATTEMPT_OWNS_PATH", agents)
+        self.assertIn("non-allow", agents.lower())
+        self.assertIn("before each substantive action", agents.lower())
+        self.assertIn("native chat tool boundary", agents.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

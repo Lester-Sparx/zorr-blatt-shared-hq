@@ -6,8 +6,10 @@ from pathlib import Path
 from typing import Any
 
 try:
+    from scripts.hq_context_discipline import ContextDisciplineError, project_current_state
     from scripts.hq_unified_archive import build_learning_policy
 except ModuleNotFoundError:
+    from hq_context_discipline import ContextDisciplineError, project_current_state
     from hq_unified_archive import build_learning_policy
 
 
@@ -123,6 +125,12 @@ def _validate_context_packet(context_packet: dict[str, Any]) -> None:
         or current_state.get("schema") != CONTEXT_STATE_SCHEMA
         or not isinstance(current_state.get("facts"), list)
     ):
+        raise PreActionError("CONTEXT_PACKET_INVALID")
+    try:
+        reprojection = project_current_state(current_state["facts"])
+    except ContextDisciplineError as exc:
+        raise PreActionError("DURABLE_CONTEXT_NOT_PROVEN") from exc
+    if reprojection != current_state:
         raise PreActionError("CONTEXT_PACKET_INVALID")
 
     jit_facets = context_packet.get("jit_facets")

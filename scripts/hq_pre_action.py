@@ -46,6 +46,7 @@ REQUIRED_FIELDS = ("action", *BOOL_FIELDS, "processMutationCountForBlocker")
 READ_ONLY_WHILE_ACTIVE = {"READ_ACTIVE_RESULT", "READ_REQUIRED_EVIDENCE"}
 _GITHUB_PR_SOURCE = re.compile(r"^github:pr:([1-9][0-9]*)$")
 _SHA40 = re.compile(r"^[0-9a-f]{40}$")
+_TRUSTED_DURABLE_AUTHORITIES = {"GITHUB", "OWNER", "SHERIFF"}
 
 
 class PreActionError(RuntimeError):
@@ -223,7 +224,7 @@ def _packet_process_mutation_count(context_packet: dict[str, Any]) -> int | None
     return value
 
 
-def _packet_has_verified_true_fact(context_packet: dict[str, Any], key: str) -> bool:
+def _packet_verified_fact(context_packet: dict[str, Any], key: str) -> dict[str, Any] | None:
     current_state = context_packet.get("current_state")
     facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
     matches = [
@@ -232,18 +233,34 @@ def _packet_has_verified_true_fact(context_packet: dict[str, Any], key: str) -> 
         if isinstance(fact, dict) and fact.get("key") == key
     ]
     if len(matches) != 1:
-        return False
+        return None
     fact = matches[0]
     refs = fact.get("source_refs")
-    return (
-        fact.get("class") == "E2"
-        and fact.get("verified") is True
-        and fact.get("value") is True
-        and fact.get("authority") in {"GITHUB", "OWNER", "SHERIFF"}
-        and isinstance(refs, list)
-        and bool(refs)
-        and all(isinstance(item, str) and item for item in refs)
-    )
+    if (
+        fact.get("class") != "E2"
+        or fact.get("verified") is not True
+        or fact.get("authority") not in _TRUSTED_DURABLE_AUTHORITIES
+        or not isinstance(refs, list)
+        or not refs
+        or not all(isinstance(item, str) and item for item in refs)
+    ):
+        return None
+    return fact
+
+
+def _packet_has_verified_true_fact(context_packet: dict[str, Any], key: str) -> bool:
+    fact = _packet_verified_fact(context_packet, key)
+    return fact is not None and fact.get("value") is True
+
+
+def _packet_verified_string_fact(context_packet: dict[str, Any], key: str) -> str | None:
+    fact = _packet_verified_fact(context_packet, key)
+    if fact is None:
+        return None
+    value = fact.get("value")
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value
 
 
 def _read_current_pr_head(github_api: GitHubApi, pr_number: int) -> str:
@@ -325,6 +342,8 @@ def evaluate_pre_action(
     action = context["action"]
     effective_process_mutation_count = context["processMutationCountForBlocker"]
     durable_new_physical_blocker = False
+    current_error_signature: str | None = None
+    process_mutation_error_signature: str | None = None
     if fresh_active_head is not None and (not isinstance(fresh_active_head, str) or not fresh_active_head):
         raise PreActionError("FRESH_ACTIVE_HEAD_INVALID")
     if context_packet is None and action not in READ_ONLY_WHILE_ACTIVE:
@@ -369,6 +388,14 @@ def evaluate_pre_action(
         durable_new_physical_blocker = _packet_has_verified_true_fact(
             context_packet,
             "NEW_PHYSICAL_BLOCKER",
+        )
+        current_error_signature = _packet_verified_string_fact(
+            context_packet,
+            "ERROR_SIGNATURE",
+        )
+        process_mutation_error_signature = _packet_verified_string_fact(
+            context_packet,
+            "PROCESS_MUTATION_ERROR_SIGNATURE",
         )
         packet_active_head = _packet_active_head(context_packet)
         if action not in READ_ONLY_WHILE_ACTIVE and packet_active_head is not None and fresh_active_head is None:
@@ -422,15 +449,31 @@ def evaluate_pre_action(
         action not in READ_ONLY_WHILE_ACTIVE
         and effective_process_mutation_count >= 1
         and context["newPhysicalBlocker"]
-        and not durable_new_physical_blocker
     ):
-        return _decision(
-            context,
-            "BLOCK",
-            "DURABLE_NEW_BLOCKER_NOT_PROVEN",
-            learning_policy,
-            context_packet,
-        )
+        if not durable_new_physical_blocker:
+            return _decision(
+                context,
+                "BLOCK",
+                "DURABLE_NEW_BLOCKER_NOT_PROVEN",
+                learning_policy,
+                context_packet,
+            )
+        if current_error_signature is None or process_mutation_error_signature is None:
+            return _decision(
+                context,
+                "BLOCK",
+                "DURABLE_NEW_BLOCKER_SIGNATURE_NOT_PROVEN",
+                learning_policy,
+                context_packet,
+            )
+        if current_error_signature == process_mutation_error_signature:
+            return _decision(
+                context,
+                "BLOCK",
+                "DURABLE_NEW_BLOCKER_NOT_DISTINCT",
+                learning_policy,
+                context_packet,
+            )
 
     if (
         action not in READ_ONLY_WHILE_ACTIVE

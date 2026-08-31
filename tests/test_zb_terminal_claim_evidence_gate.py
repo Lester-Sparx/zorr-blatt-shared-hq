@@ -84,12 +84,13 @@ def result_body(
     profile: str,
     execution_id: str,
     *,
+    execution_request_id: str = "claim-gate-request-1",
     process_exit_code: int = 0,
     test_evidence_refs: tuple[str, ...] = ("run:123:test:unit",),
 ) -> str:
     return render_execution_result(
         ExecutionResult(
-            execution_request_id="claim-gate-request-1",
+            execution_request_id=execution_request_id,
             execution_id=execution_id,
             attempt=1,
             message_id="claim-gate-message-1",
@@ -149,6 +150,40 @@ class TerminalClaimEvidenceGateTest(unittest.TestCase):
             request_body(),
             result_body("LESTER", "LESTER_IMPLEMENT_R01", "exec:lester"),
             result_body("DUNCAN", "DUNCAN_QC_R01", "exec:duncan", test_evidence_refs=()),
+            port,
+        )
+
+        self.assertEqual(result, "DUNCAN_QC_FAIL")
+        self.assertFalse(any("OWNER_GATE_REQUIRED = TRUE" in comment["body"] for comment in port.comments))
+
+    def test_lester_pass_from_different_execution_request_is_rejected_before_owner_gate(self) -> None:
+        port = RecordingPort()
+        result = finalize_substantive_execution(
+            request_body(),
+            result_body(
+                "LESTER",
+                "LESTER_IMPLEMENT_R01",
+                "exec:lester",
+                execution_request_id="claim-gate-request-foreign",
+            ),
+            result_body("DUNCAN", "DUNCAN_QC_R01", "exec:duncan"),
+            port,
+        )
+
+        self.assertEqual(result, "LESTER_RESULT_REJECTED")
+        self.assertFalse(any("OWNER_GATE_REQUIRED = TRUE" in comment["body"] for comment in port.comments))
+
+    def test_duncan_pass_from_different_execution_request_is_rejected_before_owner_gate(self) -> None:
+        port = RecordingPort()
+        result = finalize_substantive_execution(
+            request_body(),
+            result_body("LESTER", "LESTER_IMPLEMENT_R01", "exec:lester"),
+            result_body(
+                "DUNCAN",
+                "DUNCAN_QC_R01",
+                "exec:duncan",
+                execution_request_id="claim-gate-request-foreign",
+            ),
             port,
         )
 

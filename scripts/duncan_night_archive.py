@@ -144,12 +144,18 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
     errors: list[str] = []
     cycle_id = _field(body, "CYCLE_ID")
     main_head = _field(body, "MAIN_HEAD_OBSERVED")
+    regression_results = _field(body, "REGRESSION_RESULTS")
+    transfer_test = _field(body, "TRANSFER_TEST")
     prime_core_changed = _field(body, "PRIME_CORE_CHANGED")
     production_mutation = _field(body, "PRODUCTION_MUTATION")
     if not cycle_id:
         errors.append("CYCLE_ID_MISSING")
     if not main_head:
         errors.append("MAIN_HEAD_OBSERVED_MISSING")
+    if not regression_results:
+        errors.append("REGRESSION_RESULTS_MISSING")
+    if not transfer_test:
+        errors.append("TRANSFER_TEST_MISSING")
     if prime_core_changed != "NO":
         errors.append("PRIME_CORE_MUTATION_FORBIDDEN")
     if production_mutation != "NO":
@@ -175,6 +181,8 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
         "sequence": comment_id,
         "cycle_id": cycle_id or "",
         "main_head_observed": main_head or "",
+        "regression_results": regression_results or "",
+        "transfer_test": transfer_test or "",
         "prime_core_changed": prime_core_changed or "",
         "production_mutation": production_mutation or "",
         "skill_deltas": skills,

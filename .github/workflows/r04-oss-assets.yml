@@ -117,3 +117,30 @@ jobs:
           path: r04-regular-male/
           if-no-files-found: error
           retention-days: 30
+
+  deliver-known-combat-png:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pinned Warptracker combat proof
+        uses: actions/checkout@v4
+        with:
+          repository: ilrein/warptracker
+          ref: 71bbfbdfacd118196994b26da68eec1876d55c6b
+          sparse-checkout: |
+            docs/media/combat.png
+          sparse-checkout-cone-mode: false
+
+      - name: Verify combat PNG
+        shell: bash
+        run: |
+          set -euo pipefail
+          file docs/media/combat.png
+          sha256sum docs/media/combat.png
+
+      - name: Upload combat PNG
+        uses: actions/upload-artifact@v4
+        with:
+          name: r04-known-oss-combat-png
+          path: docs/media/combat.png
+          if-no-files-found: error
+          retention-days: 30

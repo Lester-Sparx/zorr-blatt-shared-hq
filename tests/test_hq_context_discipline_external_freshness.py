@@ -133,7 +133,7 @@ class ContextDisciplineExternalFreshnessTests(unittest.TestCase):
             len(json.dumps(baseline, sort_keys=True)),
         )
 
-    def test_cli_external_head_binding_blocks_stale_packet(self) -> None:
+    def test_cli_unresolvable_head_source_cannot_use_caller_scalar(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             context_path = root / "context.json"
@@ -158,7 +158,7 @@ class ContextDisciplineExternalFreshnessTests(unittest.TestCase):
             )
         self.assertEqual(completed.returncode, 2)
         payload = json.loads(completed.stdout)
-        self.assertEqual(payload["reason"], "DURABLE_CONTEXT_STALE")
+        self.assertEqual(payload["reason"], "DURABLE_CONTEXT_FRESHNESS_SOURCE_NOT_PROVEN")
 
 
 if __name__ == "__main__":

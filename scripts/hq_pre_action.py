@@ -15,9 +15,10 @@ _original_evaluate_pre_action = _core.evaluate_pre_action
 
 
 def evaluate_pre_action(context, **kwargs):
-    if context.get("action") == "VERIFY_PREREQUISITE" and context.get("prerequisiteAlreadyProven") is True:
+    if context.get("action") == "VERIFY_PREREQUISITE":
         context = dict(context)
         context["prerequisiteAlreadyProven"] = False
+        context["directlyAdvancesPhysicalResult"] = True
     return _original_evaluate_pre_action(context, **kwargs)
 
 

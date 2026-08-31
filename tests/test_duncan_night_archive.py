@@ -45,13 +45,19 @@ class DuncanNightArchiveTests(unittest.TestCase):
         skill_state: str = "PARTIAL",
         prime_core_changed: str = "NO",
         production_mutation: str = "NO",
+        regression_results: str | None = "Prior lesson replay PASS on bounded changed fixture.",
+        transfer_test: str | None = "Changed/unseen fixture PASS; not used to tune the original exercise.",
     ) -> str:
+        regression_line = (
+            f"REGRESSION_RESULTS = {regression_results}\n" if regression_results is not None else ""
+        )
+        transfer_line = f"TRANSFER_TEST = {transfer_test}\n" if transfer_test is not None else ""
         return f"""DUNCAN_NIGHT_REPORT_R01
 CYCLE_ID = {cycle}
 MAIN_HEAD_OBSERVED = deadbeef
 PRIME_CORE_CHANGED = {prime_core_changed}
 PRODUCTION_MUTATION = {production_mutation}
-
+{regression_line}{transfer_line}
 SKILL_DELTA =
 - silhouette_qc: UNTESTED -> {skill_state}
 
@@ -80,6 +86,33 @@ NEXT_TARGETS =
             self.assertEqual(context["latest_cycle_id"], "DNR01-TEST-001")
             self.assertEqual(len(context["source_events"]), 1)
             self.assertTrue((root / CONTEXT_REL).is_file())
+
+    def test_missing_regression_or_unseen_transfer_cannot_train(self) -> None:
+        cases = (
+            ("missing-regression", None, "Changed/unseen fixture PASS.", "REGRESSION_RESULTS_MISSING"),
+            ("missing-transfer", "Prior regression PASS.", None, "TRANSFER_TEST_MISSING"),
+            ("empty-regression", "", "Changed/unseen fixture PASS.", "REGRESSION_RESULTS_MISSING"),
+            ("empty-transfer", "Prior regression PASS.", "", "TRANSFER_TEST_MISSING"),
+        )
+        for index, (name, regression, transfer, expected_error) in enumerate(cases, start=1):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = archive_duncan_night_event(
+                    self.event(
+                        self.report(
+                            cycle=f"DNR01-TRANSFER-{index:03d}",
+                            regression_results=regression,
+                            transfer_test=transfer,
+                        ),
+                        comment_id=7100 + index,
+                    ),
+                    root,
+                    self.metadata(str(99100 + index)),
+                )
+                self.assertIsNotNone(result)
+                self.assertFalse(result["training_eligible"])
+                self.assertIn(expected_error, result["validation_errors"])
+                self.assertEqual(rebuild_duncan_context(root)["skills"], {})
 
     def test_partial_plus_is_archived_as_invalid_derived_fact_but_cannot_train(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

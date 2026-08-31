@@ -9,6 +9,7 @@ on:
       - experiments/directing-v1/src/actionScene.ts
       - experiments/directing-v1/src/cinematicSet.ts
       - experiments/directing-v1/tests/capture.spec.ts
+      - experiments/directing-v1/tests/oss-provenance.test.ts
       - experiments/directing-v1/public/cinematic-scene-r01.json
       - experiments/directing-v1/public/cinematic-scene-r01.manifest.json
       - experiments/directing-v1/public/r04-oss-production-lock.json
@@ -150,8 +151,7 @@ jobs:
         working-directory: experiments/directing-v1
         run: npm run typecheck
 
-      - name: Run legacy unit tests (R03 provenance check non-blocking for R04 visual practice)
-        continue-on-error: true
+      - name: Run existing unit tests
         working-directory: experiments/directing-v1
         run: npm test
 

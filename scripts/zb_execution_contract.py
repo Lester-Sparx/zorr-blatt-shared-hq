@@ -262,6 +262,11 @@ def parse_execution_result(body: str) -> ExecutionResult:
     if values["PRODUCTION_ACTIVE"] != "NO":
         raise ExecutionContractError("PRODUCTION_ACTIVE_FORBIDDEN")
 
+    process_exit_code = _require_int(values["PROCESS_EXIT_CODE"])
+    test_evidence_refs = _require_list(values["TEST_EVIDENCE_REFS"], allow_empty=True)
+    if terminal_state == "PASS" and (process_exit_code != 0 or not test_evidence_refs):
+        terminal_state = "FAIL"
+
     return ExecutionResult(
         execution_request_id=_require_identifier(values["EXECUTION_REQUEST_ID"]),
         execution_id=_require_identifier(values["EXECUTION_ID"]),
@@ -278,9 +283,9 @@ def parse_execution_result(body: str) -> ExecutionResult:
         end_head=_require_sha(values["END_HEAD"]),
         terminal_state=terminal_state,
         result_code=_require_identifier(values["RESULT_CODE"]),
-        process_exit_code=_require_int(values["PROCESS_EXIT_CODE"]),
+        process_exit_code=process_exit_code,
         changed_files=_require_list(values["CHANGED_FILES"], allow_empty=True),
-        test_evidence_refs=_require_list(values["TEST_EVIDENCE_REFS"], allow_empty=True),
+        test_evidence_refs=test_evidence_refs,
         artifact_evidence_refs=_require_list(values["ARTIFACT_EVIDENCE_REFS"], allow_empty=True),
         workflow_run_id=_require_identifier(values["WORKFLOW_RUN_ID"]),
         workflow_run_attempt=_require_positive_int(values["WORKFLOW_RUN_ATTEMPT"]),

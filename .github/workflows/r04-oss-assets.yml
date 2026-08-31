@@ -127,9 +127,22 @@ jobs:
         working-directory: experiments/directing-v1
         run: npm run typecheck
 
-      - name: Run existing unit tests
+      - name: Run existing unit tests against original pinned bytes
         working-directory: experiments/directing-v1
         run: npm test
+
+      - name: Repair transparent sword material for visual proof with pinned upstream CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd experiments/directing-v1/public/assets/r04
+          npx --yes @gltf-transform/cli@4.4.1 copy sword.glb sword.gltf
+          jq '(.materials[].pbrMetallicRoughness.baseColorFactor[3]) = 1 | (.materials[].alphaMode) = "OPAQUE" | del(.materials[].alphaCutoff)' sword.gltf > sword-opaque.gltf
+          npx --yes @gltf-transform/cli@4.4.1 copy sword-opaque.gltf sword-fixed.glb
+          mv sword-fixed.glb sword.glb
+          npx --yes @gltf-transform/cli@4.4.1 copy sword.glb sword-check.gltf
+          jq -e 'all(.materials[]; .pbrMetallicRoughness.baseColorFactor[3] == 1 and ((.alphaMode // "OPAQUE") == "OPAQUE"))' sword-check.gltf
+          rm -f sword.gltf sword-opaque.gltf sword-check.gltf sword.bin sword-opaque.bin sword-check.bin
 
       - name: Build existing directing app
         working-directory: experiments/directing-v1

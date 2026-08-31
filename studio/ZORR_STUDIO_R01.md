@@ -43,6 +43,53 @@ The final authority is the measured rendered output.
 - Do not continue broad tool research after a sufficient OSS solution is proven.
 - Do not delete Babylon work; preserve it as spatial mathematics and previz evidence.
 
+## Controlled Violation / Reference Axes
+
+`STYLE THIRD` is governed by constrained expressive violation, not by style imitation.
+
+Core optimization:
+
+`MAXIMIZE EXPRESSIVE VIOLATION`
+
+subject to:
+
+- `IDENTITY = PASS`
+- `FASHION / SILHOUETTE READ = PASS`
+- `ATTENTION / READABILITY = PASS`
+- `RENDER / STRUCTURAL INTEGRITY = PASS`
+
+Reference-axis law:
+
+- JOJO REFERENCE AXIS = pose as icon + fashion as character geometry + authored color contradiction + controlled graphic/psychedelic violation.
+- BLEACH REFERENCE AXIS = silhouette discipline + value hierarchy + selective light + impact clarity + readable high-energy FX.
+- ZORR AUTHORITY = ZORR character truth + ZORR shot intent + ZORR identity. Reference principles may inform decisions; reference appearance never becomes authority.
+
+Hard equation:
+
+`REFERENCE PRINCIPLE != REFERENCE APPEARANCE`
+
+Production sequence:
+
+`ZORR TRUTH -> STABLE ANCHOR -> CONTROLLED VIOLATION -> READABILITY QC -> ACCEPT / REJECT`
+
+Hard FAIL conditions:
+
+- color / psychedelic violation destroys face or character identity = FAIL;
+- fashion mass or primary silhouette stops reading = FAIL;
+- extreme pose becomes accidental anatomy breakage = FAIL;
+- FX accidentally erases the primary silhouette or authored attention anchor = FAIL;
+- decorative violation has no narrative / emotional / compositional function = REMOVE OR REJECT;
+- deformation exceeds the safe range of the current drawing = NEW KEY DRAWING, not stronger deformation;
+- resemblance to JoJo, BLEACH, or any reference is never evidence of PASS.
+
+Primary synthesis rule:
+
+`JOJO TEACHES PERMISSION TO VIOLATE.`
+`BLEACH TEACHES DISCIPLINE UNDER VIOLATION.`
+`ZORR DECIDES WHAT THE VIOLATION MEANS.`
+
+The objective is not to average JoJo and BLEACH into a generic anime style. The objective is for borrowed principles to make the final result more recognizably ZORR, not more recognizably the reference.
+
 ## First production gate
 
 `OPENTOONZ CHARACTER LIFE SMOKE R01`

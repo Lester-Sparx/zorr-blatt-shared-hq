@@ -7,10 +7,14 @@ from scripts import hq_pre_action
 
 class ContextPrerequisiteSelfReportTests(unittest.TestCase):
     @staticmethod
-    def context(*, prerequisite_already_proven: bool) -> dict[str, object]:
+    def context(
+        *,
+        prerequisite_already_proven: bool,
+        directly_advances_physical_result: bool = True,
+    ) -> dict[str, object]:
         return {
             "action": "VERIFY_PREREQUISITE",
-            "directlyAdvancesPhysicalResult": True,
+            "directlyAdvancesPhysicalResult": directly_advances_physical_result,
             "activeAttempt": False,
             "exactOwnerInputProvided": False,
             "prerequisiteAlreadyProven": prerequisite_already_proven,
@@ -37,6 +41,19 @@ class ContextPrerequisiteSelfReportTests(unittest.TestCase):
     def test_caller_claim_cannot_suppress_prerequisite_verification(self) -> None:
         result = hq_pre_action.evaluate_pre_action(
             self.context(prerequisite_already_proven=True),
+            context_packet=self.packet(),
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("ALLOW", "PRE_ACTION_GATE_PASS"),
+        )
+
+    def test_progress_hint_cannot_suppress_prerequisite_verification(self) -> None:
+        result = hq_pre_action.evaluate_pre_action(
+            self.context(
+                prerequisite_already_proven=True,
+                directly_advances_physical_result=False,
+            ),
             context_packet=self.packet(),
         )
         self.assertEqual(

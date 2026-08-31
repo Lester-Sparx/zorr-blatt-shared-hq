@@ -152,6 +152,20 @@ class ContextDisciplineR01Tests(unittest.TestCase):
         with self.assertRaisesRegex(module.ContextDisciplineError, "CONTEXT_FACT_MISSING"):
             module.project_current_state([bad])
 
+    def test_e2_requires_verified_evidence(self) -> None:
+        module = self._module()
+        unverified = self.fact(
+            "fake-pass",
+            "E2",
+            "RESULT",
+            "PASS",
+            exclusive=True,
+            verified=False,
+            source_refs=["chat:self-report"],
+        )
+        with self.assertRaisesRegex(module.ContextDisciplineError, "CONTEXT_FACT_E2_REQUIRES_VERIFIED"):
+            module.project_current_state([unverified])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,14 @@ import unittest
 from scripts import hq_pre_action
 
 
+class FakeGitHubApi:
+    def __init__(self, comments: dict[int, dict[str, object]]) -> None:
+        self.comments = comments
+
+    def read_comment(self, comment_id: int) -> dict[str, object]:
+        return self.comments[comment_id]
+
+
 class ContextTerminalEvidenceGateTests(unittest.TestCase):
     @staticmethod
     def context() -> dict[str, object]:
@@ -24,6 +32,7 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
 
     @staticmethod
     def result_fact(value: str) -> dict[str, object]:
+        source_ref = "github:issue-comment:201" if value == "PASS" else f"github:verified-result:{value.lower()}"
         return {
             "schema": "ZB_CONTEXT_FACT_V1",
             "fact_id": f"terminal-{value.lower()}",
@@ -35,7 +44,7 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
             "authority": "GITHUB",
             "created_at": "2026-08-31T19:01:00Z",
             "scope_tags": ["LESTER", "SECURITY_R02"],
-            "source_refs": [f"github:verified-result:{value.lower()}"],
+            "source_refs": [source_ref],
             "supersedes": [],
         }
 
@@ -54,6 +63,30 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
             "missing_facets": [],
             "source_refs": ["github:issue:235"],
         }
+
+    @staticmethod
+    def pass_comment() -> dict[str, object]:
+        return {
+            "id": 201,
+            "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/235",
+            "user": {"login": hq_pre_action.TRANSPORT_ACTOR},
+            "body": "\n".join(
+                [
+                    "ZB_CONTEXT_E2_EVIDENCE_V1",
+                    "KEY = RESULT",
+                    'VALUE_JSON = "PASS"',
+                    "AUTHORITY = GITHUB",
+                ]
+            ),
+        }
+
+    def _proven_pass(self, *, learning_policy: dict[str, object] | None = None) -> dict[str, object]:
+        return hq_pre_action.evaluate_pre_action_with_github_freshness(
+            self.context(),
+            learning_policy=learning_policy,
+            context_packet=self.packet("PASS"),
+            github_api=FakeGitHubApi({201: self.pass_comment()}),
+        )
 
     def test_boolean_fresh_verification_without_durable_pass_cannot_claim_pass(self) -> None:
         result = hq_pre_action.evaluate_pre_action(
@@ -76,10 +109,7 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
         )
 
     def test_verified_durable_pass_preserves_claim_pass_path(self) -> None:
-        result = hq_pre_action.evaluate_pre_action(
-            self.context(),
-            context_packet=self.packet("PASS"),
-        )
+        result = self._proven_pass()
         self.assertEqual(
             (result["decision"], result["reason"]),
             ("ALLOW", "PRE_ACTION_GATE_PASS"),
@@ -102,11 +132,7 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
             "policy_prefix": "RULE = terminal claims require bound durable evidence",
             "lessons": [{"verdict_id": "SV1-TERMINAL-EVIDENCE-001"}],
         }
-        result = hq_pre_action.evaluate_pre_action(
-            self.context(),
-            learning_policy=policy,
-            context_packet=self.packet("PASS"),
-        )
+        result = self._proven_pass(learning_policy=policy)
         self.assertEqual(
             (result["decision"], result["reason"]),
             ("ALLOW", "PRE_ACTION_GATE_PASS"),

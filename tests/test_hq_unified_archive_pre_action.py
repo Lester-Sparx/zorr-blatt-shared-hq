@@ -135,6 +135,37 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
             ("BLOCK", "REPEAT_PROCESS_MUTATION_REQUIRES_NEW_BLOCKER"),
         )
 
+    def test_repeat_process_mutation_cannot_bypass_gate_by_resetting_caller_count(self) -> None:
+        gate = self._gate_module()
+        context = self._context(
+            action="EXECUTE_PRODUCT_STEP",
+            provenProcessBlocker=True,
+            processMutationCountForBlocker=0,
+            newPhysicalBlocker=False,
+        )
+        packet = self._packet(context)
+        packet["current_state"]["facts"].append(
+            {
+                "schema": "ZB_CONTEXT_FACT_V1",
+                "fact_id": "process-mutation-count-1",
+                "class": "E2",
+                "key": "PROCESS_MUTATION_COUNT",
+                "value": 1,
+                "exclusive": True,
+                "verified": True,
+                "authority": "GITHUB",
+                "created_at": "2026-08-31T20:00:00Z",
+                "scope_tags": ["LESTER", "SECURITY_R02"],
+                "source_refs": ["github:test:process-mutation-count-1"],
+                "supersedes": [],
+            }
+        )
+        result = gate.evaluate_pre_action(context, context_packet=packet)
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("BLOCK", "REPEAT_PROCESS_MUTATION_REQUIRES_NEW_BLOCKER"),
+        )
+
     def test_owner_action_requires_proven_external_boundary(self) -> None:
         result = self._decide(self._context(action="REQUEST_OWNER_ACTION", directlyAdvancesPhysicalResult=False, provenExternalBoundary=True))
         self.assertEqual((result["decision"], result["reason"]), ("OWNER_REQUIRED", "PROVEN_EXTERNAL_BOUNDARY"))

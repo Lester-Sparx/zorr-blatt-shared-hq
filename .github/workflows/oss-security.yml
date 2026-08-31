@@ -63,4 +63,4 @@ jobs:
         run: zizmor --collect=workflows --min-severity high --min-confidence high .
 
       - name: Scan repository history for secrets with Gitleaks
-        run: gitleaks git --redact --no-banner --verbose .
+        run: gitleaks git --config=.gitleaks.toml --redact --no-banner --verbose .

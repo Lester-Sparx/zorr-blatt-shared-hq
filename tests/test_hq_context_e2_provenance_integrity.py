@@ -54,7 +54,7 @@ class ContextE2ProvenanceIntegrityTests(unittest.TestCase):
     def comments(*, wrong_current_signature: bool = False) -> dict[int, dict[str, object]]:
         current = "physical:permission-denied" if wrong_current_signature else "physical:disk-full"
         issue_url = "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/235"
-        user = {"login": "Lester-Sparx"}
+        user = {"login": "github-actions[bot]"}
         return {
             101: {"body": f"ZB_CONTEXT_E2_EVIDENCE_V1\nKEY = ERROR_SIGNATURE\nVALUE_JSON = \"{current}\"\nAUTHORITY = GITHUB", "issue_url": issue_url, "user": user},
             102: {"body": "ZB_CONTEXT_E2_EVIDENCE_V1\nKEY = NEW_PHYSICAL_BLOCKER\nVALUE_JSON = true\nAUTHORITY = GITHUB", "issue_url": issue_url, "user": user},

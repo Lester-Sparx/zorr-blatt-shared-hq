@@ -1,0 +1,20 @@
+title = "ZORR Shared HQ Gitleaks policy"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Known-safe NPZ manifest key in reference analysis"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''^agent-controller/src/zb_local_controller/reference_analysis\.py$''']
+regexes = ['''"npz_key": "L3_visible_silhouette_mask"''']
+
+[[allowlists]]
+description = "Known-safe anime production pipeline prose"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''^docs/ZORR_HYPERSPEED_RUN_PIPELINE_STUDY_R01\.md$''']
+regexes = ['''LAYOUT -> KEY POSES -> EXPOSURE/TIMING -> SMEARS -> CAMERA''']

@@ -149,6 +149,19 @@ def _validate_context_packet(context_packet: dict[str, Any]) -> None:
         raise PreActionError("CONTEXT_PACKET_INVALID")
 
 
+def _packet_active_head(context_packet: dict[str, Any]) -> str | None:
+    current_state = context_packet.get("current_state")
+    facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
+    heads = [
+        fact.get("value")
+        for fact in facts
+        if isinstance(fact, dict) and fact.get("key") == "ACTIVE_HEAD"
+    ]
+    if len(heads) != 1 or not isinstance(heads[0], str) or not heads[0]:
+        return None
+    return heads[0]
+
+
 def _context_view(context_packet: dict[str, Any] | None) -> dict[str, Any] | None:
     if context_packet is None:
         return None
@@ -184,8 +197,11 @@ def evaluate_pre_action(
     *,
     learning_policy: dict[str, Any] | None = None,
     context_packet: dict[str, Any] | None = None,
+    fresh_active_head: str | None = None,
 ) -> dict[str, Any]:
     _validate_context(context)
+    if fresh_active_head is not None and (not isinstance(fresh_active_head, str) or not fresh_active_head):
+        raise PreActionError("FRESH_ACTIVE_HEAD_INVALID")
     if context_packet is not None:
         _validate_context_packet(context_packet)
         if context_packet["status"] != "PROVEN":
@@ -196,6 +212,24 @@ def evaluate_pre_action(
                 learning_policy,
                 context_packet,
             )
+        if fresh_active_head is not None:
+            packet_active_head = _packet_active_head(context_packet)
+            if packet_active_head is None:
+                return _decision(
+                    context,
+                    "BLOCK",
+                    "DURABLE_CONTEXT_NOT_PROVEN",
+                    learning_policy,
+                    context_packet,
+                )
+            if packet_active_head != fresh_active_head:
+                return _decision(
+                    context,
+                    "BLOCK",
+                    "DURABLE_CONTEXT_STALE",
+                    learning_policy,
+                    context_packet,
+                )
 
     action = context["action"]
 
@@ -265,6 +299,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Fail-closed ZORR pre-action execution gate.")
     parser.add_argument("--context-path", required=True, type=Path)
     parser.add_argument("--context-packet-path", type=Path)
+    parser.add_argument("--fresh-active-head")
     parser.add_argument("--archive-root", type=Path)
     parser.add_argument("--query")
     parser.add_argument("--limit", type=int, default=5)
@@ -286,6 +321,7 @@ def main() -> int:
         context,
         learning_policy=policy,
         context_packet=context_packet,
+        fresh_active_head=args.fresh_active_head,
     )
     print(json.dumps(result, sort_keys=True, ensure_ascii=False))
     return 0 if result["decision"] == "ALLOW" else 2

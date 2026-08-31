@@ -33,6 +33,9 @@ class ContextDisciplineR01Tests(unittest.TestCase):
         source_refs: list[str] | None = None,
         supersedes: list[str] | None = None,
     ) -> dict[str, object]:
+        refs = source_refs
+        if refs is None:
+            refs = [f"github:fact:{fact_id}"] if fact_class == "E2" and verified else []
         return {
             "schema": "ZB_CONTEXT_FACT_V1",
             "fact_id": fact_id,
@@ -44,7 +47,7 @@ class ContextDisciplineR01Tests(unittest.TestCase):
             "authority": authority,
             "created_at": created_at,
             "scope_tags": list(scope_tags or ["LESTER"]),
-            "source_refs": list(source_refs or []),
+            "source_refs": list(refs),
             "supersedes": list(supersedes or []),
         }
 

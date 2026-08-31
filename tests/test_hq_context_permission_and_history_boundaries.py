@@ -75,6 +75,18 @@ class PermissionAndHistoryBoundaryTests(unittest.TestCase):
             ("BLOCK", "DURABLE_PROCESS_BLOCKER_NOT_PROVEN"),
         )
 
+    def test_durable_process_blocker_allows_first_repair(self) -> None:
+        api = FakeGitHubApi([self.evidence_comment("PROCESS_BLOCKER", "true")])
+        result = hq_pre_action.evaluate_pre_action_with_github_freshness(
+            self.context(action="PROCESS_MUTATION", provenProcessBlocker=True),
+            context_packet=self.packet(),
+            github_api=api,
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("ALLOW", "PRE_ACTION_GATE_PASS"),
+        )
+
     def test_caller_boolean_cannot_self_prove_external_owner_boundary(self) -> None:
         result = hq_pre_action.evaluate_pre_action_with_github_freshness(
             self.context(
@@ -90,8 +102,62 @@ class PermissionAndHistoryBoundaryTests(unittest.TestCase):
             ("BLOCK", "DURABLE_EXTERNAL_BOUNDARY_NOT_PROVEN"),
         )
 
+    def test_durable_external_boundary_preserves_owner_gate(self) -> None:
+        api = FakeGitHubApi([self.evidence_comment("EXTERNAL_BOUNDARY", "true")])
+        result = hq_pre_action.evaluate_pre_action_with_github_freshness(
+            self.context(
+                action="REQUEST_OWNER_ACTION",
+                directlyAdvancesPhysicalResult=False,
+                provenExternalBoundary=True,
+            ),
+            context_packet=self.packet(),
+            github_api=api,
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("OWNER_REQUIRED", "PROVEN_EXTERNAL_BOUNDARY"),
+        )
+
+    def test_conflicting_external_boundary_evidence_fails_closed(self) -> None:
+        api = FakeGitHubApi(
+            [
+                self.evidence_comment("EXTERNAL_BOUNDARY", "true"),
+                self.evidence_comment("EXTERNAL_BOUNDARY", "false"),
+            ]
+        )
+        result = hq_pre_action.evaluate_pre_action_with_github_freshness(
+            self.context(
+                action="REQUEST_OWNER_ACTION",
+                directlyAdvancesPhysicalResult=False,
+                provenExternalBoundary=True,
+            ),
+            context_packet=self.packet(),
+            github_api=api,
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("BLOCK", "DURABLE_EXTERNAL_BOUNDARY_NOT_PROVEN"),
+        )
+
     def test_omitted_packet_count_cannot_erase_durable_repeat_history(self) -> None:
         api = FakeGitHubApi([self.evidence_comment("PROCESS_MUTATION_COUNT", "1")])
+        result = hq_pre_action.evaluate_pre_action_with_github_freshness(
+            self.context(action="EXECUTE_PRODUCT_STEP", processMutationCountForBlocker=0),
+            context_packet=self.packet(),
+            github_api=api,
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("BLOCK", "REPEAT_PROCESS_MUTATION_REQUIRES_NEW_BLOCKER"),
+        )
+
+    def test_later_zero_count_cannot_roll_back_prior_durable_count(self) -> None:
+        api = FakeGitHubApi(
+            [
+                self.evidence_comment("PROCESS_MUTATION_COUNT", "1"),
+                self.evidence_comment("PROCESS_MUTATION_COUNT", "0"),
+            ]
+        )
         result = hq_pre_action.evaluate_pre_action_with_github_freshness(
             self.context(action="EXECUTE_PRODUCT_STEP", processMutationCountForBlocker=0),
             context_packet=self.packet(),

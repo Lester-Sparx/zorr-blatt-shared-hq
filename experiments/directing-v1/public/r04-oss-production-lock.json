@@ -54,6 +54,19 @@
     },
     "retarget_required_for_reference_rig": false
   },
+  "weapon": {
+    "repository": "ilrein/warptracker",
+    "source_pack": "Quaternius Animated Knight Pack",
+    "license": "CC0",
+    "path": "public/models/sword.glb",
+    "git_blob_sha": "d80d47cf6ac49ae72805ba992bccc2431dcfcbfc",
+    "size_bytes": 28420,
+    "format_verified": "glTF 2.0 GLB",
+    "geometry_verified": true,
+    "source_long_axis_range_units_approx": 3.16938436,
+    "target_blade_length_m": 1.08,
+    "wrist_attachment_status": "PENDING"
+  },
   "scene_seed": {
     "attacker_position": [-0.62, 0, 0.05],
     "attacker_yaw_deg": -8,
@@ -67,7 +80,7 @@
   },
   "gates": {
     "primary_physiology_visual_pass": false,
-    "real_cc0_sword_asset_resolved": false,
+    "real_cc0_sword_asset_resolved": true,
     "wrist_attachment_proven": false,
     "white_stage_render_pass": false,
     "attack_dodge_render_pass": false,
@@ -78,7 +91,7 @@
   "remaining_blockers": [
     "materialize and visually qualify an acceptable adult primary body",
     "materialize selected human motion data through an existing OSS/export path",
-    "resolve a real CC0 sword and existing OSS wrist-attachment path",
+    "prove the real CC0 sword attachment to the attacker wrist/hand",
     "render, measure and verify the white-stage and attack/dodge gates"
   ],
   "merge": "NO",

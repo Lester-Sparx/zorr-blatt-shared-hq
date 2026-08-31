@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
+
+try:
+    from scripts.hq_unified_archive import build_learning_policy, build_restore_packet
+except ModuleNotFoundError:
+    from hq_unified_archive import build_learning_policy, build_restore_packet
 
 
 FACT_SCHEMA = "ZB_CONTEXT_FACT_V1"
 CURRENT_STATE_SCHEMA = "ZB_CONTEXT_CURRENT_STATE_V1"
+PACKET_SCHEMA = "ZB_CONTEXT_PACKET_V1"
 CLASSES = {"E0", "E1", "E2", "E3"}
 
 
@@ -152,3 +159,107 @@ def project_current_state(
         "schema": CURRENT_STATE_SCHEMA,
         "facts": projected,
     }
+
+
+def _validate_anchor(anchor: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(anchor, dict):
+        raise ContextDisciplineError("CONTEXT_ANCHOR_INVALID")
+    key = anchor.get("key")
+    if not isinstance(key, str) or not key:
+        raise ContextDisciplineError("CONTEXT_ANCHOR_KEY_INVALID")
+    if "value" not in anchor:
+        raise ContextDisciplineError("CONTEXT_ANCHOR_VALUE_MISSING")
+    return dict(anchor)
+
+
+def _validate_jit_query(query: dict[str, Any]) -> tuple[str, str]:
+    if not isinstance(query, dict) or set(query) != {"facet", "query"}:
+        raise ContextDisciplineError("CONTEXT_JIT_QUERY_INVALID")
+    facet = query.get("facet")
+    text = query.get("query")
+    if not isinstance(facet, str) or not facet or not isinstance(text, str) or not text.strip():
+        raise ContextDisciplineError("CONTEXT_JIT_QUERY_INVALID")
+    return facet, text
+
+
+def build_context_packet(
+    archive_root: Path,
+    *,
+    mandatory_anchors: list[dict[str, Any]],
+    current_state: dict[str, Any],
+    jit_queries: list[dict[str, str]],
+    lesson_query: str | None = None,
+) -> dict[str, Any]:
+    if not isinstance(current_state, dict) or current_state.get("schema") != CURRENT_STATE_SCHEMA:
+        raise ContextDisciplineError("CONTEXT_CURRENT_STATE_INVALID")
+    if not isinstance(current_state.get("facts"), list):
+        raise ContextDisciplineError("CONTEXT_CURRENT_STATE_INVALID")
+    if not isinstance(mandatory_anchors, list) or not isinstance(jit_queries, list):
+        raise ContextDisciplineError("CONTEXT_PACKET_INPUT_INVALID")
+    if lesson_query is not None and (not isinstance(lesson_query, str) or not lesson_query.strip()):
+        raise ContextDisciplineError("CONTEXT_LESSON_QUERY_INVALID")
+
+    anchors = [_validate_anchor(anchor) for anchor in mandatory_anchors]
+    facet_results: dict[str, list[dict[str, Any]]] = {}
+    missing_facets: list[str] = []
+    seen_facets: set[str] = set()
+    source_refs: set[str] = set()
+
+    for raw_query in jit_queries:
+        facet, query = _validate_jit_query(raw_query)
+        if facet in seen_facets:
+            raise ContextDisciplineError("CONTEXT_JIT_FACET_DUPLICATE:" + facet)
+        seen_facets.add(facet)
+        restored = build_restore_packet(Path(archive_root), query, limit=1)
+        results = list(restored.get("results") or []) if isinstance(restored, dict) else []
+        if not results:
+            facet_results[facet] = []
+            missing_facets.append(facet)
+            continue
+        compact_results: list[dict[str, Any]] = []
+        for result in results:
+            compact = {
+                "raw_sha256": str(result.get("raw_sha256") or ""),
+                "subject_kind": result.get("subject_kind"),
+                "subject_number": result.get("subject_number"),
+                "subject_title": str(result.get("subject_title") or ""),
+                "body_excerpt": str(result.get("body_excerpt") or ""),
+                "source_url": str(result.get("source_url") or ""),
+                "created_at": str(result.get("created_at") or ""),
+            }
+            compact_results.append(compact)
+            if compact["raw_sha256"]:
+                source_refs.add("sha256:" + compact["raw_sha256"])
+            if compact["source_url"]:
+                source_refs.add(compact["source_url"])
+        facet_results[facet] = compact_results
+
+    for fact in current_state["facts"]:
+        if not isinstance(fact, dict):
+            raise ContextDisciplineError("CONTEXT_CURRENT_STATE_INVALID")
+        for source_ref in fact.get("source_refs", []):
+            if isinstance(source_ref, str) and source_ref:
+                source_refs.add(source_ref)
+
+    learning = None
+    if lesson_query is not None:
+        learning = build_learning_policy(Path(archive_root), lesson_query)
+        if learning.get("status") == "PROVEN":
+            for lesson in learning.get("lessons", []):
+                if isinstance(lesson, dict):
+                    for evidence_ref in lesson.get("evidence", []):
+                        if isinstance(evidence_ref, str) and evidence_ref:
+                            source_refs.add(evidence_ref)
+
+    packet = {
+        "schema": PACKET_SCHEMA,
+        "status": "PROVEN" if not missing_facets else "NOT_PROVEN",
+        "mandatory_anchors": anchors,
+        "current_state": current_state,
+        "jit_facets": {key: facet_results[key] for key in sorted(facet_results)},
+        "missing_facets": sorted(missing_facets),
+        "source_refs": sorted(source_refs),
+    }
+    if learning is not None:
+        packet["learning"] = learning
+    return packet

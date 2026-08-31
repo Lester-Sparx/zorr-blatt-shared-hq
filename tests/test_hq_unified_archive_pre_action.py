@@ -128,21 +128,51 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
 
         context = self._context(action="PROCESS_MUTATION", provenProcessBlocker=True, processMutationCountForBlocker=1, newPhysicalBlocker=True)
         packet = self._packet(context)
-        packet["current_state"]["facts"].append(
-            {
-                "schema": "ZB_CONTEXT_FACT_V1",
-                "fact_id": "new-physical-blocker-proven",
-                "class": "E2",
-                "key": "NEW_PHYSICAL_BLOCKER",
-                "value": True,
-                "exclusive": True,
-                "verified": True,
-                "authority": "GITHUB",
-                "created_at": "2026-08-31T20:31:00Z",
-                "scope_tags": ["LESTER", "SECURITY_R02"],
-                "source_refs": ["github:test:new-physical-blocker-proven"],
-                "supersedes": [],
-            }
+        packet["current_state"]["facts"].extend(
+            [
+                {
+                    "schema": "ZB_CONTEXT_FACT_V1",
+                    "fact_id": "new-physical-blocker-proven",
+                    "class": "E2",
+                    "key": "NEW_PHYSICAL_BLOCKER",
+                    "value": True,
+                    "exclusive": True,
+                    "verified": True,
+                    "authority": "GITHUB",
+                    "created_at": "2026-08-31T20:31:00Z",
+                    "scope_tags": ["LESTER", "SECURITY_R02"],
+                    "source_refs": ["github:test:new-physical-blocker-proven"],
+                    "supersedes": [],
+                },
+                {
+                    "schema": "ZB_CONTEXT_FACT_V1",
+                    "fact_id": "current-error-signature-distinct",
+                    "class": "E2",
+                    "key": "ERROR_SIGNATURE",
+                    "value": "physical:disk-full",
+                    "exclusive": True,
+                    "verified": True,
+                    "authority": "GITHUB",
+                    "created_at": "2026-08-31T20:31:01Z",
+                    "scope_tags": ["LESTER", "SECURITY_R02"],
+                    "source_refs": ["github:test:current-error-signature-distinct"],
+                    "supersedes": [],
+                },
+                {
+                    "schema": "ZB_CONTEXT_FACT_V1",
+                    "fact_id": "prior-process-error-signature",
+                    "class": "E2",
+                    "key": "PROCESS_MUTATION_ERROR_SIGNATURE",
+                    "value": "hq-schema:assertion-error",
+                    "exclusive": True,
+                    "verified": True,
+                    "authority": "GITHUB",
+                    "created_at": "2026-08-31T20:31:02Z",
+                    "scope_tags": ["LESTER", "SECURITY_R02"],
+                    "source_refs": ["github:test:prior-process-error-signature"],
+                    "supersedes": [],
+                },
+            ]
         )
         allowed = gate.evaluate_pre_action(context, context_packet=packet)
         self.assertEqual(allowed["decision"], "ALLOW")

@@ -13,6 +13,7 @@ except ModuleNotFoundError:
 
 SCHEMA = "ZB_PRE_ACTION_DECISION_V1"
 CONTEXT_PACKET_SCHEMA = "ZB_CONTEXT_PACKET_V1"
+CONTEXT_STATE_SCHEMA = "ZB_CONTEXT_CURRENT_STATE_V1"
 ACTIONS = {
     "EXECUTE_PRODUCT_STEP",
     "READ_ACTIVE_RESULT",
@@ -90,16 +91,53 @@ def _learning_view(learning_policy: dict[str, Any] | None) -> dict[str, Any]:
 def _validate_context_packet(context_packet: dict[str, Any]) -> None:
     if not isinstance(context_packet, dict) or context_packet.get("schema") != CONTEXT_PACKET_SCHEMA:
         raise PreActionError("CONTEXT_PACKET_INVALID")
+    required = {
+        "status",
+        "mandatory_anchors",
+        "current_state",
+        "jit_facets",
+        "missing_facets",
+        "source_refs",
+    }
+    if not required.issubset(context_packet):
+        raise PreActionError("CONTEXT_PACKET_INVALID")
     status = context_packet.get("status")
     if status not in {"PROVEN", "NOT_PROVEN"}:
         raise PreActionError("CONTEXT_PACKET_INVALID")
-    missing_facets = context_packet.get("missing_facets", [])
-    source_refs = context_packet.get("source_refs", [])
+
+    anchors = context_packet.get("mandatory_anchors")
+    if not isinstance(anchors, list):
+        raise PreActionError("CONTEXT_PACKET_INVALID")
+    for anchor in anchors:
+        if (
+            not isinstance(anchor, dict)
+            or not isinstance(anchor.get("key"), str)
+            or not anchor.get("key")
+            or "value" not in anchor
+        ):
+            raise PreActionError("CONTEXT_PACKET_INVALID")
+
+    current_state = context_packet.get("current_state")
+    if (
+        not isinstance(current_state, dict)
+        or current_state.get("schema") != CONTEXT_STATE_SCHEMA
+        or not isinstance(current_state.get("facts"), list)
+    ):
+        raise PreActionError("CONTEXT_PACKET_INVALID")
+
+    jit_facets = context_packet.get("jit_facets")
+    if not isinstance(jit_facets, dict):
+        raise PreActionError("CONTEXT_PACKET_INVALID")
+    if not all(isinstance(key, str) and key and isinstance(value, list) for key, value in jit_facets.items()):
+        raise PreActionError("CONTEXT_PACKET_INVALID")
+
+    missing_facets = context_packet.get("missing_facets")
+    source_refs = context_packet.get("source_refs")
     if not isinstance(missing_facets, list) or not all(isinstance(item, str) and item for item in missing_facets):
         raise PreActionError("CONTEXT_PACKET_INVALID")
     if not isinstance(source_refs, list) or not all(isinstance(item, str) and item for item in source_refs):
         raise PreActionError("CONTEXT_PACKET_INVALID")
-    if status == "PROVEN" and missing_facets:
+    if status == "PROVEN" and (missing_facets or not source_refs):
         raise PreActionError("CONTEXT_PACKET_INVALID")
 
 

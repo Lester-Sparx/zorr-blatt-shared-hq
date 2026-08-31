@@ -1,0 +1,45 @@
+name: R04 OSS assets
+
+on:
+  push:
+    branches:
+      - lester/babylon-cinematic-scene-r01
+    paths:
+      - .github/workflows/r04-oss-assets.yml
+      - experiments/directing-v1/public/r04-oss-production-lock.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download pinned OSS assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r04-assets
+          curl --fail --location --retry 3 -o r04-assets/model-human.glb https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/12712269e576fd3ffb520ad6c6d45a8e265ea894/static/models/model-human.glb
+          curl --fail --location --retry 3 -o r04-assets/rig-human.glb https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/12712269e576fd3ffb520ad6c6d45a8e265ea894/static/rigs/rig-human.glb
+          curl --fail --location --retry 3 -o r04-assets/human-base-animations.glb https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/12712269e576fd3ffb520ad6c6d45a8e265ea894/static/animations/human-base-animations.glb
+          curl --fail --location --retry 3 -o r04-assets/sword.glb https://raw.githubusercontent.com/ilrein/warptracker/main/public/models/sword.glb
+
+      - name: Verify pinned Git blob identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object r04-assets/model-human.glb)" = "c7bcbfd497c720c2ca7f31fbe47eea27566914c8"
+          test "$(git hash-object r04-assets/rig-human.glb)" = "832a222a611bd0ee9112c64145a3a49df9b89b3e"
+          test "$(git hash-object r04-assets/sword.glb)" = "d80d47cf6ac49ae72805ba992bccc2431dcfcbfc"
+          file r04-assets/*.glb
+          sha256sum r04-assets/*.glb | tee r04-assets/SHA256SUMS.txt
+
+      - name: Upload verified OSS assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: r04-verified-oss-assets
+          path: r04-assets/
+          if-no-files-found: error
+          retention-days: 30

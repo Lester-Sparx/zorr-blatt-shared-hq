@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
+
+from scripts import zb_communication_r02b as r02b
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -96,7 +99,18 @@ class R02BWorkflowTests(unittest.TestCase):
         self.assertIn("artifact-id", text)
         self.assertIn("artifact-digest", text)
         self.assertIn("if-no-files-found: error", text)
-        self.assertIn("PRODUCTION_ACTIVE = NO", (ROOT / "scripts" / "zb_communication_r02b.py").read_text(encoding="utf-8"))
+
+        request = SimpleNamespace(
+            message_id="m1",
+            correlation_id="c1",
+            authority_ref=f"pr:{r02b.COMMUNICATION_PR}:comment:123",
+            task_id=r02b.R02B_TASK_ID,
+            task_revision=r02b.R02B_TASK_REVISION,
+            base_sha="0" * 40,
+            design_head=r02b.R02B_DESIGN_HEAD,
+        )
+        self.assertIn("PRODUCTION_ACTIVE = NO", r02b._owner_view(request, "lester-1", "duncan-1"))
+        self.assertIn("PRODUCTION_ACTIVE = NO", r02b._failure_record(request, "DUNCAN_QC_FAIL"))
 
 
 if __name__ == "__main__":

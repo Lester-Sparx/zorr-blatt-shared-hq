@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VALIDATOR = ROOT / "scripts" / "validate_three_chat_sheriff.py"
 LAW_PATH = "studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md"
+MORNING_PATH = "studio/ZORR_MORNING_BOOTSTRAP_R01.md"
 
 VALID_LAW = f"""# ZORR SHERIFF — UNIVERSAL THREE-CHAT LAW R01
 
@@ -40,12 +41,34 @@ MASTER PROMOTION LAW
 PROMOTION = DENIED
 """
 
+VALID_MORNING = """# ZORR MORNING BOOTSTRAP R01
+
+REPOSITORY = `Lester-Sparx/zorr-blatt-shared-hq`
+OWNER MAY GO OFFLINE
+FRESH-READ GITHUB BEFORE ACTION
+DO NOT ASK OWNER TO REPEAT DURABLE CONTEXT
+DO NOT TRUST A HISTORICAL HEAD AS CURRENT
+
+ROLE A
+Tracker: `#249`
+ZORR MORNING A
+
+ROLE B
+Tracker: `#250`
+ZORR MORNING B
+
+ROLE C
+Tracker: `#251`
+ZORR MORNING C
+"""
+
 VALID_MASTER = f"""# ZORR MASTER CHAT BOOTSTRAP R01
 
 ROOT = DUNCAN PRIME
 ROLE = DUNCAN PRIME MASTER / INTEGRATOR
+MORNING BOOTSTRAP = `{MORNING_PATH}`
 SHERIFF LAW = `{LAW_PATH}`
-BOOT = fresh-read `{LAW_PATH}` before promotion
+BOOT = fresh-read `{MORNING_PATH}` and `{LAW_PATH}` before promotion
 OUTPUT = RESULT / DELTA / EVIDENCE / GATE DECISION / NEXT
 """
 
@@ -53,6 +76,7 @@ OUTPUT = RESULT / DELTA / EVIDENCE / GATE DECISION / NEXT
 def orchestration(chat_c_tracker: str = "#251", extra: str = "") -> str:
     return f"""# ZORR THREE-CHAT ORCHESTRATION R01
 
+MORNING BOOTSTRAP = `{MORNING_PATH}`
 SHERIFF LAW = `{LAW_PATH}`
 CHAT A — CHARACTER MECHANICS
 Tracker: #249
@@ -80,6 +104,7 @@ def write_fixture(root: Path, *, chat_c_tracker: str = "#251", extra_orchestrati
     studio = root / "studio"
     studio.mkdir(parents=True)
     (studio / "ZORR_SHERIFF_THREE_CHAT_LAW_R01.md").write_text(VALID_LAW, encoding="utf-8")
+    (studio / "ZORR_MORNING_BOOTSTRAP_R01.md").write_text(VALID_MORNING, encoding="utf-8")
     (studio / "ZORR_MASTER_CHAT_BOOTSTRAP_R01.md").write_text(VALID_MASTER, encoding="utf-8")
     (studio / "ZORR_THREE_CHAT_ORCHESTRATION_R01.md").write_text(
         orchestration(chat_c_tracker, extra_orchestration), encoding="utf-8"

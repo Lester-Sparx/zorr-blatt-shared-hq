@@ -143,6 +143,19 @@ jobs:
         with:
           node-version: 22.18.x
 
+      - name: Repair transparent source sword material with pinned upstream CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd experiments/directing-v1/public/assets/r04
+          npx --yes @gltf-transform/cli@4.4.1 copy sword.glb sword.gltf
+          jq '(.materials[].pbrMetallicRoughness.baseColorFactor[3]) = 1 | (.materials[].alphaMode) = "OPAQUE" | del(.materials[].alphaCutoff)' sword.gltf > sword-opaque.gltf
+          npx --yes @gltf-transform/cli@4.4.1 copy sword-opaque.gltf sword-fixed.glb
+          mv sword-fixed.glb sword.glb
+          npx --yes @gltf-transform/cli@4.4.1 copy sword.glb sword-check.gltf
+          jq -e 'all(.materials[]; .pbrMetallicRoughness.baseColorFactor[3] == 1 and .alphaMode == "OPAQUE")' sword-check.gltf
+          rm -f sword.gltf sword-opaque.gltf sword-check.gltf sword.bin sword-opaque.bin sword-check.bin
+
       - name: Install pinned directing dependencies
         working-directory: experiments/directing-v1
         run: npm ci

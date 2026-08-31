@@ -102,13 +102,74 @@ Core training law:
 
 Use the matrix to bind anti-doll drills to measurable evidence, first-broken-layer diagnosis, existing C1-C8 correction operators, collateral checks, same-fail stop rules, and `NEW KEY / REDRAW` escalation. It does not authorize image generation/editing and does not change the active production gate.
 
-## First production gate
+## Current production gate
 
-`OPENTOONZ CHARACTER LIFE SMOKE R01`
+`FULL_CHARACTER_MODEL_LOCK_R02`
+
+Tracker: `#245`
+Durable spec: `studio/FULL_CHARACTER_MODEL_LOCK_R02.md`
+
+Current foundation state:
+
+`CHARACTER FOUNDATION = PASS_CANDIDATE`
+
+The active question is no longer whether BODY / HAIR / HANDS can be built. The active question is whether the accepted sheets prove one coherent reusable character model.
+
+Required proof:
+
+`SHEET_1 ... SHEET_6 -> ONE CHARACTER MODEL`
+
+The gate checks cross-sheet consistency for:
+
+- head / face identity;
+- hair topology and crown volume;
+- head/body scale;
+- shoulder / torso / pelvis / limb ratios;
+- hand model and cuff/watch relation;
+- persistent asymmetries and identity markers;
+- costume attachment points;
+- common scale reference;
+- absence of hidden redesign between neutral and extreme acting.
+
+Do not regenerate generic BODY / HAIR / HANDS sheets for completeness. Isolate and repair only proven conflicts.
+
+## Downstream production route
+
+After `FULL_CHARACTER_MODEL_LOCK_R02 = PASS`:
+
+`COSTUME_MECHANICS_R01`
+-> `TOP/CROWN CONTROL` only if a real camera proves it necessary
+-> `POSE_MECHANICS_VISUAL_R01`
+-> `CAMERA_LAYOUT_VISUAL_R01`
+-> approved `LINE / COLOR / SHADOW / MATERIAL` state
+-> `GOLDEN KEYFRAME`
+-> separated `OPENTOONZ SOURCE PACKAGE`
+-> `S001 PHYSICAL SHOT BASE`
+-> `OPENTOONZ CUT`
+
+The previous `OPENTOONZ CHARACTER LIFE SMOKE R01` is therefore downstream of character-model consistency and source separation. It is not discarded; it is deferred until the required character/source gates exist.
+
+## Character lock vs shot lock
+
+`CHARACTER MODEL LOCK` answers:
+
+`WHO IS THIS CHARACTER AND WHAT GEOMETRY/IDENTITY STAYS INVARIANT?`
+
+`S001 BASE / SHOT LOCK` answers:
+
+`HOW DOES THE ALREADY-LOCKED CHARACTER ENTER THIS SPECIFIC BG/MID/FG/CAMERA/DEPTH SYSTEM?`
+
+Do not merge these gates.
+
+`9:16` is currently only an `S001-SPECIFIC ASSUMPTION`, not global production canon. Resolve aspect ratio, output resolution, fps, camera field/framing, overscan and push envelope before building physical S001 assets.
+
+## OpenToonz smoke contract — deferred, not cancelled
+
+When character lock + separated source + physical shot base make the test legal, the smoke remains:
 
 - 48 frames
-- 1920x1080
-- 24 fps
+- 1920x1080 unless superseded by an explicitly resolved shot/output contract
+- 24 fps unless superseded by an explicitly resolved production contract
 - 1 real ZORR character
 - 1 background
 - 1 camera
@@ -124,7 +185,7 @@ Required evidence:
 - Acting: breathing/head motion does not read as simple PNG scaling.
 - Secondary: hair/cloth/accessory lag adds life.
 - Camera: depth and parallax read clearly.
-- Render: clean 48-frame output exists.
+- Render: clean output exists for the declared contract.
 
 If OpenToonz Plastic reaches a proven physical limitation, only then evaluate the next mature OSS mechanism.
 

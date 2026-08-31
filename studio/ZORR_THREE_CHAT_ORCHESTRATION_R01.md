@@ -3,8 +3,11 @@
 STATUS = ACTIVE COORDINATION CONTRACT
 BRANCH = `duncan/zorr-studio-r01`
 ROOT = DUNCAN PRIME
+SHARED SHERIFF LAW = `studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md`
 
 Purpose: use **three dedicated ChatGPT conversations** with one durable GitHub authority and no competing locks.
+
+All three chats are constrained by `studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md`. The law is fresh-read at restart and before material promotion. It does not replace the exact workstream tracker or fresh GitHub evidence.
 
 ## CHAT C — MASTER / DUNCAN PRIME INTEGRATOR
 
@@ -43,7 +46,7 @@ Boundaries:
 
 Required handoff format:
 
-`RESULT / EVIDENCE / OPEN / NEXT`
+`ROLE / RESULT / DELTA / EVIDENCE / OPEN / NEXT`
 
 ## CHAT B — WORLD / CAMERA / SHOT CONTRACT
 
@@ -67,7 +70,7 @@ Boundaries:
 
 Required handoff format:
 
-`RESULT / EVIDENCE / OPEN / NEXT`
+`ROLE / RESULT / DELTA / EVIDENCE / OPEN / NEXT`
 
 ## SHARED DURABLE STATE
 
@@ -76,8 +79,12 @@ All three chats must fresh-read:
 1. current `main` HEAD;
 2. `ZORR_EXECUTION_CONSTITUTION.md`;
 3. `AGENTS.md`;
-4. their exact tracker;
-5. latest master/studio route evidence.
+4. `studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md`;
+5. their exact tracker;
+6. latest master/studio route evidence;
+7. current `duncan/zorr-studio-r01` HEAD.
+
+A SHA written in a prior chat, bootstrap, handoff, summary, or checkpoint is historical evidence only until fresh-read. Do not encode a static SHA as the durable current HEAD.
 
 GitHub is the shared memory and authority transport. The OWNER must not manually relay long status text between chats when the information is already in GitHub.
 
@@ -101,15 +108,15 @@ If two workstreams discover a conflict:
 
 CHAT A:
 
-`ZORR MODE. Ты WORKSTREAM A. Возьми issue #249 и активный gate #248. Работай по GitHub, не проси меня пересказывать контекст. ПРОД.`
+`ZORR MODE. Ты WORKSTREAM A. Возьми issue #249, studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md и активный gate #248. Работай по GitHub, не проси меня пересказывать контекст. ПРОД.`
 
 CHAT B:
 
-`ZORR MODE. Ты WORKSTREAM B. Возьми issue #250. Готовь WORLD / CAMERA / S001 CONTRACT по GitHub, не открывая downstream PASS раньше gate. ПРОД.`
+`ZORR MODE. Ты WORKSTREAM B. Возьми issue #250 и studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md. Готовь WORLD / CAMERA / S001 CONTRACT по GitHub, не открывая downstream PASS раньше gate. ПРОД.`
 
 CHAT C / MASTER:
 
-`ZORR MODE. Ты DUNCAN PRIME MASTER / INTEGRATOR. Возьми issue #251, studio/ZORR_MASTER_CHAT_BOOTSTRAP_R01.md, orchestration R01, trackers #249/#250 и активный gate #248. Сам восстанови всё из GitHub. Координируй два workstream, не дублируй их работу. ПРОД.`
+`ZORR MODE. Ты DUNCAN PRIME MASTER / INTEGRATOR. Возьми issue #251, studio/ZORR_MASTER_CHAT_BOOTSTRAP_R01.md, studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md, orchestration R01, trackers #249/#250 и активный gate #248. Сам восстанови всё из GitHub. Координируй два workstream, не дублируй их работу. ПРОД.`
 
 After boot, all three coordinate through GitHub directly.
 

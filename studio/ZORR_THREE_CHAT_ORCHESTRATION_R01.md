@@ -4,21 +4,24 @@ STATUS = ACTIVE COORDINATION CONTRACT
 BRANCH = `duncan/zorr-studio-r01`
 ROOT = DUNCAN PRIME
 
-Purpose: use two additional ChatGPT conversations plus the current master conversation without creating three competing authorities.
+Purpose: use **three dedicated ChatGPT conversations** with one durable GitHub authority and no competing locks.
 
-## MASTER CHAT — DUNCAN PRIME / INTEGRATOR
+## CHAT C — MASTER / DUNCAN PRIME INTEGRATOR
 
-This current chat owns:
+Tracker: #251
+Bootstrap: `studio/ZORR_MASTER_CHAT_BOOTSTRAP_R01.md`
+
+This dedicated new master chat owns:
 
 - production order;
 - cross-workstream arbitration;
-- PASS/FAIL promotion;
-- owner-taste / ZORR-style integration;
+- PASS/FAIL promotion from fresh evidence;
+- OWNER-taste / ZORR-style integration;
 - durable GitHub checkpointing;
 - conflict resolution between character, world, camera, shot, and animation layers;
 - final decision on when a downstream gate is legally opened.
 
-The master chat should not duplicate work that is already delegated unless fresh evidence shows a blocker or conflict.
+The master chat does not duplicate work already delegated unless fresh evidence shows a blocker or conflict.
 
 ## CHAT A — CHARACTER MECHANICS
 
@@ -84,19 +87,17 @@ Parallelism is allowed only where responsibilities do not compete.
 
 Current arrangement:
 
-- CHAT A = active critical-path execution;
+- CHAT A = active character-mechanics critical-path execution;
 - CHAT B = downstream specification/preparation;
-- MASTER = integration/QC/orchestration.
+- CHAT C = DUNCAN PRIME integration/QC/orchestration.
 
 No two chats may independently redefine the same lock.
 
 If two workstreams discover a conflict:
 
-`STOP LOCAL PROMOTION -> RECORD CONFLICT -> MASTER ARBITRATION -> ONE AUTHORITY DECISION -> CONTINUE`
+`STOP LOCAL PROMOTION -> RECORD CONFLICT -> CHAT C MASTER ARBITRATION -> ONE AUTHORITY DECISION -> CONTINUE`
 
 ## START COMMANDS
-
-OWNER only needs to open two new chats and send one short command to each.
 
 CHAT A:
 
@@ -106,14 +107,18 @@ CHAT B:
 
 `ZORR MODE. Ты WORKSTREAM B. Возьми issue #250. Готовь WORLD / CAMERA / S001 CONTRACT по GitHub, не открывая downstream PASS раньше gate. ПРОД.`
 
-After that, the master chat coordinates from GitHub directly.
+CHAT C / MASTER:
+
+`ZORR MODE. Ты DUNCAN PRIME MASTER / INTEGRATOR. Возьми issue #251, studio/ZORR_MASTER_CHAT_BOOTSTRAP_R01.md, orchestration R01, trackers #249/#250 и активный gate #248. Сам восстанови всё из GitHub. Координируй два workstream, не дублируй их работу. ПРОД.`
+
+After boot, all three coordinate through GitHub directly.
 
 ## CURRENT ROUTE
 
 `#245 MODEL LOCK PASS`
 -> `#248 COSTUME MECHANICS` [CHAT A]
 -> `POSE MECHANICS` [CHAT A]
--> `CAMERA / WORLD / S001 CONTRACT` [CHAT B prepared, MASTER promotes]
+-> `CAMERA / WORLD / S001 CONTRACT` [CHAT B prepared, CHAT C promotes]
 -> `LINE/COLOR/SHADOW/MATERIAL`
 -> `GOLDEN KEYFRAME`
 -> `SEPARATED OPENTOONZ SOURCE`

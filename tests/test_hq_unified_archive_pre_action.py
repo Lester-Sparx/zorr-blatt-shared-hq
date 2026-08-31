@@ -121,6 +121,20 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
         allowed = self._decide(self._context(action="PROCESS_MUTATION", provenProcessBlocker=True, processMutationCountForBlocker=1, newPhysicalBlocker=True))
         self.assertEqual(allowed["decision"], "ALLOW")
 
+    def test_repeat_process_mutation_cannot_bypass_gate_by_relabeling_action(self) -> None:
+        disguised = self._decide(
+            self._context(
+                action="EXECUTE_PRODUCT_STEP",
+                provenProcessBlocker=True,
+                processMutationCountForBlocker=1,
+                newPhysicalBlocker=False,
+            )
+        )
+        self.assertEqual(
+            (disguised["decision"], disguised["reason"]),
+            ("BLOCK", "REPEAT_PROCESS_MUTATION_REQUIRES_NEW_BLOCKER"),
+        )
+
     def test_owner_action_requires_proven_external_boundary(self) -> None:
         result = self._decide(self._context(action="REQUEST_OWNER_ACTION", directlyAdvancesPhysicalResult=False, provenExternalBoundary=True))
         self.assertEqual((result["decision"], result["reason"]), ("OWNER_REQUIRED", "PROVEN_EXTERNAL_BOUNDARY"))

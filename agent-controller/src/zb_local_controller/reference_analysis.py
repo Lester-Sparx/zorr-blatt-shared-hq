@@ -45,7 +45,7 @@ def perimeter(a: np.ndarray) -> np.ndarray:
     return np.concatenate((a[0], a[-1], a[1:-1, 0], a[1:-1, -1]), axis=0)
 
 
-def silhouette_from_border(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
+def silhouette_from_border(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
     lab = cv2.cvtColor(rgb, cv2.COLOR_RGB2LAB).astype(np.float32)
     border = perimeter(lab)
     bg = np.median(border, axis=0)
@@ -54,17 +54,25 @@ def silhouette_from_border(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray, dic
     if hi <= lo:
         raise ValueError("no measurable border/foreground separation")
     scaled = np.clip((dist - lo) * 255.0 / (hi - lo), 0, 255).astype(np.uint8)
-    threshold_u8, mask = cv2.threshold(scaled, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    otsu_u8, otsu = cv2.threshold(scaled, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    triangle_u8, triangle = cv2.threshold(scaled, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_TRIANGLE)
+    visible = cv2.bitwise_and(otsu, triangle)
+    uncertainty = cv2.bitwise_xor(otsu, triangle)
+    supported_background = cv2.bitwise_not(cv2.bitwise_or(otsu, triangle))
     info = {
-        "method": "OpenCV Lab border median distance + Otsu",
+        "method": "OpenCV Lab border median distance + Otsu/Triangle consensus",
         "background_lab_median": [float(x) for x in bg],
         "background_lab_std": [float(x) for x in border.std(axis=0)],
-        "otsu_threshold_u8": float(threshold_u8),
-        "otsu_threshold_lab_encoded_distance": lo + float(threshold_u8) * (hi - lo) / 255.0,
-        "foreground_fraction": float(np.count_nonzero(mask) / mask.size),
+        "otsu_threshold_u8": float(otsu_u8),
+        "triangle_threshold_u8": float(triangle_u8),
+        "otsu_threshold_lab_encoded_distance": lo + float(otsu_u8) * (hi - lo) / 255.0,
+        "triangle_threshold_lab_encoded_distance": lo + float(triangle_u8) * (hi - lo) / 255.0,
+        "visible_consensus_fraction": float(np.count_nonzero(visible) / visible.size),
+        "uncertainty_disagreement_fraction": float(np.count_nonzero(uncertainty) / uncertainty.size),
+        "supported_background_fraction": float(np.count_nonzero(supported_background) / supported_background.size),
         "provenance": "DERIVED",
     }
-    return mask, lab, info
+    return visible, uncertainty, otsu, triangle, lab, info
 
 
 def extrema_anchors(mask: np.ndarray) -> list[dict[str, Any]]:
@@ -144,7 +152,7 @@ def analyze(source: Path, out_json: Path, out_npz: Path, p: AnalysisParams) -> d
     # produce byte-identical evidence across repeated runs in this runtime.
     mag = np.sqrt(gx.astype(np.float64) * gx + gy.astype(np.float64) * gy).astype(np.float32)
     angle = cv2.phase(gx, gy, angleInDegrees=False)
-    mask, lab, silhouette_info = silhouette_from_border(rgb)
+    mask, uncertainty, mask_otsu, mask_triangle, lab, silhouette_info = silhouette_from_border(rgb)
     fg = mask.astype(bool)
     if not fg.any():
         raise ValueError("empty visible silhouette")
@@ -157,7 +165,9 @@ def analyze(source: Path, out_json: Path, out_npz: Path, p: AnalysisParams) -> d
     arrays: dict[str, np.ndarray] = {
         "L0_source_rgb": rgb, "L1_luminance": lum, "L2_gradient_x": gx, "L2_gradient_y": gy,
         "L2_gradient_strength": mag, "L2_gradient_angle_rad": angle, "L3_visible_silhouette_mask": mask,
-        "L10_uncertainty_subject_geometry_mask": (~fg).astype(np.uint8) * 255,
+        "L3_otsu_candidate_mask": mask_otsu, "L3_triangle_candidate_mask": mask_triangle,
+        "L10_uncertainty_subject_geometry_mask": uncertainty,
+        "background_supported_mask": cv2.bitwise_not(cv2.bitwise_or(mask_otsu, mask_triangle)),
     }
     if alpha is not None:
         arrays["source_alpha"] = alpha
@@ -210,20 +220,20 @@ def analyze(source: Path, out_json: Path, out_npz: Path, p: AnalysisParams) -> d
         "contours": contour_records, "anchors": anchors, "proportion_graph": proportions(anchors, bbox["width_px"]),
         "occlusion_graph": {"relations": [], "provenance": "UNKNOWN", "reason": "not directly proven; not inferred"},
         "color_regions": regions, "tone_field_summary": tone, "texture_summary": texture, "lighting_evidence_summary": lighting,
-        "uncertainty_mask": {"npz_key": "L10_uncertainty_subject_geometry_mask", "scope": "subject_geometry_authority",
-                             "provenance": "DERIVED", "rule": "outside visible silhouette has no subject geometry authority"},
+        "uncertainty_mask": {"npz_key": "L10_uncertainty_subject_geometry_mask", "scope": "silhouette_threshold_disagreement",
+                             "provenance": "DERIVED", "rule": "Otsu/Triangle disagreement is UNKNOWN and has no geometry authority"},
         "layers": {
             "L0": {"status":"PASS","provenance":"OBSERVED"},
             "L1": {"status":"PASS","provenance":"DERIVED"},
             "L2": {"status":"PASS","provenance":"DERIVED"},
-            "L3": {"status":"PARTIAL","provenance":"DERIVED","reason":"segmentation executed; no ground-truth pixel mask exists"},
+            "L3": {"status":"PARTIAL","provenance":"DERIVED","reason":"two native source-derived segmenters agree on visible consensus; no independent ground-truth mask exists"},
             "L4": {"status":"PARTIAL","provenance":"DERIVED","reason":"binary edge evidence only; no semantic line class"},
             "L5": {"status":"PARTIAL","provenance":"DERIVED","reason":"Lab masses only; no semantic object labels"},
             "L6": {"status":"PARTIAL","provenance":"DERIVED","reason":"visible silhouette extrema only; anatomy not inferred"},
             "L7": {"status":"UNKNOWN","provenance":"UNKNOWN","reason":"occlusion graph not directly proven"},
             "L8": {"status":"PARTIAL","provenance":"DERIVED","reason":"global visible-region frequency summary"},
             "L9": {"status":"PARTIAL","provenance":"DERIVED","reason":"2D luminance-gradient evidence only"},
-            "L10": {"status":"PARTIAL","provenance":"DERIVED","reason":"M_VISIBLE/M_UNKNOWN emitted; M_OCCLUDED remains UNKNOWN"},
+            "L10": {"status":"PARTIAL","provenance":"DERIVED","reason":"threshold-disagreement M_UNKNOWN emitted; M_OCCLUDED remains UNKNOWN"},
         },
         "qc_vector": {"provenance":"UNKNOWN", "metrics": {k: na for k in ["E_silhouette_px","E_anchor_px","E_proportion","E_occlusion","E_tone","E_color","E_texture","E_line_topology"]}},
         "artifacts": {"layers_npz": {"name": out_npz.name, "sha256": npz_hash, "provenance":"DERIVED"}},

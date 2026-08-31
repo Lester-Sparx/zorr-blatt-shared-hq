@@ -321,7 +321,22 @@ def evaluate_pre_action(
                 learning_policy,
                 context_packet,
             )
+        current_state = context_packet.get("current_state")
+        facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
+        process_mutation_count_facts = [
+            fact
+            for fact in facts
+            if isinstance(fact, dict) and fact.get("key") == "PROCESS_MUTATION_COUNT"
+        ]
         durable_process_mutation_count = _packet_process_mutation_count(context_packet)
+        if process_mutation_count_facts and durable_process_mutation_count is None:
+            return _decision(
+                context,
+                "BLOCK",
+                "DURABLE_CONTEXT_NOT_PROVEN",
+                learning_policy,
+                context_packet,
+            )
         if durable_process_mutation_count is not None:
             effective_process_mutation_count = max(
                 effective_process_mutation_count,

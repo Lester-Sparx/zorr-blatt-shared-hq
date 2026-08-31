@@ -16,7 +16,8 @@
   "rejected": {
     "r03_normalizeBody_vertex_warp": true,
     "r03_world_space_primitive_blade": true,
-    "kbve_quaternius_lfs_mirror": "REJECTED: Git LFS objects missing on server (404)"
+    "kbve_quaternius_lfs_mirror": "REJECTED: Git LFS objects missing on server (404)",
+    "metaverse_avatar_builtin_primitive_sword": "REJECTED: use attachFile with the verified CC0 GLB sword instead"
   },
   "verified_ci_transport": {
     "workflow": ".github/workflows/r04-oss-assets.yml",
@@ -55,7 +56,11 @@
     "sha256": "4c748767741a3e495d89667b9a218b690ba9810b9517a12e960780e3ca72c4e9",
     "verified_combat_clips": ["Sword_Attack","Sword_Idle","Roll","Hit_Chest","Hit_Head","Punch_Cross","Punch_Jab"],
     "skeleton_name_compatibility_verified": true,
-    "retarget_required": false
+    "retarget_required": false,
+    "existing_runtime_reference": {
+      "path": "src/render/objects/EnemyCharacterAssetPool.ts",
+      "mechanics": ["GLTFLoader.loadAsync body + animation library","SkeletonUtils.clone skinned source","independent AnimationMixer per character","clip lookup by animation name"]
+    }
   },
   "secondary_adult_rig_baseline": {
     "repository": "UMRAM-Bilkent/supine-human-model",
@@ -93,18 +98,25 @@
     "geometry_verified": true,
     "target_blade_length_m": 1.08,
     "attachment_target": "hand_r",
-    "attachment_engine_path": "Babylon.js native glTF bone/node attachment",
-    "wrist_attachment_status": "OSS_PATH_RESOLVED_RUNTIME_PROOF_PENDING"
+    "attachment_reference": {
+      "repository": "richardanaya/metaverse-avatar",
+      "license": "MIT",
+      "path": "attachments.js",
+      "method": "Attachments.attachFile",
+      "verified_behavior": "loads a GLB with GLTFLoader and parents gltf.scene under the selected skeleton bone",
+      "bone_mapping": "mWristRight in reference rig -> hand_r in Quaternius rig"
+    },
+    "wrist_attachment_status": "OSS_IMPLEMENTATION_RESOLVED_RUNTIME_PROOF_PENDING"
   },
   "scene_seed": {
     "attacker_position": [-0.62, 0, 0.05],
     "attacker_yaw_deg": -8,
-    "dodger_position": [0.62, 0, -0.05],
+    "dodger_position": [0.62, 0,-0.05],
     "dodger_yaw_deg": 15,
     "blade_length_m": 1.08,
     "target_clearance_m": 0.0970096418,
-    "camera_position": [3.10, 1.55, 3.65],
-    "camera_target": [0.12, 1.02, -0.38],
+    "camera_position": [3.10,1.55,3.65],
+    "camera_target": [0.12,1.02,-0.38],
     "camera_fov_deg": 39
   },
   "gates": {
@@ -113,6 +125,7 @@
     "compatible_open_combat_animation_resolved": true,
     "real_cc0_sword_asset_resolved": true,
     "wrist_attachment_oss_path_resolved": true,
+    "existing_multi_skinned_runtime_reference_resolved": true,
     "primary_physiology_visual_pass": false,
     "wrist_attachment_proven": false,
     "white_stage_render_pass": false,
@@ -124,7 +137,7 @@
   "remaining_blockers": [
     "visually qualify a slimmer adult primary body at 7.0-8.3 heads",
     "runtime-prove Sword_Attack plus defender Roll/dodge on two skinned bodies",
-    "runtime-prove sword attachment to hand_r",
+    "runtime-prove verified CC0 sword.glb attached to hand_r using the pinned OSS attachment implementation",
     "render, measure and verify white-stage, grounding, clearance and framing gates"
   ],
   "merge": "NO",

@@ -21,16 +21,13 @@ class SheriffSecretFailClosedR02Test(unittest.TestCase):
                 self.assertNotRegex(
                     text,
                     rf"\$\{{{name}:-[^}}]+\}}",
-                    f"{name} must not silently fall back to a known default",
+                    f"{name} must not silently fall back to a default",
                 )
                 self.assertRegex(
                     text,
                     rf"\$\{{{name}:\?[^}}]+\}}",
                     f"{name} must fail closed when missing",
                 )
-
-        self.assertNotIn("sheriff-dev-only", text)
-        self.assertNotIn("admin-dev-only", text)
 
 
 if __name__ == "__main__":

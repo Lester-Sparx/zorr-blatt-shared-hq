@@ -17,7 +17,7 @@ export const ACTION_LOCK = {
   bladeLengthM: 1.08,
   bladeScale: 0.34076,
   attackClip: 'Sword_Attack',
-  attackPoseFraction: 0.35,
+  attackPoseFraction: 0.20,
   dodgeClip: 'Roll',
   dodgePoseFraction: 0.60,
   measuredPrototypeClearanceM: 0.0970096418,

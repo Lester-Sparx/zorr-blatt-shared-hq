@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/r04-oss-assets.yml
       - experiments/directing-v1/public/r04-oss-production-lock.json
+      - experiments/directing-v1/public/cinematic-scene-r01.json
   workflow_dispatch:
 
 permissions:
@@ -138,5 +139,36 @@ jobs:
         with:
           name: r04-known-oss-combat-png
           path: docs/media/combat.png
+          if-no-files-found: error
+          retention-days: 30
+
+  practice-directing-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout directing branch
+        uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.x
+
+      - name: Install pinned directing dependencies
+        working-directory: experiments/directing-v1
+        run: npm ci
+
+      - name: Install Chromium for existing Playwright proof
+        working-directory: experiments/directing-v1
+        run: npx playwright install --with-deps chromium
+
+      - name: Run existing Babylon browser proof unchanged
+        working-directory: experiments/directing-v1
+        run: npm run test:browser
+
+      - name: Upload directing practice PNG
+        uses: actions/upload-artifact@v4
+        with:
+          name: r04-directing-practice-png
+          path: experiments/directing-v1/artifacts/zorr-cinematic-scene-r01.png
           if-no-files-found: error
           retention-days: 30

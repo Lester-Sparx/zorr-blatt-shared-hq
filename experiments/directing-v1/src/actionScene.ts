@@ -11,7 +11,7 @@ import type { Skeleton } from '@babylonjs/core/Bones/skeleton';
 
 export const ACTION_LOCK = {
   attackerPositionM: [-0.50, 0.00951, 0.05] as const,
-  attackerYawDeg: 65,
+  attackerYawDeg: 90,
   dodgerPositionM: [0.50, 0.00951, -0.05] as const,
   dodgerYawDeg: -90,
   bladeLengthM: 1.08,
@@ -158,6 +158,7 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
   socket.parent = hand;
   socket.position.copyFromFloats(0, 0, 0);
   socket.rotation.x = -Math.PI / 2;
+  socket.rotation.y = -Math.PI / 2;
   socket.scaling.copyFromFloats(ACTION_LOCK.bladeScale, ACTION_LOCK.bladeScale, ACTION_LOCK.bladeScale);
   swordRoot.parent = socket;
 

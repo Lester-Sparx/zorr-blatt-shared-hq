@@ -1,0 +1,73 @@
+{
+  "schema": "ZORR_TIMESTEP_CONTRACT_R16",
+  "date": "2026-08-31",
+  "status": "SOURCE_DERIVED_TIMESTEP_SEMANTICS_CLOSED_REAL_RUNTIME_NOT_PROVEN",
+  "model": {
+    "id": "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
+    "revision": "212ee7d92278cfec477f0ccd1e369cd9d6e9c7e3",
+    "pipeline": "StableDiffusionXLInpaintPipeline",
+    "variant": "fp16",
+    "use_safetensors": true
+  },
+  "r04_baseline": {
+    "requested_num_inference_steps": 20,
+    "guidance_scale": 8.0,
+    "strength": 0.99,
+    "seed": 0
+  },
+  "selected_scheduler_config": {
+    "_class_name": "EulerDiscreteScheduler",
+    "num_train_timesteps": 1000,
+    "timestep_spacing": "leading",
+    "steps_offset": 1,
+    "beta_schedule": "scaled_linear",
+    "beta_start": 0.00085,
+    "beta_end": 0.012,
+    "interpolation_type": "linear",
+    "prediction_type": "epsilon",
+    "use_karras_sigmas": false
+  },
+  "derived_selected_schedule": {
+    "scheduler_order": 1,
+    "init_timestep": 19,
+    "t_start": 1,
+    "effective_denoising_steps": 19,
+    "requested_timesteps": [951,901,851,801,751,701,651,601,551,501,451,401,351,301,251,201,151,101,51,1],
+    "effective_timesteps": [901,851,801,751,701,651,601,551,501,451,401,351,301,251,201,151,101,51,1],
+    "initial_noise_timestep": 901,
+    "semantics": "R04 num_inference_steps=20 is the requested scheduler resolution. Under the pinned SDXL inpaint get_timesteps() with strength=0.99, the actual denoising loop contains 19 timesteps."
+  },
+  "framework": {
+    "repo": "huggingface/diffusers",
+    "pinned_ref": "c1bf18c92c6285334adcaac7e75ef8946a227f49",
+    "pinned_version": "0.41.0.dev0",
+    "license": "Apache-2.0",
+    "fresh_main_ref": "2e618cb6027037597cf80905fc3e356a71923087",
+    "fresh_main_parent": "82e309a2b1b1748e0148efd65743a27092c59dcd",
+    "fresh_main_version": "0.41.0.dev0",
+    "pipeline_blob_pinned": "3f18cbe21d0fe12f89859d188dba2a487f3d87c5",
+    "pipeline_blob_fresh_main": "3f18cbe21d0fe12f89859d188dba2a487f3d87c5",
+    "euler_scheduler_blob_pinned": "eac6efe18aaf775b846e7536fd972686d3ec9683",
+    "euler_scheduler_blob_fresh_main": "eac6efe18aaf775b846e7536fd972686d3ec9683",
+    "euler_test_blob_pinned": "ee99465abfc39e7a7ce7a6734b22dbeb42df5efd",
+    "euler_test_blob_fresh_main": "ee99465abfc39e7a7ce7a6734b22dbeb42df5efd",
+    "license_blob_fresh_main": "038e32f6445e8f265bde482613cf0d2f43d86dbc"
+  },
+  "source_evidence": {
+    "pipeline_get_timesteps": "https://github.com/huggingface/diffusers/blob/c1bf18c92c6285334adcaac7e75ef8946a227f49/src/diffusers/pipelines/stable_diffusion_xl/pipeline_stable_diffusion_xl_inpaint.py",
+    "euler_scheduler": "https://github.com/huggingface/diffusers/blob/c1bf18c92c6285334adcaac7e75ef8946a227f49/src/diffusers/schedulers/scheduling_euler_discrete.py",
+    "euler_scheduler_tests": "https://github.com/huggingface/diffusers/blob/c1bf18c92c6285334adcaac7e75ef8946a227f49/tests/schedulers/test_scheduler_euler.py",
+    "model_card": "https://huggingface.co/diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
+    "scheduler_config": "https://huggingface.co/diffusers/stable-diffusion-xl-1.0-inpainting-0.1/blob/main/scheduler/scheduler_config.json"
+  },
+  "boundaries": {
+    "real_diffusion_runtime": "NOT PROVEN",
+    "raw_real_backend_leakage": "UNKNOWN",
+    "production_visual_quality": "NOT PROVEN",
+    "sigma_vector": "NOT PROVEN",
+    "minimum_vram_bytes": "UNKNOWN",
+    "torch_cuda_build": "HOST_BOUND_UNSELECTED",
+    "full_transitive_lock": "NOT PROVEN",
+    "image_generation_or_editing": "NONE"
+  }
+}

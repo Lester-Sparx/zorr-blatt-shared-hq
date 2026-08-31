@@ -90,31 +90,27 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  probe-regular-male:
+  probe-girush-anime-body:
     runs-on: ubuntu-latest
     steps:
-      - name: Sparse-fetch public Quaternius Regular Male source
+      - name: Download CC0 Girush slim anime humanoid archive
         shell: bash
         run: |
           set -euo pipefail
-          git clone --filter=blob:none --no-checkout https://tinqs.com/cannarin/ariki-game.git ariki-game
-          cd ariki-game
-          git sparse-checkout init --no-cone
-          git sparse-checkout set 'assets/quaternius/source-models/Regular_Male_FullBody.gltf' 'assets/quaternius/source-models/*.bin' 'assets/quaternius/source-models/T_Regular_Male*' 'assets/quaternius/source-models/T_Eye*' 'assets/quaternius/source-models/T_Hair*'
-          git checkout main
-          git lfs pull --include='assets/quaternius/source-models/Regular_Male_FullBody.gltf,assets/quaternius/source-models/*.bin,assets/quaternius/source-models/T_Regular_Male*,assets/quaternius/source-models/T_Eye*,assets/quaternius/source-models/T_Hair*'
-          mkdir -p ../r04-regular-male
-          cp -a assets/quaternius/source-models/. ../r04-regular-male/
-          git rev-parse HEAD | tee ../r04-regular-male/SOURCE_COMMIT.txt
-          cd ..
-          find r04-regular-male -maxdepth 1 -type f -printf '%f %s bytes\n' | sort | tee r04-regular-male/FILES.txt
-          sha256sum r04-regular-male/* | tee r04-regular-male/SHA256SUMS.txt
+          mkdir -p r04-girush
+          curl --fail --location --retry 3 --user-agent 'Mozilla/5.0' -o r04-girush/girush.7z https://opengameart.org/sites/default/files/basemesh_a1_human_yw_by_girush_2.7z
+          file r04-girush/girush.7z
+          sha256sum r04-girush/girush.7z | tee r04-girush/SHA256SUMS.txt
+          7z l r04-girush/girush.7z | tee r04-girush/CONTENTS.txt
+          mkdir -p r04-girush/extracted
+          7z x -y -or04-girush/extracted r04-girush/girush.7z >/dev/null
+          find r04-girush/extracted -type f -printf '%P %s bytes\n' | sort | tee r04-girush/FILES.txt
 
-      - name: Upload Regular Male probe
+      - name: Upload Girush probe
         uses: actions/upload-artifact@v4
         with:
-          name: r04-regular-male-probe
-          path: r04-regular-male/
+          name: r04-girush-anime-body
+          path: r04-girush/
           if-no-files-found: error
           retention-days: 30
 

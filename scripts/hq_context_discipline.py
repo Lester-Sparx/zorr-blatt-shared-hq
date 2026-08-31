@@ -15,6 +15,7 @@ FACT_SCHEMA = "ZB_CONTEXT_FACT_V1"
 CURRENT_STATE_SCHEMA = "ZB_CONTEXT_CURRENT_STATE_V1"
 PACKET_SCHEMA = "ZB_CONTEXT_PACKET_V1"
 DELTA_SCHEMA = "ZB_CONTEXT_DELTA_V1"
+HANDOFF_SCHEMA = "ZB_CONTEXT_HANDOFF_V1"
 CLASSES = {"E0", "E1", "E2", "E3"}
 
 
@@ -343,3 +344,85 @@ def render_owner_delta(
     if next_action:
         lines.append("NEXT: " + next_action)
     return "\n".join(lines)
+
+
+def _single_state_value(current_state: dict[str, Any], key: str) -> Any:
+    values = _state_values(current_state).get(key, [])
+    if len(values) > 1:
+        raise ContextDisciplineError("HANDOFF_STATE_AMBIGUOUS:" + key)
+    return values[0] if values else None
+
+
+def _validate_string_list(value: Any, error: str, *, allow_empty: bool = True) -> list[str]:
+    if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
+        raise ContextDisciplineError(error)
+    if not allow_empty and not value:
+        raise ContextDisciplineError(error)
+    return list(value)
+
+
+def build_handoff(
+    *,
+    role_or_engine: str,
+    current_goal: str,
+    task_or_correlation: str,
+    authoritative_main: str,
+    current_state: dict[str, Any],
+    open_gaps: list[str],
+    lesson_refs: list[str],
+    next_action: str,
+    source_refs: list[str],
+) -> dict[str, Any]:
+    for value, error in (
+        (role_or_engine, "HANDOFF_ROLE_INVALID"),
+        (current_goal, "HANDOFF_GOAL_INVALID"),
+        (task_or_correlation, "HANDOFF_TASK_INVALID"),
+        (authoritative_main, "HANDOFF_MAIN_INVALID"),
+        (next_action, "HANDOFF_NEXT_ACTION_INVALID"),
+    ):
+        if not isinstance(value, str) or not value:
+            raise ContextDisciplineError(error)
+    if not isinstance(current_state, dict) or current_state.get("schema") != CURRENT_STATE_SCHEMA:
+        raise ContextDisciplineError("HANDOFF_CURRENT_STATE_INVALID")
+
+    gaps = _validate_string_list(open_gaps, "HANDOFF_OPEN_GAPS_INVALID")
+    lessons = _validate_string_list(lesson_refs, "HANDOFF_LESSON_REFS_INVALID")
+    sources = _validate_string_list(source_refs, "HANDOFF_SOURCE_REFS_REQUIRED", allow_empty=False)
+
+    return {
+        "schema": HANDOFF_SCHEMA,
+        "authority": "DERIVED",
+        "role_or_engine": role_or_engine,
+        "current_goal": current_goal,
+        "task_or_correlation": task_or_correlation,
+        "authoritative_main": authoritative_main,
+        "active_base": _single_state_value(current_state, "ACTIVE_BASE"),
+        "active_head": _single_state_value(current_state, "ACTIVE_HEAD"),
+        "verified_current_state": current_state,
+        "current_blocker_or_none": _single_state_value(current_state, "CURRENT_BLOCKER"),
+        "open_gaps": gaps,
+        "relevant_verified_lesson_refs": lessons,
+        "next_action": next_action,
+        "source_refs": sources,
+        "supersedes": [],
+    }
+
+
+def validate_handoff(
+    handoff: dict[str, Any],
+    *,
+    fresh_authoritative_main: str,
+) -> dict[str, Any]:
+    if not isinstance(handoff, dict) or handoff.get("schema") != HANDOFF_SCHEMA:
+        raise ContextDisciplineError("HANDOFF_INVALID")
+    if handoff.get("authority") != "DERIVED":
+        raise ContextDisciplineError("HANDOFF_AUTHORITY_INVALID")
+    if not isinstance(fresh_authoritative_main, str) or not fresh_authoritative_main:
+        raise ContextDisciplineError("HANDOFF_FRESH_MAIN_INVALID")
+    if handoff.get("authoritative_main") != fresh_authoritative_main:
+        raise ContextDisciplineError("HANDOFF_STALE")
+    _validate_string_list(handoff.get("source_refs"), "HANDOFF_SOURCE_REFS_REQUIRED", allow_empty=False)
+    state = handoff.get("verified_current_state")
+    if not isinstance(state, dict) or state.get("schema") != CURRENT_STATE_SCHEMA:
+        raise ContextDisciplineError("HANDOFF_CURRENT_STATE_INVALID")
+    return dict(handoff)

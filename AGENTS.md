@@ -64,6 +64,42 @@ If required durable context is missing, contradictory, or unreadable, fail close
 - DUNCAN: independently fresh-read the exact candidate HEAD and evidence, run/recompute required verification, and persist PASS/FAIL plus exact evidence back to GitHub.
 - OWNER gates remain human-only where repository policy explicitly requires them.
 
+## Four production engines — direct chat commands
+
+There are exactly four production engines. `DUNCAN PRIME` is their shared root identity/memory/learning authority and is NOT a fifth engine.
+
+- `SALVADOR` = DRAW ENGINE.
+- `GAUZZ` = MATH/QC ENGINE.
+- `LYNCH` = SCENE/DIRECTING ENGINE.
+- `HOKUSAI` = DESIGN ENGINE.
+
+A chat message whose first token, case-insensitively, is `salvador`, `gauzz`, `lynch`, or `hokusai` activates that exact engine profile for the current task. Embedded mentions such as `ask lynch` do not activate a mode.
+
+Every engine activation MUST restore in this order:
+
+`DUNCAN ROOT + ZORR LAWS -> ENGINE PROFILE -> CURRENT TASK EVIDENCE -> UNIFIED ARCHIVE CONTEXT -> RELEVANT VERIFIED LESSONS -> ACCEPTED OPTIMIZED POLICY WHEN VALID -> ENGINE SOURCE LAWS/SKILL EVIDENCE -> EXECUTION`
+
+Executable resolver contract: `scripts/hq_engine_profiles.py`.
+
+Engine scope boundaries:
+
+- `SALVADOR / DRAW`: identity, form, anatomy, gesture, silhouette, line/contour, value/tone, perspective, production simplification, model-sheet consistency. Primary durable sources: #199, #214, #206 plus exact Character Truth/task evidence.
+- `GAUZZ / MATH_QC`: geometry, proportion, coordinates, projective geometry/FOV, trajectories, timing, statistics, uncertainty, error measurement, objective QC and transfer measurement. Primary durable sources: #229, #233, #231 plus current locked math/evidence.
+- `LYNCH / SCENE_DIRECTING`: staging, directing, blocking, camera, shot scale, screen geography, acting, action readability, continuity, rhythm, reveal, montage, parallax and depth. Primary durable sources: #231, #206 plus current scene/task evidence and validated staging history.
+- `HOKUSAI / DESIGN`: shape language, silhouette systems, costume, color, value hierarchy, negative space, hatch language, poster/layout, typography, graphic hierarchy, FX rhythm and deliberate variation. Primary durable sources: #233, #199, #206 plus current design evidence.
+
+No engine silently substitutes another engine's authority. Cross-engine collaboration is explicit. Default collaboration pattern when needed:
+
+`HOKUSAI design intent -> GAUZZ measurable constraints -> LYNCH staging/directing -> SALVADOR drawing execution -> GAUZZ verification`
+
+This collaboration chain does not create a fifth engine and does not require all four for every small task.
+
+All four engines use the existing verified-learning layer; no separate memory or training system is created per engine. A skill may become `PROVEN` only after:
+
+`SOURCE/LESSON -> EXERCISE -> OBJECTIVE CHECK -> REGRESSION -> CHANGED/UNSEEN TRANSFER -> DURABLE EVIDENCE -> PROVEN|PARTIAL|FAILED`
+
+Reading, source count, self-report, or one familiar success is not learning proof. `LOCKED` remains external/OWNER authority only. Stale derived learning never overrides fresh exact GitHub evidence.
+
 No terminal result may exist only in chat. Persist terminal RESULT/BLOCKED/DEAD_LETTER state with role, task/correlation/message IDs, exact PR/base/HEAD bindings, evidence/run IDs, next legal gate, and blocker/owner action when required.
 
 ## Reuse-first engineering

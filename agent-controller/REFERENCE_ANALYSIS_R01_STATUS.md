@@ -11,7 +11,11 @@ What is physically proven on the exact candidate source bytes:
 - `L3/L4/L5/L6/L8/L9/L10 = PARTIAL` with exact reasons in the manifest/evidence;
 - `L7 = UNKNOWN` rather than inferred.
 
-A real determinism defect was found during review: native `cv2.magnitude` produced tiny repeat-run float drift in `L2_gradient_strength`. The repaired candidate keeps OpenCV `Scharr` derivatives and evaluates the contract formula `sqrt(Gx^2 + Gy^2)` deterministically as minimal math glue. Fresh repeated real-reference artifacts are byte-identical after that repair.
+Two concrete defects/ambiguities were handled fail-closed:
+
+1. Native `cv2.magnitude` produced tiny repeat-run float drift in `L2_gradient_strength`. OpenCV `Scharr` remains derivative authority; the contract formula `sqrt(Gx^2 + Gy^2)` is evaluated deterministically as minimal math glue. Fresh repeated real-reference artifacts are byte-identical after repair.
+
+2. The source PNG alpha channels are fully opaque and therefore cannot prove silhouette. Otsu and Triangle source-derived masks disagree by 2.39%–7.06% across the three references. Their foreground intersection is retained as conservative visible evidence; their disagreement is emitted as `UNKNOWN`, not promoted to geometry.
 
 Not claimed:
 - full L0-L10 PASS;
@@ -21,6 +25,6 @@ Not claimed:
 - cross-platform bit identity;
 - production/canon/merge activation.
 
-First remaining geometric blocker: `L3` silhouette verification. Current segmentation is measured and recorded but lacks an independent ground-truth mask, so L3 remains PARTIAL.
+First remaining geometric blocker: `L3` has no independent ground-truth silhouette or owner-defined acceptance threshold. Adding more predicted segmentation models would not create ground truth, so R01 stops model-stacking here rather than manufacturing a PASS.
 
-Next legal work: improve/verify L3 only using existing/native/OSS evidence methods. Do not jump to renderer, style transfer, IP-Adapter, ControlNet, or diffusion while the silhouette authority gate remains PARTIAL.
+Renderer remains blocked. Image generation = `NO`. Image editing = `NO`.

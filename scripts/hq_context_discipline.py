@@ -42,6 +42,8 @@ def normalize_fact(fact: dict[str, Any]) -> dict[str, Any]:
         raise ContextDisciplineError("CONTEXT_FACT_KEY_INVALID")
     if type(fact["exclusive"]) is not bool or type(fact["verified"]) is not bool:
         raise ContextDisciplineError("CONTEXT_FACT_BOOLEAN_INVALID")
+    if fact["class"] == "E2" and not fact["verified"]:
+        raise ContextDisciplineError("CONTEXT_FACT_E2_REQUIRES_VERIFIED")
     if not isinstance(fact["authority"], str) or not fact["authority"]:
         raise ContextDisciplineError("CONTEXT_FACT_AUTHORITY_INVALID")
     if not isinstance(fact["created_at"], str):

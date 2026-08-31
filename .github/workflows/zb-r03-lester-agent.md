@@ -77,6 +77,7 @@ steps:
       printf '%s' "$ZB_R03_TASK_SPEC_B64" | base64 -d > .zb-r03/task-spec.md
       test -s .zb-r03/task-spec.md
 safe-outputs:
+  report-failure-as-issue: false
   create-pull-request:
     draft: true
     max: 1

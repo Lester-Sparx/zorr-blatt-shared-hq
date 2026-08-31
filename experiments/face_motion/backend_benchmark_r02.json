@@ -1,0 +1,9 @@
+{
+  "scope": "synthetic development benchmark; not production quality claim",
+  "environment": {"opencv": "4.13.0", "scikit_image": "0.26.0", "size": [384, 384]},
+  "results": [
+    {"backend":"Gaussian_RBF_R02","anchor_inverse_residual_mean_px":0.000072,"anchor_inverse_residual_max_px":0.000104,"build_ms":40.289,"render_ms":12.451,"line_energy_ratio":0.442609,"outside_changed_pixels":0},
+    {"backend":"Thin_Plate_Spline_scikit_image","anchor_residual_mean_px":0.000066,"anchor_residual_max_px":0.000335,"build_ms":0.260,"render_ms":277.364,"line_energy_ratio":0.444308,"outside_changed_pixels":0},
+    {"backend":"Piecewise_Affine_scikit_image","anchor_residual_mean_px":0.0,"anchor_residual_max_px":0.0,"build_ms":12.010,"render_ms":47.109,"line_energy_ratio":0.603912,"outside_changed_pixels":0}
+  ]
+}

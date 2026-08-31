@@ -85,6 +85,39 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
             ("ALLOW", "PRE_ACTION_GATE_PASS"),
         )
 
+    def test_unseen_durable_fail_cannot_be_upgraded_by_boolean_to_pass(self) -> None:
+        result = hq_pre_action.evaluate_pre_action(
+            self.context(),
+            context_packet=self.packet("FAIL"),
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("BLOCK", "DURABLE_TERMINAL_EVIDENCE_NOT_PROVEN"),
+        )
+
+    def test_verified_pass_preserves_verified_learning_path(self) -> None:
+        policy = {
+            "status": "PROVEN",
+            "lesson_count": 1,
+            "policy_prefix": "RULE = terminal claims require bound durable evidence",
+            "lessons": [{"verdict_id": "SV1-TERMINAL-EVIDENCE-001"}],
+        }
+        result = hq_pre_action.evaluate_pre_action(
+            self.context(),
+            learning_policy=policy,
+            context_packet=self.packet("PASS"),
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("ALLOW", "PRE_ACTION_GATE_PASS"),
+        )
+        self.assertEqual(result["learning"]["status"], "PROVEN")
+        self.assertEqual(
+            result["learning"]["verdict_ids"],
+            ["SV1-TERMINAL-EVIDENCE-001"],
+        )
+        self.assertIn("bound durable evidence", result["learning"]["policy_prefix"])
+
 
 if __name__ == "__main__":
     unittest.main()

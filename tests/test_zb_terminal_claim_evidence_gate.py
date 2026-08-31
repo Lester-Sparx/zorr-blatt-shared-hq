@@ -86,9 +86,11 @@ def result_body(
     *,
     execution_request_id: str | None = None,
     process_exit_code: int = 0,
-    test_evidence_refs: tuple[str, ...] = ("run:123:test:unit",),
+    test_evidence_refs: tuple[str, ...] | None = None,
+    workflow_run_id: str = "123",
 ) -> str:
     expected_request_id = "claim-gate-request-1" if role == "LESTER" else "claim-gate-request-1-qc"
+    evidence = (f"run:{workflow_run_id}:test:unit",) if test_evidence_refs is None else test_evidence_refs
     return render_execution_result(
         ExecutionResult(
             execution_request_id=expected_request_id if execution_request_id is None else execution_request_id,
@@ -108,9 +110,9 @@ def result_body(
             result_code="PASS",
             process_exit_code=process_exit_code,
             changed_files=(),
-            test_evidence_refs=test_evidence_refs,
+            test_evidence_refs=evidence,
             artifact_evidence_refs=(),
-            workflow_run_id="123",
+            workflow_run_id=workflow_run_id,
             workflow_run_attempt=1,
             runner_provenance=f"runner:{role.lower()}",
             started_at="2026-08-31T13:00:00Z",
@@ -184,6 +186,42 @@ class TerminalClaimEvidenceGateTest(unittest.TestCase):
                 "DUNCAN_QC_R01",
                 "exec:duncan",
                 execution_request_id="claim-gate-request-foreign",
+            ),
+            port,
+        )
+
+        self.assertEqual(result, "DUNCAN_QC_FAIL")
+        self.assertFalse(any("OWNER_GATE_REQUIRED = TRUE" in comment["body"] for comment in port.comments))
+
+    def test_lester_pass_with_test_evidence_from_different_workflow_run_is_rejected(self) -> None:
+        port = RecordingPort()
+        result = finalize_substantive_execution(
+            request_body(),
+            result_body(
+                "LESTER",
+                "LESTER_IMPLEMENT_R01",
+                "exec:lester",
+                workflow_run_id="123",
+                test_evidence_refs=("run:999:test:unit",),
+            ),
+            result_body("DUNCAN", "DUNCAN_QC_R01", "exec:duncan"),
+            port,
+        )
+
+        self.assertEqual(result, "LESTER_RESULT_REJECTED")
+        self.assertFalse(any("OWNER_GATE_REQUIRED = TRUE" in comment["body"] for comment in port.comments))
+
+    def test_duncan_pass_with_lester_run_evidence_is_rejected_as_unseen_cross_run_substitution(self) -> None:
+        port = RecordingPort()
+        result = finalize_substantive_execution(
+            request_body(),
+            result_body("LESTER", "LESTER_IMPLEMENT_R01", "exec:lester", workflow_run_id="123"),
+            result_body(
+                "DUNCAN",
+                "DUNCAN_QC_R01",
+                "exec:duncan",
+                workflow_run_id="456",
+                test_evidence_refs=("run:123:test:unit",),
             ),
             port,
         )

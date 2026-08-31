@@ -66,6 +66,8 @@ def normalize_fact(fact: dict[str, Any]) -> dict[str, Any]:
         isinstance(item, str) and item for item in fact["source_refs"]
     ):
         raise ContextDisciplineError("CONTEXT_FACT_SOURCE_INVALID")
+    if fact["class"] == "E2" and not fact["source_refs"]:
+        raise ContextDisciplineError("CONTEXT_FACT_E2_REQUIRES_EVIDENCE")
     if not isinstance(fact["supersedes"], list) or not all(
         isinstance(item, str) and item for item in fact["supersedes"]
     ):
@@ -106,6 +108,19 @@ def _project_fact(fact: dict[str, Any]) -> dict[str, Any]:
     return projected
 
 
+def _validate_supersession_authority(facts: list[dict[str, Any]]) -> None:
+    by_id = {fact["fact_id"]: fact for fact in facts}
+    for superseder in facts:
+        for target_id in superseder["supersedes"]:
+            target = by_id.get(target_id)
+            if target is None:
+                continue
+            if target["class"] == "E2" and superseder["class"] != "E2":
+                raise ContextDisciplineError("CONTEXT_SUPERSESSION_AUTHORITY_INVALID")
+            if target["authority"] == "OWNER" and superseder["authority"] != "OWNER":
+                raise ContextDisciplineError("CONTEXT_SUPERSESSION_AUTHORITY_INVALID")
+
+
 def project_current_state(
     facts: list[dict[str, Any]],
     *,
@@ -120,26 +135,26 @@ def project_current_state(
         raise ContextDisciplineError("CONTEXT_SCOPE_TAGS_INVALID")
 
     normalized = [normalize_fact(fact) for fact in facts]
-    candidates = [
-        fact
-        for fact in normalized
-        if fact["class"] != "E0" and _scope_matches(fact, scope_tags)
-    ]
-
     ids = [fact["fact_id"] for fact in normalized]
     if len(ids) != len(set(ids)):
         raise ContextDisciplineError("CONTEXT_FACT_ID_DUPLICATE")
 
+    live = [fact for fact in normalized if fact["class"] != "E0"]
+    _validate_supersession_authority(live)
     superseded_ids = {
         superseded_id
-        for fact in candidates
+        for fact in live
         for superseded_id in fact["supersedes"]
     }
-    current = [fact for fact in candidates if fact["fact_id"] not in superseded_ids]
+    candidates = [
+        fact
+        for fact in live
+        if fact["fact_id"] not in superseded_ids and _scope_matches(fact, scope_tags)
+    ]
 
     exclusive_by_key: dict[str, list[dict[str, Any]]] = defaultdict(list)
     nonexclusive: list[dict[str, Any]] = []
-    for fact in current:
+    for fact in candidates:
         if fact["exclusive"]:
             exclusive_by_key[fact["key"]].append(fact)
         else:

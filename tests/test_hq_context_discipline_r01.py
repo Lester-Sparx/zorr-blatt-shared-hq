@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import json
+from pathlib import Path
+import tempfile
 import unittest
 
 
@@ -43,6 +47,35 @@ class ContextDisciplineR01Tests(unittest.TestCase):
             "source_refs": list(source_refs or []),
             "supersedes": list(supersedes or []),
         }
+
+    @staticmethod
+    def _archive_record(root: Path, *, number: int, title: str, body: str) -> None:
+        from scripts.hq_unified_archive import derive_record, write_record
+
+        event = {
+            "action": "created",
+            "repository": {"full_name": "Lester-Sparx/zorr-blatt-shared-hq"},
+            "sender": {"login": "Lester-Sparx"},
+            "issue": {
+                "number": number,
+                "title": title,
+                "html_url": f"https://github.com/Lester-Sparx/zorr-blatt-shared-hq/issues/{number}",
+            },
+            "comment": {
+                "body": body,
+                "html_url": f"https://github.com/Lester-Sparx/zorr-blatt-shared-hq/issues/{number}#issuecomment-{number}",
+            },
+        }
+        raw = (json.dumps(event, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8")
+        digest = hashlib.sha256(raw).hexdigest()
+        record = derive_record(
+            raw,
+            raw_sha256=digest,
+            event_name="issue_comment",
+            repository="Lester-Sparx/zorr-blatt-shared-hq",
+            actor="Lester-Sparx",
+        )
+        write_record(record, root)
 
     def test_e0_never_enters_current_projection(self) -> None:
         module = self._module()
@@ -165,6 +198,78 @@ class ContextDisciplineR01Tests(unittest.TestCase):
         )
         with self.assertRaisesRegex(module.ContextDisciplineError, "CONTEXT_FACT_E2_REQUIRES_VERIFIED"):
             module.project_current_state([unverified])
+
+    def test_jit_packet_excludes_unrelated_history(self) -> None:
+        module = self._module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._archive_record(
+                root,
+                number=701,
+                title="LYNCH directing lesson",
+                body="LYNCH screen geography continuity requires a stable spatial map.",
+            )
+            self._archive_record(
+                root,
+                number=702,
+                title="SHERIFF supply chain",
+                body="SHERIFF OCI digest pinning protects mutable container tags.",
+            )
+            current = module.project_current_state([
+                self.fact("role", "E2", "ROLE", "LYNCH", exclusive=True, verified=True, scope_tags=["LYNCH"]),
+            ])
+            packet = module.build_context_packet(
+                root,
+                mandatory_anchors=[{"key": "CURRENT_TASK", "value": "scene-17"}],
+                current_state=current,
+                jit_queries=[{"facet": "DIRECTING_LESSON", "query": "screen geography continuity"}],
+            )
+        text = json.dumps(packet, sort_keys=True, ensure_ascii=False)
+        self.assertEqual(packet["status"], "PROVEN")
+        self.assertIn("screen geography continuity", text)
+        self.assertNotIn("OCI digest pinning", text)
+
+    def test_missing_required_jit_facet_is_not_proven(self) -> None:
+        module = self._module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            current = module.project_current_state([
+                self.fact("role", "E2", "ROLE", "LYNCH", exclusive=True, verified=True, scope_tags=["LYNCH"]),
+            ])
+            packet = module.build_context_packet(
+                root,
+                mandatory_anchors=[{"key": "CURRENT_TASK", "value": "scene-17"}],
+                current_state=current,
+                jit_queries=[{"facet": "DIRECTING_LESSON", "query": "screen geography continuity"}],
+            )
+        self.assertEqual(packet["status"], "NOT_PROVEN")
+        self.assertEqual(packet["missing_facets"], ["DIRECTING_LESSON"])
+
+    def test_e3_is_pointer_only_in_context_packet(self) -> None:
+        module = self._module()
+        raw_secret = "RAW-WORKFLOW-LOG-BODY-THAT-MUST-NOT-BE-DUPLICATED"
+        current = module.project_current_state([
+            self.fact(
+                "raw-1",
+                "E3",
+                "RAW_EVIDENCE",
+                raw_secret,
+                exclusive=False,
+                verified=True,
+                source_refs=["sha256:abc", "github:run:123"],
+            )
+        ])
+        with tempfile.TemporaryDirectory() as tmp:
+            packet = module.build_context_packet(
+                Path(tmp),
+                mandatory_anchors=[],
+                current_state=current,
+                jit_queries=[],
+            )
+        text = json.dumps(packet, sort_keys=True, ensure_ascii=False)
+        self.assertNotIn(raw_secret, text)
+        self.assertIn("sha256:abc", text)
+        self.assertIn("github:run:123", text)
 
 
 if __name__ == "__main__":

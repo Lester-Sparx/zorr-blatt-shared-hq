@@ -50,7 +50,12 @@ class PermissionAndHistoryBoundaryTests(unittest.TestCase):
         }
 
     @staticmethod
-    def evidence_comment(key: str, value_json: str) -> dict[str, object]:
+    def evidence_comment(
+        key: str,
+        value_json: str,
+        *,
+        actor: str = "Lester-Sparx",
+    ) -> dict[str, object]:
         return {
             "body": "\n".join(
                 [
@@ -61,7 +66,7 @@ class PermissionAndHistoryBoundaryTests(unittest.TestCase):
                 ]
             ),
             "issue_url": ISSUE_URL,
-            "user": {"login": "Lester-Sparx"},
+            "user": {"login": actor},
         }
 
     def test_caller_boolean_cannot_self_prove_first_process_blocker(self) -> None:
@@ -75,8 +80,22 @@ class PermissionAndHistoryBoundaryTests(unittest.TestCase):
             ("BLOCK", "DURABLE_PROCESS_BLOCKER_NOT_PROVEN"),
         )
 
-    def test_durable_process_blocker_allows_first_repair(self) -> None:
+    def test_same_agent_comment_cannot_self_prove_process_blocker(self) -> None:
         api = FakeGitHubApi([self.evidence_comment("PROCESS_BLOCKER", "true")])
+        result = hq_pre_action.evaluate_pre_action_with_github_freshness(
+            self.context(action="PROCESS_MUTATION", provenProcessBlocker=True),
+            context_packet=self.packet(),
+            github_api=api,
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("BLOCK", "DURABLE_PROCESS_BLOCKER_NOT_PROVEN"),
+        )
+
+    def test_machine_durable_process_blocker_allows_first_repair(self) -> None:
+        api = FakeGitHubApi(
+            [self.evidence_comment("PROCESS_BLOCKER", "true", actor="github-actions[bot]")]
+        )
         result = hq_pre_action.evaluate_pre_action_with_github_freshness(
             self.context(action="PROCESS_MUTATION", provenProcessBlocker=True),
             context_packet=self.packet(),
@@ -102,8 +121,10 @@ class PermissionAndHistoryBoundaryTests(unittest.TestCase):
             ("BLOCK", "DURABLE_EXTERNAL_BOUNDARY_NOT_PROVEN"),
         )
 
-    def test_durable_external_boundary_preserves_owner_gate(self) -> None:
-        api = FakeGitHubApi([self.evidence_comment("EXTERNAL_BOUNDARY", "true")])
+    def test_machine_durable_external_boundary_preserves_owner_gate(self) -> None:
+        api = FakeGitHubApi(
+            [self.evidence_comment("EXTERNAL_BOUNDARY", "true", actor="github-actions[bot]")]
+        )
         result = hq_pre_action.evaluate_pre_action_with_github_freshness(
             self.context(
                 action="REQUEST_OWNER_ACTION",
@@ -121,8 +142,8 @@ class PermissionAndHistoryBoundaryTests(unittest.TestCase):
     def test_conflicting_external_boundary_evidence_fails_closed(self) -> None:
         api = FakeGitHubApi(
             [
-                self.evidence_comment("EXTERNAL_BOUNDARY", "true"),
-                self.evidence_comment("EXTERNAL_BOUNDARY", "false"),
+                self.evidence_comment("EXTERNAL_BOUNDARY", "true", actor="github-actions[bot]"),
+                self.evidence_comment("EXTERNAL_BOUNDARY", "false", actor="github-actions[bot]"),
             ]
         )
         result = hq_pre_action.evaluate_pre_action_with_github_freshness(

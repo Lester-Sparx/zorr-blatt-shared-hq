@@ -32,6 +32,12 @@ class ContextDisciplinePreActionTests(unittest.TestCase):
         return {
             "schema": "ZB_CONTEXT_PACKET_V1",
             "status": status,
+            "mandatory_anchors": [{"key": "CURRENT_TASK", "value": "#235"}],
+            "current_state": {
+                "schema": "ZB_UNIFIED_CURRENT_CONTEXT_V1",
+                "facts": [],
+            },
+            "jit_facets": {},
             "missing_facets": [] if status == "PROVEN" else ["CURRENT_HEAD"],
             "source_refs": ["github:issue:235"],
         }
@@ -80,6 +86,16 @@ class ContextDisciplinePreActionTests(unittest.TestCase):
                 self.context(),
                 context_packet={"schema": "WRONG", "status": "PROVEN"},
             )
+
+    def test_forged_minimal_proven_packet_fails_closed(self) -> None:
+        forged = {
+            "schema": "ZB_CONTEXT_PACKET_V1",
+            "status": "PROVEN",
+            "missing_facets": [],
+            "source_refs": [],
+        }
+        with self.assertRaisesRegex(hq_pre_action.PreActionError, "CONTEXT_PACKET_INVALID"):
+            hq_pre_action.evaluate_pre_action(self.context(), context_packet=forged)
 
     def test_cli_consumes_context_packet_without_archive_lookup(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

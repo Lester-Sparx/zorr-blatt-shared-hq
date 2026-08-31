@@ -485,8 +485,10 @@ def evaluate_pre_action(
             if packet_active_head != fresh_active_head:
                 return _decision(context, "BLOCK", "DURABLE_CONTEXT_STALE", learning_policy, context_packet)
 
-    if action == "IMAGE_MUTATION" and not context["explicitOwnerImageMutationCommand"]:
-        return _decision(context, "BLOCK", "OWNER_IMAGE_MUTATION_COMMAND_REQUIRED", learning_policy, context_packet)
+    if action == "IMAGE_MUTATION":
+        if not context["explicitOwnerImageMutationCommand"]:
+            return _decision(context, "BLOCK", "OWNER_IMAGE_MUTATION_COMMAND_REQUIRED", learning_policy, context_packet)
+        return _decision(context, "BLOCK", "DURABLE_OWNER_COMMAND_NOT_PROVEN", learning_policy, context_packet)
     if context["activeAttempt"] and action not in READ_ONLY_WHILE_ACTIVE:
         return _decision(context, "WAIT", "ACTIVE_ATTEMPT_OWNS_PATH", learning_policy, context_packet)
     if action == "SEARCH_ASSET" and context["exactOwnerInputProvided"]:

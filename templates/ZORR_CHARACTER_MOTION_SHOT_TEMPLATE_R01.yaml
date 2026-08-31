@@ -1,0 +1,169 @@
+version: 1
+kind: ZORR_CHARACTER_MOTION_SHOT
+status: TEMPLATE
+
+# Contract basis:
+# - ZORR_ENGINE_HANDOFF_CONTRACT
+# - ZORR_2D_LAYER_MOTION_MATH
+# - ZORR_CHARACTER_LAYER_MOTION_HYBRID_SYSTEM_R01
+
+shot:
+  id: UNKNOWN
+  fps: 24
+  duration_s: UNKNOWN
+  raster_px:
+    width: UNKNOWN
+    height: UNKNOWN
+  source_hash: UNKNOWN
+
+camera:
+  authority: ARTIST_AUTHORED
+  track: UNKNOWN
+  contribution_required_in_qc: true
+
+layers:
+  - id: BG_FAR
+    parent_id: ROOT_CAMERA
+    source_authority: LOCKED_REFERENCE
+    deform_authority: RIGID
+    motion_role: PARALLAX
+    pivot_px: UNKNOWN
+    depth_response_k: UNKNOWN
+    z_order: UNKNOWN
+    occlusion_state: VISIBLE
+
+  - id: BG_MID
+    parent_id: ROOT_CAMERA
+    source_authority: LOCKED_REFERENCE
+    deform_authority: RIGID
+    motion_role: PARALLAX
+    pivot_px: UNKNOWN
+    depth_response_k: UNKNOWN
+    z_order: UNKNOWN
+    occlusion_state: VISIBLE
+
+  - id: CHAR_ROOT
+    parent_id: ROOT_CAMERA
+    source_authority: LOCKED_REFERENCE
+    deform_authority: RIGID
+    motion_role: PRIMARY
+    pivot_px: UNKNOWN
+    z_order: UNKNOWN
+    primary_motion: UNKNOWN
+
+  - id: TORSO
+    parent_id: CHAR_ROOT
+    source_authority: LOCKED_REFERENCE
+    deform_authority: AFFINE
+    motion_role: PRIMARY
+    pivot_px: UNKNOWN
+    primary_motion: UNKNOWN
+
+  - id: HEAD
+    parent_id: TORSO
+    source_authority: LOCKED_REFERENCE
+    deform_authority: PIVOT_ONLY
+    motion_role: PRIMARY
+    pivot_px: UNKNOWN
+    primary_motion: UNKNOWN
+
+  - id: FACE
+    parent_id: HEAD
+    source_authority: LOCKED_REFERENCE
+    deform_authority: PIVOT_ONLY
+    motion_role: HOLD
+    pivot_px: UNKNOWN
+    protected_identity_geometry: true
+
+  - id: HAIR_FRONT
+    parent_id: HEAD
+    source_authority: LOCKED_REFERENCE
+    deform_authority: AFFINE
+    motion_role: SECONDARY
+    pivot_px: UNKNOWN
+    secondary_model:
+      type: DAMPED_FOLLOW
+      omega: UNKNOWN
+      zeta: UNKNOWN
+
+  - id: ACCESSORY
+    parent_id: HEAD
+    source_authority: LOCKED_REFERENCE
+    deform_authority: PIVOT_ONLY
+    motion_role: SECONDARY
+    pivot_px: UNKNOWN
+    secondary_model:
+      type: DAMPED_FOLLOW
+      omega: UNKNOWN
+      zeta: UNKNOWN
+
+  - id: CLOTH_SECONDARY
+    parent_id: TORSO
+    source_authority: LOCKED_REFERENCE
+    deform_authority: MESH_DEFORM_ALLOWED
+    motion_role: SECONDARY
+    pivot_px: UNKNOWN
+    secondary_model:
+      type: DAMPED_FOLLOW
+      omega: UNKNOWN
+      zeta: UNKNOWN
+
+  - id: FG
+    parent_id: ROOT_CAMERA
+    source_authority: LOCKED_REFERENCE
+    deform_authority: RIGID
+    motion_role: PARALLAX
+    pivot_px: UNKNOWN
+    depth_response_k: UNKNOWN
+    z_order: UNKNOWN
+    occlusion_state: VISIBLE
+
+motion_intent:
+  action: UNKNOWN
+  attention_anchor: UNKNOWN
+  action_line: UNKNOWN
+  primary_driver: UNKNOWN
+  static_layers: []
+  new_key_drawing_required_if:
+    - OCCLUDED_UNKNOWN_REVEALED
+    - SEMANTIC_SILHOUETTE_CHANGE
+    - IDENTITY_DRIFT
+    - FASHION_SILHOUETTE_BREAK
+    - UNMEASURABLE_REQUIRED_PIVOT
+
+qc:
+  required_per_layer:
+    - position_px
+    - rotation_rad
+    - scale
+    - velocity_px_s
+    - angular_velocity_rad_s
+    - acceleration_px_s2
+    - jerk_px_s3
+    - z_order
+    - authority
+  required_full_frame:
+    - motion_energy_centroid_px
+    - foreground_silhouette_area_px2
+    - foreground_centroid_px
+    - camera_contribution
+    - parallax_contribution
+  protected_invariants:
+    - raster_dimensions_exact
+    - unknown_deformation_forbidden
+    - occluded_unknown_not_invented
+    - hold_transform_delta_zero
+  aesthetic_thresholds: NOT_CALIBRATED
+
+execution_order:
+  - LOCK_RASTER_AND_CAMERA
+  - ASSIGN_STABLE_LAYER_IDS
+  - MEASURE_VISIBLE_ANCHORS_AND_PIVOTS
+  - MARK_OCCLUDED_UNKNOWN
+  - ANIMATE_PRIMARY_MOTION
+  - ADD_HEAD_COUNTER_MOTION
+  - ADD_SECONDARY_HAIR_ACCESSORY_CLOTH
+  - ADD_CAMERA_PARALLAX
+  - RENDER
+  - MEASURE_PIXEL_MOTION
+  - TUNE_STYLE_LAST

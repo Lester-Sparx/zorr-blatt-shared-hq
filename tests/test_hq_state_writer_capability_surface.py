@@ -12,6 +12,13 @@ TRUSTED_ISSUE_WRITERS = {
     'zb-communication-r02b.yml',
     'zb-communication-r02b-v2.yml',
 }
+PERMISSION_EVIDENCE_MARKER = 'ZB_CONTEXT_E2_EVIDENCE_V1'
+TRUSTED_WRITER_SOURCES = (
+    Path('scripts/zb_communication_base.py'),
+    Path('scripts/zb_communication_r02b.py'),
+    Path('scripts/zb_communication_r02b_v2.py'),
+    Path('scripts/zb_communication_r02b_dispatch.py'),
+)
 
 
 class StateWriterCapabilitySurfaceTests(unittest.TestCase):
@@ -44,6 +51,19 @@ class StateWriterCapabilitySurfaceTests(unittest.TestCase):
                 text = self.workflow_text(WORKFLOW_ROOT / name)
                 self.assertIn(pinned_checkout, text)
                 self.assertIn('persist-credentials: false', text)
+
+    def test_permission_evidence_has_a_real_machine_writer_path(self) -> None:
+        missing = [path.as_posix() for path in TRUSTED_WRITER_SOURCES if not path.is_file()]
+        self.assertFalse(missing, f'missing trusted writer source(s): {missing}')
+        producers = [
+            path.as_posix()
+            for path in TRUSTED_WRITER_SOURCES
+            if PERMISSION_EVIDENCE_MARKER in path.read_text(encoding='utf-8')
+        ]
+        self.assertTrue(
+            producers,
+            'permission-bearing E2 accepts STATE_WRITER evidence but the closed issue-write transport set has no production marker producer',
+        )
 
 
 if __name__ == '__main__':

@@ -40,6 +40,16 @@ FORBIDDEN_OPTIONAL_FLAGS = {
     "AUTO_MERGE": "AUTO_MERGE_FORBIDDEN",
     "SELF_AWARDED_QC_PASS": "SELF_AWARDED_QC_PASS_FORBIDDEN",
 }
+PROTECTED_SELF_MODEL_NAMESPACES = {
+    "owner_relationship",
+    "constitution",
+    "authority",
+    "authority_boundary",
+    "canon",
+    "production_lock",
+    "prime_core",
+}
+OWNER_TASTE_STATUS_CANDIDATE_UNPROVEN = "CANDIDATE_UNPROVEN"
 
 
 class DuncanNightArchiveError(RuntimeError):
@@ -125,6 +135,18 @@ def _parse_model_entries(lines: list[str] | None, section: str) -> tuple[dict[st
     return entries, errors
 
 
+def _normalized_model_key(key: str) -> str:
+    return re.sub(r"[.-]+", "_", key.strip().lower())
+
+
+def _is_protected_self_model_key(key: str) -> bool:
+    normalized = _normalized_model_key(key)
+    return any(
+        normalized == namespace or normalized.startswith(namespace + "_")
+        for namespace in PROTECTED_SELF_MODEL_NAMESPACES
+    )
+
+
 def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[str, object] | None:
     if not isinstance(event_bytes, bytes):
         raise TypeError("EVENT_BYTES_REQUIRED")
@@ -200,6 +222,9 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
     owner_taste, taste_errors = _parse_model_entries(
         _section_lines(body, "OWNER_TASTE_MODEL_DELTA"), "OWNER_TASTE_MODEL_DELTA"
     )
+    for key in self_model:
+        if _is_protected_self_model_key(key):
+            errors.append(f"SELF_MODEL_PROTECTED_KEY:{key}")
     errors.extend(skill_errors)
     errors.extend(self_errors)
     errors.extend(taste_errors)
@@ -220,6 +245,7 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
         "skill_deltas": skills,
         "self_model_delta": self_model,
         "owner_taste_model_delta": owner_taste,
+        "owner_taste_model_delta_status": OWNER_TASTE_STATUS_CANDIDATE_UNPROVEN,
         "training_eligible": not errors,
         "validation_errors": sorted(set(errors)),
     }
@@ -340,7 +366,8 @@ def compute_duncan_context(archive_root: Path) -> dict[str, object]:
         if not isinstance(self_delta, dict) or not isinstance(taste_delta, dict):
             raise DuncanNightArchiveError("DUNCAN_MODEL_DELTA_INVALID")
         self_model.update({str(k): str(v) for k, v in self_delta.items()})
-        owner_taste_model.update({str(k): str(v) for k, v in taste_delta.items()})
+        if record.get("owner_taste_model_delta_status") == "PROVEN":
+            owner_taste_model.update({str(k): str(v) for k, v in taste_delta.items()})
         source_events.append(
             {
                 "cycle_id": cycle_id,

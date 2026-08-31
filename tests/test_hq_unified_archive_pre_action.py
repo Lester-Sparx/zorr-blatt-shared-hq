@@ -35,13 +35,52 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
         context.update(overrides)
         return context
 
+    @staticmethod
+    def _terminal_pass_fact() -> dict[str, object]:
+        return {
+            "schema": "ZB_CONTEXT_FACT_V1",
+            "fact_id": "legacy-regression-pass",
+            "class": "E2",
+            "key": "RESULT",
+            "value": "PASS",
+            "exclusive": True,
+            "verified": True,
+            "authority": "GITHUB",
+            "created_at": "2026-08-31T19:10:00Z",
+            "scope_tags": ["ZORR"],
+            "source_refs": ["github:test:legacy-regression-pass"],
+            "supersedes": [],
+        }
+
+    @classmethod
+    def _packet(cls, context: dict[str, object]) -> dict[str, object]:
+        facts: list[dict[str, object]] = []
+        if context.get("action") == "CLAIM_PASS" and context.get("freshVerificationEvidence") is True:
+            facts.append(cls._terminal_pass_fact())
+        return {
+            "schema": "ZB_CONTEXT_PACKET_V1",
+            "status": "PROVEN",
+            "mandatory_anchors": [{"key": "CURRENT_TASK", "value": "legacy-pre-action-regression"}],
+            "current_state": {
+                "schema": "ZB_CONTEXT_CURRENT_STATE_V1",
+                "facts": facts,
+            },
+            "jit_facets": {},
+            "missing_facets": [],
+            "source_refs": ["github:test:legacy-pre-action-regression"],
+        }
+
     def _decide(
         self,
         context: dict[str, object],
         learning_policy: dict[str, object] | None = None,
     ) -> dict[str, object]:
         gate = self._gate_module()
-        return gate.evaluate_pre_action(context, learning_policy=learning_policy)
+        return gate.evaluate_pre_action(
+            context,
+            learning_policy=learning_policy,
+            context_packet=self._packet(context),
+        )
 
     def test_incident_replay_exact_owner_asset_blocks_search(self) -> None:
         result = self._decide(self._context(action="SEARCH_ASSET", directlyAdvancesPhysicalResult=False, exactOwnerInputProvided=True))
@@ -126,10 +165,21 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
 
     def test_cli_is_real_fail_closed_gate(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            context_path = Path(tmp) / "context.json"
-            context_path.write_text(json.dumps(self._context(action="SEARCH_ASSET", directlyAdvancesPhysicalResult=False, exactOwnerInputProvided=True)), encoding="utf-8")
+            root = Path(tmp)
+            context = self._context(action="SEARCH_ASSET", directlyAdvancesPhysicalResult=False, exactOwnerInputProvided=True)
+            context_path = root / "context.json"
+            packet_path = root / "packet.json"
+            context_path.write_text(json.dumps(context), encoding="utf-8")
+            packet_path.write_text(json.dumps(self._packet(context)), encoding="utf-8")
             completed = subprocess.run(
-                [sys.executable, "scripts/hq_pre_action.py", "--context-path", str(context_path)],
+                [
+                    sys.executable,
+                    "scripts/hq_pre_action.py",
+                    "--context-path",
+                    str(context_path),
+                    "--context-packet-path",
+                    str(packet_path),
+                ],
                 cwd=Path(__file__).resolve().parents[1],
                 text=True,
                 capture_output=True,

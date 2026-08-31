@@ -227,6 +227,7 @@ class ContextLoopHistoryIntegrityTests(unittest.TestCase):
         result = hq_pre_action.evaluate_pre_action(
             context,
             context_packet=self.packet_with_proven_new_blocker_without_signatures(),
+            _externally_proven_e2_keys=frozenset({"NEW_PHYSICAL_BLOCKER"}),
         )
         self.assertEqual(
             (result["decision"], result["reason"]),
@@ -239,6 +240,9 @@ class ContextLoopHistoryIntegrityTests(unittest.TestCase):
         result = hq_pre_action.evaluate_pre_action(
             context,
             context_packet=self.packet_with_proven_new_blocker_same_signature(),
+            _externally_proven_e2_keys=frozenset(
+                {"NEW_PHYSICAL_BLOCKER", "ERROR_SIGNATURE", "PROCESS_MUTATION_ERROR_SIGNATURE"}
+            ),
         )
         self.assertEqual(
             (result["decision"], result["reason"]),

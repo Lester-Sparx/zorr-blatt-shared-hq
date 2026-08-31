@@ -20,6 +20,8 @@ class DuncanNightArchiveWorkflowTests(unittest.TestCase):
         body = """DUNCAN_NIGHT_REPORT_R01
 CYCLE_ID = DNR01-WORKFLOW-001
 MAIN_HEAD_OBSERVED = deadbeef
+REGRESSION_RESULTS = Prior composition lesson replay PASS on bounded fixture.
+TRANSFER_TEST = Changed/unseen composition fixture PASS; not used to tune original exercise.
 PRIME_CORE_CHANGED = NO
 PRODUCTION_MUTATION = NO
 

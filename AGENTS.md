@@ -42,7 +42,11 @@ The optimized policy is a derived compression/eval layer only. It may remove red
 
 ## Pre-action enforcement
 
-Before each substantive action, construct the explicit current action context and run `python3 scripts/hq_pre_action.py --context-path <context.json>`. When the verified learning archive is available, also pass `--archive-root <archive-root> --query <task-or-error-signature>` so the decision carries the relevant CLOSED-SHERIFF lesson policy.
+Before each substantive action, construct the explicit current action context plus a minimum evidence-complete context packet and run `python3 scripts/hq_pre_action.py --context-path <context.json> --context-packet-path <context-packet.json>`. When the verified learning archive is available, also pass `--archive-root <archive-root> --query <task-or-error-signature>` so the decision carries the relevant CLOSED-SHERIFF lesson policy.
+
+For a substantive action whose verified current state contains `ACTIVE_HEAD`, that E2 fact must carry exactly one resolvable PR provenance ref in `source_refs`, formatted `github:pr:N`. The repo CLI resolves that PR through independent GitHub read authority using `GITHUB_TOKEN`; if the source cannot be resolved or GitHub read authority is unavailable, fail closed with `DURABLE_CONTEXT_FRESHNESS_SOURCE_NOT_PROVEN`. A caller-supplied fresh head is not authority and `--fresh-active-head` must never substitute for the independent GitHub read.
+
+`READ_ACTIVE_RESULT` and `READ_REQUIRED_EVIDENCE` remain recovery-only paths and may run without a proven packet/freshness binding so the system can obtain the evidence needed to recover.
 
 The returned contract is `ZB_PRE_ACTION_DECISION_V1`. Only `decision = ALLOW` authorizes the proposed action. Every non-ALLOW decision stops that proposed action: `WAIT` means read the active result/evidence only; `BLOCK` means do not perform the action; `OWNER_REQUIRED` is legal only for a proven external boundary.
 
@@ -53,6 +57,22 @@ Exact OWNER input supersedes asset search. Already-proven prerequisites are not 
 This repository gate is a real executable fail-closed control for execution surfaces that invoke it. It is not claimed to be a physical interceptor of the native chat tool boundary; native chat tool boundary enforcement still depends on the agent/session obeying this mandatory bootstrap law.
 
 If required durable context is missing, contradictory, or unreadable, fail closed with `DURABLE_CONTEXT_NOT_PROVEN`. Never guess.
+
+## Context Discipline R01 — compact restart/output contract
+
+CHAT = ACTIVE DELTA
+CURRENT STATE = COMPACT UNSUPERSEDED VERIFIED PROJECTION
+ARCHIVE = EXISTING FULL DURABLE HISTORY
+RESTORE = MINIMUM EVIDENCE-COMPLETE JIT PACKET
+
+- After current state is established, default to material deltas only.
+- If nothing material changed, emit compact `NO DELTA` instead of repeating settled state.
+- Superseded facts are excluded from normal restore.
+- Old still-valid OWNER authority is never dropped due to age.
+- Unrelated history is retrieved JIT only for an explicit dependency.
+- Derived handoff or WARM state never overrides fresh exact GitHub evidence.
+- Contradiction or missing required evidence fails closed with `DURABLE_CONTEXT_NOT_PROVEN`.
+- Terminal claims retain the exact evidence required by the Constitution.
 
 ## Evidence precedence
 

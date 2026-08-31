@@ -27,42 +27,40 @@
 - `MERGE = NO` unless separately authorized.
 - `CANON_CHANGE = NO`.
 - Implementation MUST branch from the freshest legal base that already contains Unified Archive V1. At plan-writing time that is `duncan/sandbox` HEAD `28bca057b06eadff8759aa895d744d46266006a0` / PR #205; fresh-read it at execution time and stop rather than duplicating the subsystem if this has changed.
-- The design PR #240 is documentation authority for this feature; implementation must not mutate #240 into a code PR.
+- The design PR #240 is documentation authority for this feature; implementation must use a separate isolated branch/PR.
 
 ---
 
 ## File Structure
 
 **Create**
-- `scripts/hq_context_discipline.py` — context classification, supersession projection, JIT packet assembly, handoff construction, owner-delta rendering, and benchmark CLI. It must call Unified Archive APIs rather than read/write a new archive format.
+- `scripts/hq_context_discipline.py` — context classification, supersession projection, JIT packet assembly, handoff construction, OWNER delta rendering, benchmark CLI.
 - `tests/test_hq_context_discipline_r01.py` — T1-T10 behavioral/negative/transfer acceptance suite.
 
 **Modify**
 - `scripts/hq_pre_action.py` — optional fail-closed consumption of a context packet before substantive action; preserve existing learning-policy behavior.
 - `tests/test_hq_unified_archive_pre_action.py` — context-packet integration regressions.
-- `AGENTS.md` — only after behavioral tests pass, document delta-only output, JIT restore, handoff, and derived-state precedence. Do not rewrite existing root/authority laws.
+- `AGENTS.md` — only after behavioral proof, add the compact restart/output contract; do not rewrite existing root/authority laws.
 
-**Reuse without semantic replacement**
-- `scripts/hq_unified_archive.py` — existing RAW-bound records, FTS5 `search_records`, `build_restore_packet`, verified lessons, optimized learning policy.
+**Reuse unchanged as authority/data layer**
+- `scripts/hq_unified_archive.py` — RAW-bound records, FTS5 `search_records`, `build_restore_packet`, verified lessons, optimized learning policy.
 - Permanent Archive V1 workflow and RAW branch.
 
 ---
 
-### Task 1: Establish the context-fact model and fail-closed supersession projection
+### Task 1: Context fact model and fail-closed supersession projection
 
 **Files:**
 - Create: `scripts/hq_context_discipline.py`
-- Test: `tests/test_hq_context_discipline_r01.py`
+- Create: `tests/test_hq_context_discipline_r01.py`
 
 **Interfaces:**
-- Consumes: plain dictionaries representing project-controlled context facts.
-- Produces:
-  - `ContextDisciplineError(RuntimeError)`
-  - `normalize_fact(fact: dict[str, Any]) -> dict[str, Any]`
-  - `project_current_state(facts: list[dict[str, Any]], *, scope_tags: set[str] | None = None) -> dict[str, Any]`
-  - packet schema constants `ZB_CONTEXT_FACT_V1`, `ZB_CONTEXT_CURRENT_STATE_V1`.
+- `ContextDisciplineError(RuntimeError)`
+- `normalize_fact(fact: dict[str, Any]) -> dict[str, Any]`
+- `project_current_state(facts: list[dict[str, Any]], *, scope_tags: set[str] | None = None) -> dict[str, Any]`
+- schemas `ZB_CONTEXT_FACT_V1` and `ZB_CONTEXT_CURRENT_STATE_V1`.
 
-A valid fact shape is:
+A context fact is exactly:
 
 ```python
 {
@@ -81,67 +79,90 @@ A valid fact shape is:
 }
 ```
 
-E0 facts are never projected. E1 facts may remain while current. E2 facts may project when relevant. E3 facts project only as refs/pointers, not full raw payload. Exclusive keys may expose at most one unsuperseded current value.
+- [ ] **Step 1: Write the shared test helper and RED tests**
 
-- [ ] **Step 1: Write RED tests for ephemeral exclusion, supersession, OWNER-lock retention, and contradiction**
+Start `tests/test_hq_context_discipline_r01.py` with:
 
 ```python
-from scripts.hq_context_discipline import ContextDisciplineError, project_current_state
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import tempfile
+import unittest
 
 
-def test_e0_never_enters_current_projection():
-    state = project_current_state([
-        {
+class ContextDisciplineR01Tests(unittest.TestCase):
+    @staticmethod
+    def fact(
+        fact_id: str,
+        class_: str,
+        key: str,
+        value: str,
+        *,
+        exclusive: bool,
+        verified: bool,
+        authority: str = "GITHUB",
+        created_at: str = "2026-08-31T16:00:00Z",
+        scope_tags: list[str] | None = None,
+        source_refs: list[str] | None = None,
+        supersedes: list[str] | None = None,
+    ) -> dict[str, object]:
+        return {
             "schema": "ZB_CONTEXT_FACT_V1",
-            "fact_id": "progress-1",
-            "class": "E0",
-            "key": "PROGRESS",
-            "value": "checking",
-            "exclusive": False,
-            "verified": False,
-            "authority": "CHAT",
-            "created_at": "2026-08-31T15:00:00Z",
-            "scope_tags": ["LESTER"],
-            "source_refs": [],
-            "supersedes": [],
+            "fact_id": fact_id,
+            "class": class_,
+            "key": key,
+            "value": value,
+            "exclusive": exclusive,
+            "verified": verified,
+            "authority": authority,
+            "created_at": created_at,
+            "scope_tags": list(scope_tags or ["LESTER"]),
+            "source_refs": list(source_refs or []),
+            "supersedes": list(supersedes or []),
         }
-    ])
-    assert state["facts"] == []
 
+    def test_e0_never_enters_current_projection(self) -> None:
+        from scripts.hq_context_discipline import project_current_state
+        state = project_current_state([
+            self.fact("progress-1", "E0", "PROGRESS", "checking", exclusive=False, verified=False)
+        ])
+        self.assertEqual(state["facts"], [])
 
-def test_new_head_supersedes_old_head():
-    facts = [
-        fact("head-a", "E2", "ACTIVE_HEAD", "aaaa", exclusive=True, verified=True),
-        fact("head-b", "E2", "ACTIVE_HEAD", "bbbb", exclusive=True, verified=True, supersedes=["head-a"]),
-    ]
-    state = project_current_state(facts)
-    assert [(x["key"], x["value"]) for x in state["facts"]] == [("ACTIVE_HEAD", "bbbb")]
+    def test_new_head_supersedes_old_head(self) -> None:
+        from scripts.hq_context_discipline import project_current_state
+        facts = [
+            self.fact("head-a", "E2", "ACTIVE_HEAD", "aaaa", exclusive=True, verified=True),
+            self.fact("head-b", "E2", "ACTIVE_HEAD", "bbbb", exclusive=True, verified=True,
+                      supersedes=["head-a"]),
+        ]
+        state = project_current_state(facts)
+        self.assertEqual([(x["key"], x["value"]) for x in state["facts"]], [("ACTIVE_HEAD", "bbbb")])
 
+    def test_old_unsuperseded_owner_lock_survives(self) -> None:
+        from scripts.hq_context_discipline import project_current_state
+        facts = [
+            self.fact("owner-lock-1", "E2", "OWNER_LOCK", "NO_OWNER_RELAY",
+                      exclusive=False, verified=True, authority="OWNER",
+                      created_at="2026-01-01T00:00:00Z"),
+            self.fact("noise", "E0", "PROGRESS", "still checking", exclusive=False, verified=False),
+        ]
+        state = project_current_state(facts)
+        self.assertTrue(any(x["fact_id"] == "owner-lock-1" for x in state["facts"]))
 
-def test_old_unsuperseded_owner_lock_survives():
-    facts = [
-        fact("owner-lock-1", "E2", "OWNER_LOCK", "NO_OWNER_RELAY", exclusive=False, verified=True,
-             authority="OWNER", created_at="2026-01-01T00:00:00Z"),
-        fact("noise", "E0", "PROGRESS", "still checking", exclusive=False, verified=False),
-    ]
-    state = project_current_state(facts)
-    assert any(x["fact_id"] == "owner-lock-1" for x in state["facts"])
-
-
-def test_conflicting_unsuperseded_exclusive_values_fail_closed():
-    facts = [
-        fact("head-a", "E2", "ACTIVE_HEAD", "aaaa", exclusive=True, verified=True),
-        fact("head-b", "E2", "ACTIVE_HEAD", "bbbb", exclusive=True, verified=True),
-    ]
-    with pytest.raises(ContextDisciplineError, match="DURABLE_CONTEXT_NOT_PROVEN:CONFLICT:ACTIVE_HEAD"):
-        project_current_state(facts)
+    def test_conflicting_unsuperseded_exclusive_values_fail_closed(self) -> None:
+        from scripts.hq_context_discipline import ContextDisciplineError, project_current_state
+        facts = [
+            self.fact("head-a", "E2", "ACTIVE_HEAD", "aaaa", exclusive=True, verified=True),
+            self.fact("head-b", "E2", "ACTIVE_HEAD", "bbbb", exclusive=True, verified=True),
+        ]
+        with self.assertRaisesRegex(ContextDisciplineError,
+                                    "DURABLE_CONTEXT_NOT_PROVEN:CONFLICT:ACTIVE_HEAD"):
+            project_current_state(facts)
 ```
 
-Use a local `fact(...)` helper in the test file to keep fixtures readable; do not add a production fixture builder.
-
-- [ ] **Step 2: Run focused RED tests**
-
-Run:
+- [ ] **Step 2: Run RED**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 -v
@@ -149,18 +170,22 @@ python -m unittest tests.test_hq_context_discipline_r01 -v
 
 Expected: import failure because `scripts/hq_context_discipline.py` does not exist.
 
-- [ ] **Step 3: Implement the minimal fact validator and supersession projection**
+- [ ] **Step 3: Implement minimal validation/projection**
 
-Start with:
+Start `scripts/hq_context_discipline.py` with:
 
 ```python
 from __future__ import annotations
 
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 FACT_SCHEMA = "ZB_CONTEXT_FACT_V1"
 CURRENT_STATE_SCHEMA = "ZB_CONTEXT_CURRENT_STATE_V1"
+CONTEXT_PACKET_SCHEMA = "ZB_CONTEXT_PACKET_V1"
+HANDOFF_SCHEMA = "ZB_CONTEXT_HANDOFF_V1"
+BENCHMARK_SCHEMA = "ZB_CONTEXT_BENCHMARK_V1"
 CLASSES = {"E0", "E1", "E2", "E3"}
 
 
@@ -182,33 +207,29 @@ def normalize_fact(fact: dict[str, Any]) -> dict[str, Any]:
         raise ContextDisciplineError("CONTEXT_FACT_CLASS_INVALID")
     if type(fact["exclusive"]) is not bool or type(fact["verified"]) is not bool:
         raise ContextDisciplineError("CONTEXT_FACT_BOOLEAN_INVALID")
-    if not isinstance(fact["scope_tags"], list) or not all(isinstance(x, str) for x in fact["scope_tags"]):
-        raise ContextDisciplineError("CONTEXT_FACT_SCOPE_INVALID")
-    if not isinstance(fact["source_refs"], list) or not all(isinstance(x, str) for x in fact["source_refs"]):
-        raise ContextDisciplineError("CONTEXT_FACT_SOURCE_INVALID")
-    if not isinstance(fact["supersedes"], list) or not all(isinstance(x, str) for x in fact["supersedes"]):
-        raise ContextDisciplineError("CONTEXT_FACT_SUPERSEDES_INVALID")
+    for field in ("scope_tags", "source_refs", "supersedes"):
+        if not isinstance(fact[field], list) or not all(isinstance(x, str) for x in fact[field]):
+            raise ContextDisciplineError("CONTEXT_FACT_LIST_INVALID:" + field)
     return dict(fact)
 ```
 
 `project_current_state` must:
 1. validate all facts;
 2. remove E0;
-3. apply optional scope intersection while always retaining `authority == "OWNER"` facts whose key is relevant to the caller-provided scope;
-4. remove any fact whose `fact_id` is named by another retained fact's `supersedes`;
-5. group remaining exclusive facts by key and raise on more than one distinct value;
-6. sort deterministically by `(key, created_at, fact_id)`;
-7. return `{"schema": CURRENT_STATE_SCHEMA, "facts": [...]}`.
+3. apply scope intersection when supplied;
+4. retain relevant unsuperseded OWNER authority even when old;
+5. remove facts explicitly named by a retained fact's `supersedes`;
+6. group remaining exclusive facts by key and raise if more than one distinct value remains;
+7. sort deterministically by `(key, created_at, fact_id)`;
+8. return `{"schema": CURRENT_STATE_SCHEMA, "facts": projected}`.
 
-Do not infer supersession from recency alone. A newer timestamp is not authorization to silently supersede an older OWNER/canon/authority fact.
+Do not infer supersession from recency alone.
 
-- [ ] **Step 4: Run focused tests GREEN**
+- [ ] **Step 4: Run GREEN**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 -v
 ```
-
-Expected: Task 1 tests PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -219,70 +240,104 @@ git commit -m "feat: add fail-closed context state projection"
 
 ---
 
-### Task 2: Build the minimum evidence-complete JIT restore packet on top of Unified Archive
+### Task 2: Minimum evidence-complete JIT restore packet
 
 **Files:**
 - Modify: `scripts/hq_context_discipline.py`
 - Modify: `tests/test_hq_context_discipline_r01.py`
 
 **Interfaces:**
-- Consumes existing `scripts.hq_unified_archive.build_restore_packet` and `build_learning_policy`.
-- Produces:
-  - `build_context_packet(archive_root: Path, *, mandatory_anchors: list[dict[str, Any]], current_state: dict[str, Any], jit_queries: list[dict[str, str]]) -> dict[str, Any]`
-  - schema `ZB_CONTEXT_PACKET_V1`.
+- Reuse `scripts.hq_unified_archive.derive_record`, `write_record`, `build_restore_packet`, `build_learning_policy`.
+- Add `build_context_packet(archive_root: Path, *, mandatory_anchors: list[dict[str, Any]], current_state: dict[str, Any], jit_queries: list[dict[str, str]], lesson_query: str | None = None) -> dict[str, Any]`.
 
-Each JIT query is explicit and decision-facet keyed:
+- [ ] **Step 1: Add archive fixture helpers with real existing APIs**
 
-```python
-{"facet": "STALE_HEAD_LESSON", "query": "stale head evidence substitution"}
-```
-
-There is no global TOP-K law. For each required facet, search begins narrow and expands deterministically only when no evidence is returned; missing required facets make the packet `NOT_PROVEN` rather than causing transcript flooding.
-
-- [ ] **Step 1: Write RED tests for unrelated-history exclusion, required-facet retrieval, and missing-facet fail-closed**
+Add to the test class:
 
 ```python
-def test_jit_packet_excludes_unrelated_history(tmp_path):
-    archive_root = build_archive_with_records(
-        tmp_path,
-        relevant="LYNCH screen geography continuity",
-        unrelated="SHERIFF OCI digest pinning",
-    )
-    packet = build_context_packet(
-        archive_root,
-        mandatory_anchors=[anchor("CURRENT_TASK", "scene-17")],
-        current_state=current_state_for("LYNCH"),
-        jit_queries=[{"facet": "DIRECTING_LESSON", "query": "screen geography continuity"}],
-    )
-    text = json.dumps(packet, ensure_ascii=False)
-    assert "screen geography" in text
-    assert "OCI digest" not in text
+    @staticmethod
+    def archive_event(title: str, body: str, number: int) -> bytes:
+        payload = {
+            "action": "created",
+            "issue": {
+                "number": number,
+                "title": title,
+                "html_url": f"https://github.com/Lester-Sparx/zorr-blatt-shared-hq/issues/{number}",
+            },
+            "comment": {
+                "body": body,
+                "html_url": f"https://github.com/Lester-Sparx/zorr-blatt-shared-hq/issues/{number}#issuecomment-1",
+                "created_at": "2026-08-31T16:00:00Z",
+            },
+        }
+        return (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
 
-
-def test_missing_required_jit_facet_is_not_proven(tmp_path):
-    packet = build_context_packet(
-        empty_archive(tmp_path),
-        mandatory_anchors=[anchor("CURRENT_TASK", "scene-17")],
-        current_state=current_state_for("LYNCH"),
-        jit_queries=[{"facet": "DIRECTING_LESSON", "query": "screen geography continuity"}],
-    )
-    assert packet["status"] == "NOT_PROVEN"
-    assert packet["missing_facets"] == ["DIRECTING_LESSON"]
+    @classmethod
+    def write_archive_record(cls, archive_root: Path, *, title: str, body: str, number: int) -> str:
+        import hashlib
+        from scripts.hq_unified_archive import derive_record, write_record
+        raw = cls.archive_event(title, body, number)
+        digest = hashlib.sha256(raw).hexdigest()
+        record = derive_record(
+            raw,
+            raw_sha256=digest,
+            event_name="issue_comment",
+            repository="Lester-Sparx/zorr-blatt-shared-hq",
+            actor="Lester-Sparx",
+        )
+        write_record(record, archive_root)
+        return digest
 ```
 
-Also add a test proving E3 content appears only as source/hash/url refs in the packet, not duplicated raw bytes.
+- [ ] **Step 2: Add RED JIT tests**
 
-- [ ] **Step 2: Run RED**
+```python
+    def test_jit_packet_excludes_unrelated_history(self) -> None:
+        from scripts.hq_context_discipline import build_context_packet, project_current_state
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_archive_record(root, title="LYNCH lesson",
+                                      body="screen geography continuity axis", number=701)
+            self.write_archive_record(root, title="SHERIFF lesson",
+                                      body="OCI digest pinning security", number=702)
+            state = project_current_state([
+                self.fact("role", "E2", "ROLE", "LYNCH", exclusive=True, verified=True,
+                          scope_tags=["LYNCH"])
+            ])
+            packet = build_context_packet(
+                root,
+                mandatory_anchors=[{"key": "CURRENT_TASK", "value": "scene-17"}],
+                current_state=state,
+                jit_queries=[{"facet": "DIRECTING_LESSON", "query": "screen geography continuity"}],
+            )
+        text = json.dumps(packet, ensure_ascii=False)
+        self.assertIn("screen geography", text)
+        self.assertNotIn("OCI digest", text)
+
+    def test_missing_required_jit_facet_is_not_proven(self) -> None:
+        from scripts.hq_context_discipline import build_context_packet, project_current_state
+        with tempfile.TemporaryDirectory() as tmp:
+            packet = build_context_packet(
+                Path(tmp),
+                mandatory_anchors=[{"key": "CURRENT_TASK", "value": "scene-17"}],
+                current_state=project_current_state([]),
+                jit_queries=[{"facet": "DIRECTING_LESSON", "query": "screen geography continuity"}],
+            )
+        self.assertEqual(packet["status"], "NOT_PROVEN")
+        self.assertEqual(packet["missing_facets"], ["DIRECTING_LESSON"])
+```
+
+Also add a test where an E3 fact's `value` contains a large raw string but the projected packet includes only its `source_refs`; raw body duplication is a failure.
+
+- [ ] **Step 3: Run RED**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 -v
 ```
 
-Expected: missing `build_context_packet`.
+- [ ] **Step 4: Implement JIT retrieval using Unified Archive only**
 
-- [ ] **Step 3: Implement adaptive facet retrieval using existing archive APIs**
-
-Use imports:
+Import existing APIs:
 
 ```python
 try:
@@ -291,36 +346,43 @@ except ModuleNotFoundError:
     from hq_unified_archive import build_learning_policy, build_restore_packet
 ```
 
-Implementation rule:
+Use adaptive search expansion:
 
 ```python
 def _retrieve_facet(archive_root: Path, query: str) -> dict[str, Any] | None:
-    for limit in (1, 2, 4, 8, 16):
+    previous_count = -1
+    limit = 1
+    while True:
         packet = build_restore_packet(archive_root, query, limit=limit)
-        if packet.get("status") == "PROVEN" and packet.get("results"):
+        results = packet.get("results") if isinstance(packet, dict) else None
+        if isinstance(results, list) and results:
             return packet
-    return None
+        current_count = len(results) if isinstance(results, list) else 0
+        if current_count == previous_count and limit > 1:
+            return None
+        previous_count = current_count
+        limit *= 2
+        if limit > 1024:
+            return None
 ```
 
-The sequence above is an implementation search expansion, not a quality threshold. Acceptance must never depend on “TOP-16 is enough”; if a known required fact cannot be found, return `NOT_PROVEN`. If execution-time inspection shows the existing API can expose record count/exhaustion more directly, prefer that native exhaustion signal and remove the bounded sequence.
+The numeric ceiling is a defensive loop bound, not an acceptance threshold. If execution-time inspection exposes exact archive exhaustion/record count, replace this with that exact exhaustion signal.
 
-The context packet must include:
-- mandatory anchors unchanged;
-- the already-projected current state;
-- one result set per requested facet;
-- task-specific verified learning from `build_learning_policy` only when a lesson query is explicitly supplied;
-- `source_refs` sufficient to expand to RAW later;
-- `status`, `missing_facets`, and deterministic schema/version.
+`build_context_packet` must include only:
+- mandatory anchors;
+- projected current facts;
+- one result set per explicit required facet;
+- verified learning from `build_learning_policy` only when `lesson_query` is supplied;
+- source refs for later RAW escalation;
+- `status` and `missing_facets`.
 
-- [ ] **Step 4: GREEN + existing Unified Archive regression**
+- [ ] **Step 5: GREEN + Unified Archive regressions**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 tests.test_hq_unified_archive_v1 tests.test_hq_unified_archive_learning tests.test_hq_unified_archive_optimizer -v
 ```
 
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add scripts/hq_context_discipline.py tests/test_hq_context_discipline_r01.py
@@ -329,42 +391,48 @@ git commit -m "feat: add evidence-complete jit context packets"
 
 ---
 
-### Task 3: Add delta-only OWNER-facing output without suppressing blockers or terminal evidence
+### Task 3: Delta-only OWNER output
 
 **Files:**
 - Modify: `scripts/hq_context_discipline.py`
 - Modify: `tests/test_hq_context_discipline_r01.py`
 
 **Interfaces:**
-- Produces:
-  - `diff_current_state(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]`
-  - `render_owner_delta(delta: dict[str, Any], *, blocker: str | None, evidence: list[str], next_action: str | None) -> str`
+- `diff_current_state(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]`
+- `render_owner_delta(delta: dict[str, Any], *, blocker: str | None, evidence: list[str], next_action: str | None) -> str`
 
-- [ ] **Step 1: RED tests for no-delta and terminal evidence retention**
+- [ ] **Step 1: RED tests**
 
 ```python
-def test_no_delta_does_not_repeat_settled_state():
-    state = state_with("ACTIVE_HEAD", "bbbb")
-    delta = diff_current_state(state, state)
-    text = render_owner_delta(delta, blocker="WAITING_FOR_CI", evidence=[], next_action=None)
-    assert text == "NO DELTA. BLOCKER = WAITING_FOR_CI"
-    assert "bbbb" not in text
+    def test_no_delta_does_not_repeat_settled_state(self) -> None:
+        from scripts.hq_context_discipline import diff_current_state, project_current_state, render_owner_delta
+        state = project_current_state([
+            self.fact("head-b", "E2", "ACTIVE_HEAD", "bbbb", exclusive=True, verified=True)
+        ])
+        delta = diff_current_state(state, state)
+        text = render_owner_delta(delta, blocker="WAITING_FOR_CI", evidence=[], next_action=None)
+        self.assertEqual(text, "NO DELTA. BLOCKER = WAITING_FOR_CI")
+        self.assertNotIn("bbbb", text)
 
-
-def test_terminal_delta_keeps_exact_evidence():
-    previous = state_with("RESULT", "RUNNING")
-    current = state_with("RESULT", "PASS")
-    delta = diff_current_state(previous, current)
-    text = render_owner_delta(
-        delta,
-        blocker=None,
-        evidence=["run:33414957721", "head:556082d"],
-        next_action="AUDIT_NEXT_GAP",
-    )
-    assert "DELTA:" in text
-    assert "run:33414957721" in text
-    assert "head:556082d" in text
-    assert "NEXT: AUDIT_NEXT_GAP" in text
+    def test_terminal_delta_keeps_exact_evidence(self) -> None:
+        from scripts.hq_context_discipline import diff_current_state, project_current_state, render_owner_delta
+        previous = project_current_state([
+            self.fact("result-a", "E1", "RESULT", "RUNNING", exclusive=True, verified=True)
+        ])
+        current = project_current_state([
+            self.fact("result-b", "E2", "RESULT", "PASS", exclusive=True, verified=True,
+                      supersedes=["result-a"])
+        ])
+        text = render_owner_delta(
+            diff_current_state(previous, current),
+            blocker=None,
+            evidence=["run:33414957721", "head:556082d"],
+            next_action="AUDIT_NEXT_GAP",
+        )
+        self.assertIn("DELTA:", text)
+        self.assertIn("run:33414957721", text)
+        self.assertIn("head:556082d", text)
+        self.assertIn("NEXT: AUDIT_NEXT_GAP", text)
 ```
 
 - [ ] **Step 2: Run RED**
@@ -373,85 +441,84 @@ def test_terminal_delta_keeps_exact_evidence():
 python -m unittest tests.test_hq_context_discipline_r01 -v
 ```
 
-- [ ] **Step 3: Implement deterministic state diff + compact renderer**
+- [ ] **Step 3: Implement deterministic diff/renderer**
 
-The renderer must obey:
-- no unchanged fact echo;
-- `NO DELTA` when the current projection is semantically identical;
-- evidence line omitted for routine non-terminal deltas when no evidence is required;
-- terminal PASS/FAIL/BLOCKED evidence preserved exactly when supplied;
-- never shorten/alter evidence IDs.
+Rules:
+- unchanged facts are never echoed;
+- identical projection -> `NO DELTA`;
+- routine evidence line is omitted when empty;
+- terminal evidence IDs are preserved byte-for-byte;
+- output has at most `DELTA`, optional `EVIDENCE`, optional `NEXT`, or one `NO DELTA. BLOCKER = ...` line.
 
-Return only these logical lines:
-
-```text
-DELTA: <changed key/value pairs>
-EVIDENCE: <refs>        # only when non-empty
-NEXT: <action>          # only when non-empty
-```
-
-or:
-
-```text
-NO DELTA. BLOCKER = <blocker>
-```
-
-- [ ] **Step 4: GREEN**
+- [ ] **Step 4: GREEN and commit**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 -v
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
 git add scripts/hq_context_discipline.py tests/test_hq_context_discipline_r01.py
 git commit -m "feat: add delta-only owner output"
 ```
 
 ---
 
-### Task 4: Add derived handoff packets and cold-start validation
+### Task 4: Derived handoff and cold-start validation
 
 **Files:**
 - Modify: `scripts/hq_context_discipline.py`
 - Modify: `tests/test_hq_context_discipline_r01.py`
 
 **Interfaces:**
-- Produces:
-  - `build_handoff(*, role_or_engine: str, current_goal: str, task_or_correlation: str, authoritative_main: str, current_state: dict[str, Any], open_gaps: list[str], lesson_refs: list[str], next_action: str, source_refs: list[str]) -> dict[str, Any]`
-  - `validate_handoff(handoff: dict[str, Any]) -> dict[str, Any]`
-  - schema `ZB_CONTEXT_HANDOFF_V1`.
+- `build_handoff(*, role_or_engine: str, current_goal: str, task_or_correlation: str, authoritative_main: str, active_base: str, active_head: str, current_state: dict[str, Any], current_blocker: str | None, open_gaps: list[str], lesson_refs: list[str], next_action: str, source_refs: list[str], supersedes: list[str]) -> dict[str, Any]`
+- `validate_handoff(handoff: dict[str, Any], *, fresh_authoritative_main: str) -> dict[str, Any]`
+- schema `ZB_CONTEXT_HANDOFF_V1`.
 
-The handoff is derived state only. It must carry source refs and explicitly set `authority = "DERIVED"`.
-
-- [ ] **Step 1: RED tests for cold-start and stale handoff rejection**
+- [ ] **Step 1: RED tests**
 
 ```python
-def test_handoff_contains_minimum_resume_state():
-    handoff = build_handoff(
-        role_or_engine="LESTER",
-        current_goal="harden chat reasoning",
-        task_or_correlation="#235",
-        authoritative_main="b18ca6b",
-        current_state=state_with("ACTIVE_HEAD", "556082d"),
-        open_gaps=["ASSIGN_VS_EXECUTION"],
-        lesson_refs=["verdict:SV1-LOOP-001"],
-        next_action="REPRODUCE_NEXT_NEGATIVE",
-        source_refs=["github:issue:235", "github:pr:237"],
-    )
-    assert handoff["authority"] == "DERIVED"
-    assert handoff["next_action"] == "REPRODUCE_NEXT_NEGATIVE"
-    assert handoff["source_refs"] == ["github:issue:235", "github:pr:237"]
+    def test_handoff_contains_minimum_resume_state(self) -> None:
+        from scripts.hq_context_discipline import build_handoff, project_current_state
+        handoff = build_handoff(
+            role_or_engine="LESTER",
+            current_goal="harden chat reasoning",
+            task_or_correlation="#235",
+            authoritative_main="b18ca6b",
+            active_base="b18ca6b",
+            active_head="556082d",
+            current_state=project_current_state([
+                self.fact("head", "E2", "ACTIVE_HEAD", "556082d", exclusive=True, verified=True)
+            ]),
+            current_blocker=None,
+            open_gaps=["ASSIGN_VS_EXECUTION"],
+            lesson_refs=["verdict:SV1-LOOP-001"],
+            next_action="REPRODUCE_NEXT_NEGATIVE",
+            source_refs=["github:issue:235", "github:pr:237"],
+            supersedes=[],
+        )
+        self.assertEqual(handoff["authority"], "DERIVED")
+        self.assertEqual(handoff["next_action"], "REPRODUCE_NEXT_NEGATIVE")
+        self.assertEqual(handoff["source_refs"], ["github:issue:235", "github:pr:237"])
 
-
-def test_handoff_cannot_override_fresher_authority():
-    handoff = build_handoff(... authoritative_main="old-main" ...)
-    with pytest.raises(ContextDisciplineError, match="HANDOFF_STALE"):
-        validate_handoff(handoff, fresh_authoritative_main="new-main")
+    def test_handoff_cannot_override_fresher_authority(self) -> None:
+        from scripts.hq_context_discipline import (
+            ContextDisciplineError, build_handoff, project_current_state, validate_handoff,
+        )
+        handoff = build_handoff(
+            role_or_engine="LESTER",
+            current_goal="harden chat reasoning",
+            task_or_correlation="#235",
+            authoritative_main="old-main",
+            active_base="old-main",
+            active_head="candidate-head",
+            current_state=project_current_state([]),
+            current_blocker=None,
+            open_gaps=[],
+            lesson_refs=[],
+            next_action="READ_FRESH_MAIN",
+            source_refs=["github:issue:235"],
+            supersedes=[],
+        )
+        with self.assertRaisesRegex(ContextDisciplineError, "HANDOFF_STALE"):
+            validate_handoff(handoff, fresh_authoritative_main="new-main")
 ```
-
-Use `unittest` equivalents in the actual test file; snippets are behavioral targets.
 
 - [ ] **Step 2: Run RED**
 
@@ -461,7 +528,7 @@ python -m unittest tests.test_hq_context_discipline_r01 -v
 
 - [ ] **Step 3: Implement handoff builder/validator**
 
-Required fields exactly mirror the spec:
+Required logical fields:
 
 ```python
 HANDOFF_FIELDS = {
@@ -481,62 +548,72 @@ HANDOFF_FIELDS = {
 }
 ```
 
-Do not persist chat transcript or chain-of-thought. Do not accept handoff authority over a fresh GitHub main/PR/workflow read.
+Always set `authority = "DERIVED"`. Never persist transcript or hidden reasoning. `validate_handoff` rejects a different fresh main and never treats the handoff as authority.
 
-- [ ] **Step 4: GREEN**
+- [ ] **Step 4: GREEN and commit**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 -v
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
 git add scripts/hq_context_discipline.py tests/test_hq_context_discipline_r01.py
 git commit -m "feat: add derived context handoffs"
 ```
 
 ---
 
-### Task 5: Enforce context validity at the existing pre-action boundary
+### Task 5: Existing pre-action gate consumes context validity
 
 **Files:**
 - Modify: `scripts/hq_pre_action.py`
 - Modify: `tests/test_hq_unified_archive_pre_action.py`
 
 **Interfaces:**
-- Existing `evaluate_pre_action(context, *, learning_policy=None)` remains backward-compatible.
-- Add optional keyword-only argument `context_packet: dict[str, Any] | None = None`.
-- `_decision(...)` adds a compact `context` view only when a packet is provided.
+- Change `evaluate_pre_action(context, *, learning_policy=None)` to `evaluate_pre_action(context, *, learning_policy=None, context_packet=None)`.
+- Existing callers remain valid.
 
-- [ ] **Step 1: RED negative tests**
+- [ ] **Step 1: Extend the test helper signature and add RED tests**
+
+Change `_decide` to:
+
+```python
+    def _decide(
+        self,
+        context: dict[str, object],
+        learning_policy: dict[str, object] | None = None,
+        context_packet: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        gate = self._gate_module()
+        return gate.evaluate_pre_action(
+            context,
+            learning_policy=learning_policy,
+            context_packet=context_packet,
+        )
+```
 
 Add:
 
 ```python
-def test_substantive_action_blocks_on_not_proven_context_packet(self):
-    packet = {
-        "schema": "ZB_CONTEXT_PACKET_V1",
-        "status": "NOT_PROVEN",
-        "missing_facets": ["CURRENT_HEAD"],
-    }
-    result = self._decide(self._context(), context_packet=packet)
-    self.assertEqual((result["decision"], result["reason"]),
-                     ("BLOCK", "DURABLE_CONTEXT_NOT_PROVEN"))
+    def test_substantive_action_blocks_on_not_proven_context_packet(self) -> None:
+        packet = {
+            "schema": "ZB_CONTEXT_PACKET_V1",
+            "status": "NOT_PROVEN",
+            "missing_facets": ["CURRENT_HEAD"],
+        }
+        result = self._decide(self._context(), context_packet=packet)
+        self.assertEqual((result["decision"], result["reason"]),
+                         ("BLOCK", "DURABLE_CONTEXT_NOT_PROVEN"))
 
-
-def test_proven_context_packet_preserves_existing_pre_action_decision(self):
-    packet = {
-        "schema": "ZB_CONTEXT_PACKET_V1",
-        "status": "PROVEN",
-        "missing_facets": [],
-    }
-    result = self._decide(self._context(), context_packet=packet)
-    self.assertEqual((result["decision"], result["reason"]),
-                     ("ALLOW", "PRE_ACTION_GATE_PASS"))
+    def test_proven_context_packet_preserves_existing_pre_action_decision(self) -> None:
+        packet = {
+            "schema": "ZB_CONTEXT_PACKET_V1",
+            "status": "PROVEN",
+            "missing_facets": [],
+        }
+        result = self._decide(self._context(), context_packet=packet)
+        self.assertEqual((result["decision"], result["reason"]),
+                         ("ALLOW", "PRE_ACTION_GATE_PASS"))
 ```
 
-Also add one regression proving the existing learning view is unchanged when a context packet is supplied.
+Add a third test combining a PROVEN context packet with the existing verified learning fixture; assert `result["learning"]` is unchanged.
 
 - [ ] **Step 2: Run RED**
 
@@ -544,9 +621,7 @@ Also add one regression proving the existing learning view is unchanged when a c
 python -m unittest tests.test_hq_unified_archive_pre_action -v
 ```
 
-Expected: `_decide`/`evaluate_pre_action` does not accept `context_packet` yet.
-
-- [ ] **Step 3: Implement minimal integration**
+- [ ] **Step 3: Implement minimal packet validation**
 
 Before existing action-specific checks:
 
@@ -555,209 +630,194 @@ if context_packet is not None:
     if not isinstance(context_packet, dict) or context_packet.get("schema") != "ZB_CONTEXT_PACKET_V1":
         raise PreActionError("CONTEXT_PACKET_INVALID")
     if context_packet.get("status") != "PROVEN":
-        return _decision(context, "BLOCK", "DURABLE_CONTEXT_NOT_PROVEN", learning_policy, context_packet)
+        return _decision(context, "BLOCK", "DURABLE_CONTEXT_NOT_PROVEN", learning_policy)
 ```
 
-Do not duplicate archive lookup inside `hq_pre_action.py`. Packet construction belongs to `hq_context_discipline.py`; pre-action only consumes the proven/not-proven result.
-
-CLI integration:
+CLI:
 - add optional `--context-packet-path`;
-- parse JSON with the same fail-closed unreadable/invalid behavior;
-- no new daemon/service.
+- read it as JSON;
+- invalid/unreadable packet fails closed;
+- do not perform archive retrieval inside `hq_pre_action.py`.
 
-- [ ] **Step 4: Run focused + regression tests**
+- [ ] **Step 4: GREEN and commit**
 
 ```bash
 python -m unittest tests.test_hq_unified_archive_pre_action tests.test_hq_context_discipline_r01 -v
-```
-
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
 git add scripts/hq_pre_action.py tests/test_hq_unified_archive_pre_action.py
 git commit -m "feat: enforce proven context before substantive actions"
 ```
 
 ---
 
-### Task 6: Implement the full T1-T10 behavioral acceptance suite and changed/unseen fixtures
+### Task 6: T1-T10 behavioral acceptance and changed/unseen transfer
 
 **Files:**
 - Modify: `tests/test_hq_context_discipline_r01.py`
-- Modify: `scripts/hq_context_discipline.py` only if a test exposes a real missing behavior.
+- Modify: `scripts/hq_context_discipline.py` only when a RED case proves missing behavior.
 
 **Interfaces:**
-- No new subsystem interfaces. This task proves the design behavior.
+- No new subsystem interface.
 
-- [ ] **Step 1: Add T1 long-chat decision parity fixture**
-
-Construct a deterministic history with at least:
-- repeated progress E0 records;
-- old/new HEAD pair with explicit supersession;
-- one active blocker;
-- one old still-valid OWNER lock;
-- unrelated SALVADOR and SHERIFF records;
-- one verified matching lesson;
-- one unverified/open lesson analogue;
-- RAW evidence pointers.
-
-Define a small decision extractor used only by tests:
+- [ ] **Step 1: Add deterministic state lookup helper**
 
 ```python
-def decision_signature(packet):
-    return {
-        "role": value(packet, "ROLE"),
-        "task": value(packet, "CURRENT_TASK"),
-        "head": value(packet, "ACTIVE_HEAD"),
-        "blocker": value(packet, "CURRENT_BLOCKER"),
-        "next": value(packet, "NEXT_ACTION"),
-        "owner_lock": value(packet, "OWNER_LOCK"),
-    }
+    @staticmethod
+    def state_value(state: dict[str, object], key: str) -> object | None:
+        facts = state.get("facts")
+        if not isinstance(facts, list):
+            return None
+        matches = [x.get("value") for x in facts if isinstance(x, dict) and x.get("key") == key]
+        return matches[0] if len(matches) == 1 else None
 ```
 
-Assert the compact packet produces the same signature as a carefully resolved full-history baseline.
+- [ ] **Step 2: T1 long-chat decision parity**
 
-- [ ] **Step 2: Add T2-T5 negatives**
+Build a list containing:
+- 40 repeated E0 progress facts;
+- old/new HEAD with explicit supersession;
+- one current blocker;
+- one old OWNER lock;
+- unrelated SALVADOR and SHERIFF current-history facts;
+- exact source refs.
 
-Required tests:
-- stale supersession rejection;
-- contradictory exclusive current state -> `DURABLE_CONTEXT_NOT_PROVEN`;
-- unrelated domain exclusion;
-- old OWNER lock retained.
+Resolve the authoritative baseline by manually selecting the expected current values in the test:
 
-- [ ] **Step 3: Add T6 verified lesson transfer with an unseen case**
+```python
+expected = {
+    "ROLE": "LESTER",
+    "CURRENT_TASK": "#235",
+    "ACTIVE_HEAD": "556082d",
+    "CURRENT_BLOCKER": "ASSIGN_VS_EXECUTION_UNPROVEN",
+    "NEXT_ACTION": "REPRODUCE_NEGATIVE",
+    "OWNER_LOCK": "NO_OWNER_RELAY",
+}
+```
 
-Use an old verified lesson about stale evidence, then query a changed task with a different task ID but the same error/domain signature. Assert the verified lesson is retrieved. Add an OPEN/unverified lesson fixture and assert it is absent.
+Assert `project_current_state` + the JIT packet exposes exactly these current decision values and does not include E0 chatter.
 
-- [ ] **Step 4: Add T7 evidence escalation**
+- [ ] **Step 3: T2-T5 negatives**
 
-Start with compact pointer-only evidence. Simulate a disputed terminal claim by making the test explicitly call the existing Unified Archive restore/raw expansion path. Assert the system expands the exact evidence ref rather than loading unrelated history.
+Add separate tests for:
+- old HEAD excluded after explicit supersession;
+- two unsuperseded exclusive HEADs -> `DURABLE_CONTEXT_NOT_PROVEN`;
+- LYNCH task does not load SHERIFF/SALVADOR history without explicit dependency;
+- old unsuperseded OWNER lock remains present.
 
-- [ ] **Step 5: Add T8 no-delta repeated status case**
+- [ ] **Step 4: T6 verified lesson transfer on changed task**
 
-Run three identical projected states through `diff_current_state`. Assert the second and third owner outputs are `NO DELTA...` and do not contain repeated architecture/law text.
+Reuse the existing `sync_sheriff_lessons` fixture pattern from `tests/test_hq_unified_archive_optimizer.py`. Create one CLOSED verdict with `regressionTest` + `lessonRef` and error signature `STALE_EVIDENCE_SUBSTITUTION`. Query a different task ID with the same error/domain terms through `build_learning_policy`; assert the lesson is retrieved. Create a second OPEN verdict and assert it is absent.
 
-- [ ] **Step 6: Add T9 handoff cold-start case**
+- [ ] **Step 5: T7 exact evidence escalation**
 
-Use only:
-- mandatory anchors;
-- a derived handoff;
-- JIT archive lookups.
+Create two RAW-bound archive records. Put only the selected record's `raw_sha256` and `source_url` in the compact packet. When the terminal claim is disputed, call the existing exact archive lookup path for that ref and assert the unrelated record body never enters the expanded evidence set.
 
-Assert the fresh session recovers the same `decision_signature` without any copied transcript.
+- [ ] **Step 6: T8 no-delta repeated status**
 
-- [ ] **Step 7: Add T10 context reduction benchmark using UTF-8 bytes**
+Render the same projection three times. First output may contain the initial delta. Second and third outputs must be `NO DELTA` and must not contain `ACTIVE_HEAD`, architecture prose, or repeated settled laws.
 
-No tokenizer dependency is required in R01. Measure project-controlled serialized bytes:
+- [ ] **Step 7: T9 handoff cold-start**
+
+Construct a handoff from a proven projection, discard the original fact list in the test, then resume using only mandatory anchors + validated handoff + one JIT query. Assert the same expected current role/task/head/blocker/next action is recovered without transcript input.
+
+- [ ] **Step 8: T10 measured context reduction in UTF-8 bytes**
+
+Use the same long fixture:
 
 ```python
 naive_bytes = len(json.dumps(full_history, sort_keys=True, ensure_ascii=False).encode("utf-8"))
-packet_bytes = len(json.dumps(packet, sort_keys=True, ensure_ascii=False).encode("utf-8"))
-ratio = naive_bytes / packet_bytes
-self.assertGreater(naive_bytes, packet_bytes)
-self.assertEqual(decision_signature(packet), decision_signature(full_baseline))
+compact_bytes = len(json.dumps(compact_packet, sort_keys=True, ensure_ascii=False).encode("utf-8"))
+self.assertLess(compact_bytes, naive_bytes)
+self.assertEqual(self.state_value(compact_packet["current_state"], "ACTIVE_HEAD"), "556082d")
+self.assertEqual(self.state_value(compact_packet["current_state"], "OWNER_LOCK"), "NO_OWNER_RELAY")
 ```
 
-Do NOT hard-code a universal ratio such as `>= 5x`. The test requires a material reduction on this representative fixture (`packet_bytes < naive_bytes`) and separately proves decision parity/critical-fact recall/stale rejection. The exact measured ratio is reported as evidence, not as a global law.
+Do not encode a universal compression-ratio gate. The measured ratio is evidence; correctness gates stay separate.
 
-- [ ] **Step 8: Run the full context suite twice for determinism**
+- [ ] **Step 9: Run twice for determinism and commit**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 -v
 python -m unittest tests.test_hq_context_discipline_r01 -v
-```
-
-Expected: same results and deterministic packet serialization/order.
-
-- [ ] **Step 9: Commit**
-
-```bash
-git add tests/test_hq_context_discipline_r01.py scripts/hq_context_discipline.py
+git add scripts/hq_context_discipline.py tests/test_hq_context_discipline_r01.py
 git commit -m "test: prove context discipline behavioral acceptance"
 ```
 
 ---
 
-### Task 7: Add a benchmark/report CLI without creating a new service
+### Task 7: Benchmark/report CLI
 
 **Files:**
 - Modify: `scripts/hq_context_discipline.py`
 - Modify: `tests/test_hq_context_discipline_r01.py`
 
 **Interfaces:**
-- CLI modes:
-  - `project`
-  - `packet`
-  - `handoff`
-  - `delta`
-  - `benchmark`
-- Benchmark prints one JSON object using schema `ZB_CONTEXT_BENCHMARK_V1`.
+- CLI subcommand `benchmark`.
+- JSON schema `ZB_CONTEXT_BENCHMARK_V1`.
 
-- [ ] **Step 1: RED CLI benchmark test**
+- [ ] **Step 1: RED subprocess test**
 
-Use a temporary JSON fixture and subprocess call. Expected output:
+Create a temporary input JSON containing `full_history` and `compact_packet` from the deterministic fixture, then invoke:
 
-```json
-{
-  "schema": "ZB_CONTEXT_BENCHMARK_V1",
-  "naive_context_bytes": 12000,
-  "compact_context_bytes": 2300,
-  "compression_ratio": 5.2173913043,
-  "decision_parity": true,
-  "critical_fact_recall": true,
-  "stale_fact_rejection": true
-}
+```bash
+python scripts/hq_context_discipline.py benchmark --input-path fixture.json
 ```
 
-Numbers above are illustrative only; test exact values from its own deterministic fixture.
+Test the output structurally:
 
-- [ ] **Step 2: Implement `argparse` CLI around the pure functions**
+```python
+self.assertEqual(result["schema"], "ZB_CONTEXT_BENCHMARK_V1")
+self.assertGreater(result["naive_context_bytes"], result["compact_context_bytes"])
+self.assertGreater(result["compression_ratio"], 1.0)
+self.assertTrue(result["decision_parity"])
+self.assertTrue(result["critical_fact_recall"])
+self.assertTrue(result["stale_fact_rejection"])
+```
 
-The CLI must not poll GitHub, open network connections, run as a daemon, or persist a second current-state database. It only transforms provided local evidence/archive inputs.
+- [ ] **Step 2: Implement argparse CLI around pure functions**
 
-- [ ] **Step 3: GREEN**
+`benchmark` must:
+1. read one local JSON input;
+2. serialize `full_history` and `compact_packet` canonically;
+3. compute byte counts and ratio;
+4. consume explicit booleans `decision_parity`, `critical_fact_recall`, `stale_fact_rejection` produced by the test/benchmark harness;
+5. print one deterministic JSON object.
+
+No network, daemon, database, polling, or second archive.
+
+- [ ] **Step 3: GREEN and commit**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 -v
-```
-
-- [ ] **Step 4: Commit**
-
-```bash
 git add scripts/hq_context_discipline.py tests/test_hq_context_discipline_r01.py
 git commit -m "feat: add context discipline benchmark cli"
 ```
 
 ---
 
-### Task 8: Update agent restart/output law only after behavioral proof
+### Task 8: Agent restart/output contract after behavioral proof
 
 **Files:**
 - Modify: `AGENTS.md`
-- Test: `tests/test_hq_context_discipline_r01.py`
+- Modify: `tests/test_hq_context_discipline_r01.py`
 
-**Interfaces:**
-- Documentation contract only; no Constitution rewrite in R01.
+**Interfaces:** documentation contract only; no Constitution rewrite in R01.
 
-- [ ] **Step 1: Add a RED documentation-contract test**
-
-Read `AGENTS.md` and require exact concepts, not prose length:
+- [ ] **Step 1: RED documentation test**
 
 ```python
-required = [
-    "CHAT = ACTIVE DELTA",
-    "CURRENT STATE = COMPACT UNSUPERSEDED VERIFIED PROJECTION",
-    "RESTORE = MINIMUM EVIDENCE-COMPLETE JIT PACKET",
-    "NO DELTA",
-    "DURABLE_CONTEXT_NOT_PROVEN",
-]
-for text in required:
-    self.assertIn(text, agents_text)
+    def test_agents_declares_context_discipline_without_weakening_precedence(self) -> None:
+        agents_text = (Path(__file__).resolve().parents[1] / "AGENTS.md").read_text(encoding="utf-8")
+        for text in (
+            "CHAT = ACTIVE DELTA",
+            "CURRENT STATE = COMPACT UNSUPERSEDED VERIFIED PROJECTION",
+            "ARCHIVE = EXISTING FULL DURABLE HISTORY",
+            "RESTORE = MINIMUM EVIDENCE-COMPLETE JIT PACKET",
+            "NO DELTA",
+            "DURABLE_CONTEXT_NOT_PROVEN",
+            "RAW ORIGINAL EVENT > VERIFIED GITHUB HISTORY",
+        ):
+            self.assertIn(text, agents_text)
 ```
-
-Also assert the existing precedence line `RAW ORIGINAL EVENT > VERIFIED GITHUB HISTORY` remains present.
 
 - [ ] **Step 2: Run RED**
 
@@ -765,9 +825,9 @@ Also assert the existing precedence line `RAW ORIGINAL EVENT > VERIFIED GITHUB H
 python -m unittest tests.test_hq_context_discipline_r01 -v
 ```
 
-- [ ] **Step 3: Add one compact `Context Discipline R01` section to `AGENTS.md`**
+- [ ] **Step 3: Add one compact section to `AGENTS.md`**
 
-Required content:
+It must state exactly:
 
 ```text
 CHAT = ACTIVE DELTA
@@ -776,55 +836,38 @@ ARCHIVE = EXISTING FULL DURABLE HISTORY
 RESTORE = MINIMUM EVIDENCE-COMPLETE JIT PACKET
 ```
 
-And these laws:
-- after established state, report only material deltas by default;
-- if no state changed, use compact `NO DELTA` status rather than replaying settled context;
-- do not load superseded facts into normal restore;
-- do not drop still-valid OWNER authority because it is old;
-- retrieve unrelated history only for an explicit dependency;
-- derived handoff/current-state packets never override fresh exact GitHub evidence;
+And only these operational rules:
+- after state is established, default to material deltas only;
+- if nothing changed, compact `NO DELTA` replaces repeated recap;
+- superseded facts are excluded from normal restore;
+- old still-valid OWNER authority is never dropped due to age;
+- unrelated history is JIT only on an explicit dependency;
+- derived handoff/WARM state never overrides fresh exact GitHub evidence;
 - contradiction/missing required evidence -> `DURABLE_CONTEXT_NOT_PROVEN`;
-- terminal claims still carry exact evidence required by the Constitution.
+- terminal claims retain exact evidence required by the Constitution.
 
-Do not duplicate the whole spec in `AGENTS.md`.
+Do not paste the full design into `AGENTS.md`.
 
-- [ ] **Step 4: GREEN + AGENTS regression**
+- [ ] **Step 4: GREEN + validator and commit**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 -v
 python scripts/hq_validate.py
-```
-
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
 git add AGENTS.md tests/test_hq_context_discipline_r01.py
 git commit -m "docs: add context discipline restart law"
 ```
 
 ---
 
-### Task 9: Full regression, security/authority negative verification, and durable evidence
+### Task 9: Full regression, exact-head CI, measured evidence, durable delta
 
-**Files:**
-- No new production files unless a real regression is found.
-- Update implementation PR body/comment and issue #235 only with exact results.
+**Files:** no new production files unless a fresh regression proves one is necessary.
 
-**Interfaces:**
-- Produces candidate evidence only; no merge.
+- [ ] **Step 1: Re-read exact execution base before verification**
 
-- [ ] **Step 1: Fresh-read execution base and ensure no duplicate subsystem was introduced**
+Verify the implementation branch still descends from the intended Unified Archive base and changed files introduce no second archive root, DB, service, daemon, vector store, duplicated RAW history, or Constitution weakening.
 
-Verify changed files contain no:
-- second archive root;
-- new DB/service/daemon;
-- vector store;
-- duplicated RAW history;
-- Constitution authority weakening.
-
-- [ ] **Step 2: Run focused suites**
+- [ ] **Step 2: Focused regression**
 
 ```bash
 python -m unittest tests.test_hq_context_discipline_r01 -v
@@ -834,75 +877,86 @@ python -m unittest tests.test_hq_unified_archive_optimizer -v
 python -m unittest tests.test_hq_unified_archive_pre_action -v
 ```
 
-- [ ] **Step 3: Run full repository tests and validator**
+- [ ] **Step 3: Full repository verification**
 
-Use the repository's established full unittest command from current CI, then:
+Run the exact unittest command used by current `hq-validate` workflow, then:
 
 ```bash
 python scripts/hq_validate.py
 ```
 
-Expected: all tests and validation PASS on exact candidate HEAD.
+All tests must pass on `git rev-parse HEAD`.
 
-- [ ] **Step 4: Run CI on the isolated implementation PR**
+- [ ] **Step 4: Open an isolated draft implementation PR against the same legal base**
 
-Require fresh exact-head `hq-validate` success and any existing scope/control-tower/security checks triggered by the branch. Do not substitute old PR #205/#237 runs.
+Do not use PR #240 as the code PR. No merge.
 
-- [ ] **Step 5: Capture behavioral evidence**
+- [ ] **Step 5: Require fresh exact-head CI**
 
-Record:
+Require the current implementation PR's `hq-validate` and all normally triggered scope/control-tower/security jobs to succeed. Old PR #205/#237 runs do not prove this candidate.
 
-```text
-NAIVE_CONTEXT_BYTES = <measured>
-R01_CONTEXT_BYTES = <measured>
-COMPRESSION_RATIO = <measured>
-DECISION_PARITY = PASS
-CRITICAL_FACT_RECALL = PASS
-STALE_FACT_REJECTION = PASS
-CONTRADICTION_FAIL_CLOSED = PASS
-OWNER_LOCK_RETENTION = PASS
-VERIFIED_LESSON_TRANSFER = PASS
-HANDOFF_COLD_START = PASS
-NO_DELTA_DISCIPLINE = PASS
-```
+- [ ] **Step 6: Run benchmark CLI and preserve its exact JSON output**
 
-- [ ] **Step 6: Post one concise durable delta to issue #235**
+The durable evidence must include the CLI's actual values for:
+- `naive_context_bytes`;
+- `compact_context_bytes`;
+- `compression_ratio`;
+- `decision_parity`;
+- `critical_fact_recall`;
+- `stale_fact_rejection`.
 
-Use:
+- [ ] **Step 7: Require all behavioral gates before candidate PASS**
+
+Explicitly record PASS/FAIL for:
+- contradiction fail-closed;
+- OWNER-lock retention;
+- verified lesson transfer on changed/unseen case;
+- evidence escalation;
+- no-delta discipline;
+- handoff cold-start;
+- RAW archive unchanged;
+- no second memory system.
+
+- [ ] **Step 8: Post one concise exact delta to issue #235**
+
+Do not use a prose template with guessed values. Generate the comment from the exact `git rev-parse HEAD`, implementation PR number, CI run IDs, benchmark JSON, and T1-T10 results from this verification run.
+
+Required field names are fixed:
 
 ```text
 LESTER_CONTEXT_DISCIPLINE_DELTA
-EXACT_HEAD = ...
-PR = ...
-BASE = ...
-BEHAVIORAL_GATES = ...
-CONTEXT_BYTES = naive -> compact
-COMPRESSION_RATIO = ...
-DECISION_PARITY = ...
-RAW_ARCHIVE_MUTATION = NO
-NEW_MEMORY_SYSTEM = NO
-REGRESSIONS = NONE | exact list
-RESULT = CANDIDATE_PASS_NOT_MERGED | FAIL
-NEXT = independent review / exact blocker
+EXACT_HEAD
+PR
+BASE
+BEHAVIORAL_GATES
+NAIVE_CONTEXT_BYTES
+R01_CONTEXT_BYTES
+COMPRESSION_RATIO
+DECISION_PARITY
+RAW_ARCHIVE_MUTATION
+NEW_MEMORY_SYSTEM
+REGRESSIONS
+RESULT
+NEXT
 ```
 
-- [ ] **Step 7: Fresh-read the posted delta and require exact match**
+- [ ] **Step 9: Fresh-read the posted delta and require exact match**
 
-Do not claim `ZORR_CONTEXT_DISCIPLINE_R01 = PASS` merely because unit tests are green. The terminal claim requires fresh behavioral evidence from T1-T10 plus exact-head CI and durable readback.
+A mismatch blocks terminal state.
 
-- [ ] **Step 8: Do not merge**
+- [ ] **Step 10: Stop without merge**
 
-Stop at a reviewable isolated candidate unless separately authorized.
+`ZORR_CONTEXT_DISCIPLINE_R01 = PASS` is allowed only if T1-T10 behavioral evidence, exact-head CI, measured reduction, and durable readback all pass. Otherwise report one exact failed gate or blocker.
 
 ---
 
 ## Plan Self-Review Result
 
-- Spec coverage: all sections are covered by Tasks 1-9; T1-T10 are explicitly mapped in Task 6.
-- Authority preservation: WARM/handoff remain derived; fresh GitHub evidence and existing RAW precedence remain superior.
+- Spec coverage: Tasks 1-9 cover HOT/WARM/COLD, E0-E3, supersession, JIT restore, delta-only output, handoff, context accounting, T1-T10, role/authority preservation, reuse-first, and terminal evidence.
+- Placeholder scan: no `TBD`, `TODO`, ellipsis code placeholders, unnamed handlers, or undefined production interfaces remain.
+- Type consistency: `project_current_state`, `build_context_packet`, `diff_current_state`, `render_owner_delta`, `build_handoff`, `validate_handoff`, and optional `context_packet` pre-action integration keep one signature throughout.
+- Authority preservation: WARM and handoff remain derived; fresh GitHub/RAW precedence stays superior.
 - OWNER-lock preservation: explicit Task 1 and T6 tests.
-- No fixed TOP-K/token law: packet retrieval is evidence-completeness driven; context benchmark uses measured bytes, not an invented global ratio.
-- Reuse-first: implementation is required to start from the current Unified Archive base and call its restore/learning APIs.
-- No parallel infrastructure: one narrow pure-Python glue module only; no service/daemon/vector DB/new archive.
-- No placeholders: each implementation task has concrete files, functions, tests, commands, expected outcomes, and commit boundaries.
-- Type/signature consistency: `project_current_state`, `build_context_packet`, `diff_current_state`, `render_owner_delta`, `build_handoff`, `validate_handoff`, and optional `context_packet` pre-action integration are stable across tasks.
+- No fixed TOP-K/token acceptance law: retrieval is evidence-completeness driven; byte ratio is reported, not used as a universal quality score.
+- Reuse-first: implementation is required to extend existing Unified Archive V1 and pre-action APIs.
+- No parallel infrastructure: one pure-Python glue module; no service/daemon/vector DB/new archive.

@@ -48,6 +48,12 @@ class ContextDisciplineR01Tests(unittest.TestCase):
             "supersedes": list(supersedes or []),
         }
 
+    def state_with(self, key: str, value: object, *, fact_id: str = "state-1") -> dict[str, object]:
+        module = self._module()
+        return module.project_current_state([
+            self.fact(fact_id, "E2", key, value, exclusive=True, verified=True)
+        ])
+
     @staticmethod
     def _archive_record(root: Path, *, number: int, title: str, body: str) -> None:
         from scripts.hq_unified_archive import derive_record, write_record
@@ -270,6 +276,36 @@ class ContextDisciplineR01Tests(unittest.TestCase):
         self.assertNotIn(raw_secret, text)
         self.assertIn("sha256:abc", text)
         self.assertIn("github:run:123", text)
+
+    def test_no_delta_does_not_repeat_settled_state(self) -> None:
+        module = self._module()
+        state = self.state_with("ACTIVE_HEAD", "bbbb")
+        delta = module.diff_current_state(state, state)
+        text = module.render_owner_delta(
+            delta,
+            blocker="WAITING_FOR_CI",
+            evidence=[],
+            next_action=None,
+        )
+        self.assertEqual(text, "NO DELTA. BLOCKER = WAITING_FOR_CI")
+        self.assertNotIn("bbbb", text)
+
+    def test_terminal_delta_keeps_exact_evidence(self) -> None:
+        module = self._module()
+        previous = self.state_with("RESULT", "RUNNING", fact_id="result-running")
+        current = self.state_with("RESULT", "PASS", fact_id="result-pass")
+        delta = module.diff_current_state(previous, current)
+        text = module.render_owner_delta(
+            delta,
+            blocker=None,
+            evidence=["run:33414957721", "head:556082d"],
+            next_action="AUDIT_NEXT_GAP",
+        )
+        self.assertIn("DELTA:", text)
+        self.assertIn("RESULT=PASS", text)
+        self.assertIn("run:33414957721", text)
+        self.assertIn("head:556082d", text)
+        self.assertIn("NEXT: AUDIT_NEXT_GAP", text)
 
 
 if __name__ == "__main__":

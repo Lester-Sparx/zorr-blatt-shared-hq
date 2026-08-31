@@ -16,7 +16,19 @@ jobs:
   materialize:
     runs-on: ubuntu-latest
     steps:
-      - name: Download pinned OSS assets
+      - name: Checkout pinned Quaternius mirror with Git LFS
+        uses: actions/checkout@v4
+        with:
+          repository: KBVE/workspace
+          ref: 6e8995862b7db4f4761343b1b2f7e1efa742ef42
+          path: kbve
+          lfs: true
+          sparse-checkout: |
+            apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/models/Regular_Male_FullBody.glb
+            apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/animations/UAL2.glb
+          sparse-checkout-cone-mode: false
+
+      - name: Materialize pinned OSS assets
         shell: bash
         run: |
           set -euo pipefail
@@ -25,8 +37,8 @@ jobs:
           curl --fail --location --retry 3 -o r04-assets/rig-human.glb https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/12712269e576fd3ffb520ad6c6d45a8e265ea894/static/rigs/rig-human.glb
           curl --fail --location --retry 3 -o r04-assets/human-base-animations.glb https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/12712269e576fd3ffb520ad6c6d45a8e265ea894/static/animations/human-base-animations.glb
           curl --fail --location --retry 3 -o r04-assets/sword.glb https://raw.githubusercontent.com/ilrein/warptracker/71bbfbdfacd118196994b26da68eec1876d55c6b/public/models/sword.glb
-          curl --fail --location --retry 3 -o r04-assets/Regular_Male_FullBody.glb https://media.githubusercontent.com/media/KBVE/workspace/6e8995862b7db4f4761343b1b2f7e1efa742ef42/apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/models/Regular_Male_FullBody.glb
-          curl --fail --location --retry 3 -o r04-assets/UAL2.glb https://media.githubusercontent.com/media/KBVE/workspace/6e8995862b7db4f4761343b1b2f7e1efa742ef42/apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/animations/UAL2.glb
+          cp kbve/apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/models/Regular_Male_FullBody.glb r04-assets/Regular_Male_FullBody.glb
+          cp kbve/apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/animations/UAL2.glb r04-assets/UAL2.glb
 
       - name: Verify pinned identities
         shell: bash

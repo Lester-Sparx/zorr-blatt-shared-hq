@@ -243,8 +243,16 @@ def evaluate_pre_action(
                 learning_policy,
                 context_packet,
             )
+        packet_active_head = _packet_active_head(context_packet)
+        if action not in READ_ONLY_WHILE_ACTIVE and packet_active_head is not None and fresh_active_head is None:
+            return _decision(
+                context,
+                "BLOCK",
+                "DURABLE_CONTEXT_NOT_PROVEN",
+                learning_policy,
+                context_packet,
+            )
         if fresh_active_head is not None:
-            packet_active_head = _packet_active_head(context_packet)
             if packet_active_head is None:
                 return _decision(
                     context,

@@ -78,6 +78,13 @@ steps:
       test -s .zb-r03/task-spec.md
 safe-outputs:
   report-failure-as-issue: false
+  report-failed-jobs: false
+  missing-tool:
+    create-issue: false
+  missing-data:
+    create-issue: false
+  report-incomplete:
+    create-issue: false
   create-pull-request:
     draft: true
     max: 1

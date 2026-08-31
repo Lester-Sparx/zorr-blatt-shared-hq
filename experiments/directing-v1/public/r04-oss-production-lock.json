@@ -2,11 +2,9 @@
   "schema": "DUNCAN_R04_OSS_PRODUCTION_LOCK_V1",
   "state": "LOCKED_NOT_PASS",
   "pass": false,
-  "ci_transport_trigger": "2026-08-31T05:09:00+03:00",
   "zorr": {
     "repository": "Lester-Sparx/zorr-blatt-shared-hq",
     "branch": "lester/babylon-cinematic-scene-r01",
-    "observed_source_head": "69bec491c0aa7afb44d51d1e1b045f3c8c22c77a",
     "engine": "existing Babylon.js @babylonjs/core + @babylonjs/loaders"
   },
   "rules": {
@@ -15,61 +13,87 @@
     "primitive_or_floating_weapon_allowed": false,
     "proprietary_or_unverified_assets_allowed": false
   },
-  "rejected_r03": {
-    "normalizeBody_vertex_warp": true,
-    "world_space_primitive_blade": true,
-    "reason": "R04 fail-closed: use real skinned rig geometry and a real hand-attached weapon"
+  "rejected": {
+    "r03_normalizeBody_vertex_warp": true,
+    "r03_world_space_primitive_blade": true,
+    "kbve_quaternius_lfs_mirror": "REJECTED: Git LFS objects missing on server (404)"
   },
-  "mesh2motion": {
+  "verified_ci_transport": {
+    "workflow": ".github/workflows/r04-oss-assets.yml",
+    "head_commit": "749d2fdce78c074fc4ed7bbbc2ea4c691ac2e496",
+    "run_id": 33354530436,
+    "artifact_id": 9744688604,
+    "artifact_name": "r04-verified-oss-assets",
+    "artifact_digest": "sha256:e8cce637a55fadd08efc29fbda54e59c85b9a7412725a115de66926f9f136a4a",
+    "hash_verification": true
+  },
+  "adult_rig_baseline": {
+    "repository": "Seyamalam/blood-league-kickoff",
+    "commit": "aa02a4e6d8337a0604d2da131bcbbeb1f01badf0",
+    "source": "Quaternius Universal Base Characters Standard / Superhero_Male_FullBody",
+    "license": "CC0",
+    "path": "public/assets/vendor/quaternius/night-striker.glb",
+    "git_blob_sha": "14697e33502e41ddbc1b7fdbf56bbf0478027700",
+    "size_bytes": 6465208,
+    "sha256": "a466828c67a4acc9b2413212ce6d9cde235e3aed9b675680c14fd9673858f118",
+    "format": "glTF 2.0 GLB",
+    "skinned": true,
+    "skin_joint_count": 65,
+    "body_mesh": "SuperHero_Male",
+    "right_hand_bone": "hand_r",
+    "core_bones_verified": ["root","pelvis","spine_01","spine_02","spine_03","neck_01","Head","clavicle_l","clavicle_r","upperarm_l","upperarm_r","lowerarm_l","lowerarm_r","hand_l","hand_r","thigh_l","thigh_r","calf_l","calf_r","foot_l","foot_r"],
+    "role": "adult skinned mechanics/compatibility baseline; final slim physiology gate still pending"
+  },
+  "compatible_animation_library": {
+    "repository": "Seyamalam/blood-league-kickoff",
+    "commit": "aa02a4e6d8337a0604d2da131bcbbeb1f01badf0",
+    "source": "Quaternius Universal Animation Library",
+    "license": "CC0",
+    "path": "public/assets/vendor/quaternius/universal-animation-library.glb",
+    "git_blob_sha": "4fccf561b9b2ef73f611efe21981ef8739080065",
+    "size_bytes": 2714756,
+    "sha256": "4c748767741a3e495d89667b9a218b690ba9810b9517a12e960780e3ca72c4e9",
+    "verified_combat_clips": ["Sword_Attack","Sword_Idle","Roll","Hit_Chest","Hit_Head","Punch_Cross","Punch_Jab"],
+    "skeleton_name_compatibility_verified": true,
+    "retarget_required": false
+  },
+  "secondary_adult_rig_baseline": {
+    "repository": "UMRAM-Bilkent/supine-human-model",
+    "commit": "728f23ab5eb9d6cb2c8fb39acb3440bd81db0d3e",
+    "license": "CC0",
+    "path": "assets/human.glb",
+    "git_blob_sha": "de56d83cdcd5d741955fe6acd983a61e50e367c3",
+    "size_bytes": 698560,
+    "sha256": "ce4d543e82e455d5a1253798c9759f12b9eec74929ddbca464447eeaa3a42c5d",
+    "rigged": true,
+    "animations_verified": ["Idle","Run","Walk"],
+    "role": "independent adult rig sanity baseline; low-poly, not final primary physiology"
+  },
+  "mesh2motion_reference": {
     "app_repository": "Mesh2Motion/mesh2motion-app",
     "app_commit": "12712269e576fd3ffb520ad6c6d45a8e265ea894",
-    "app_code_license": "MIT",
+    "code_license": "MIT",
     "asset_repository": "Mesh2Motion/mesh2motion-assets",
     "asset_commit": "529c9b6baeb536ee4c379c3677e4b1439ed0d8fb",
     "asset_license": "CC0-1.0",
-    "reference_assets": [
-      {
-        "path": "static/models/model-human.glb",
-        "size_bytes": 364868,
-        "git_blob_sha": "c7bcbfd497c720c2ca7f31fbe47eea27566914c8",
-        "role": "mechanics/reference human; primary physiology gate remains pending"
-      },
-      {
-        "path": "static/rigs/rig-human.glb",
-        "size_bytes": 21280,
-        "git_blob_sha": "832a222a611bd0ee9112c64145a3a49df9b89b3e",
-        "role": "human rig"
-      }
-    ],
-    "right_hand_bone": "hand_r",
-    "right_hand_bone_mapping_source": "Mesh2Motion RigifyMapper",
-    "selected_motions": {
-      "attack": {
-        "path": "rigs/human/animation-human-sword-attack-air-vertical.blend",
-        "git_blob_sha": "67a295a3ce50318a87b2c90d28552af9d23b1365",
-        "size_bytes": 1055139
-      },
-      "dodge": {
-        "path": "rigs/human/animation-human-dodge-back.blend",
-        "git_blob_sha": "ac452e8af65585e7362e91521e01f4d15124aa6b",
-        "size_bytes": 1088119
-      }
-    },
-    "retarget_required_for_reference_rig": false
+    "packed_animation_sha256": "406eb0a8dc4ab366e623b79b6e3005a4951392e1bda78ae39c1099d31147733c",
+    "source_attack": "rigs/human/animation-human-sword-attack-air-vertical.blend",
+    "source_dodge": "rigs/human/animation-human-dodge-back.blend"
   },
   "weapon": {
     "repository": "ilrein/warptracker",
+    "commit": "71bbfbdfacd118196994b26da68eec1876d55c6b",
     "source_pack": "Quaternius Animated Knight Pack",
     "license": "CC0",
     "path": "public/models/sword.glb",
     "git_blob_sha": "d80d47cf6ac49ae72805ba992bccc2431dcfcbfc",
     "size_bytes": 28420,
+    "sha256": "62add428c985df2ec32f7e516ab685a327cca886926446f798fe92d6ca180d3a",
     "format_verified": "glTF 2.0 GLB",
     "geometry_verified": true,
-    "source_long_axis_range_units_approx": 3.16938436,
     "target_blade_length_m": 1.08,
     "attachment_target": "hand_r",
-    "attachment_engine_path": "Babylon.js native glTF bone/node attachment; attachToBone/linked transform node",
+    "attachment_engine_path": "Babylon.js native glTF bone/node attachment",
     "wrist_attachment_status": "OSS_PATH_RESOLVED_RUNTIME_PROOF_PENDING"
   },
   "scene_seed": {
@@ -84,9 +108,12 @@
     "camera_fov_deg": 39
   },
   "gates": {
-    "primary_physiology_visual_pass": false,
+    "asset_transport_pass": true,
+    "adult_skinned_runtime_asset_resolved": true,
+    "compatible_open_combat_animation_resolved": true,
     "real_cc0_sword_asset_resolved": true,
     "wrist_attachment_oss_path_resolved": true,
+    "primary_physiology_visual_pass": false,
     "wrist_attachment_proven": false,
     "white_stage_render_pass": false,
     "attack_dodge_render_pass": false,
@@ -95,10 +122,10 @@
     "tests_typecheck_build_chromium_pass": false
   },
   "remaining_blockers": [
-    "materialize and visually qualify an acceptable adult primary body",
-    "materialize selected human motion data through an existing OSS/export path",
-    "runtime-prove the real CC0 sword attached to hand_r",
-    "render, measure and verify the white-stage and attack/dodge gates"
+    "visually qualify a slimmer adult primary body at 7.0-8.3 heads",
+    "runtime-prove Sword_Attack plus defender Roll/dodge on two skinned bodies",
+    "runtime-prove sword attachment to hand_r",
+    "render, measure and verify white-stage, grounding, clearance and framing gates"
   ],
   "merge": "NO",
   "canon": "NO"

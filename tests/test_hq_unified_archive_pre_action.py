@@ -236,8 +236,11 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
     def test_pass_claim_requires_fresh_verification(self) -> None:
         blocked = self._decide(self._context(action="CLAIM_PASS", freshVerificationEvidence=False))
         self.assertEqual((blocked["decision"], blocked["reason"]), ("BLOCK", "FRESH_VERIFICATION_REQUIRED"))
-        allowed = self._decide(self._context(action="CLAIM_PASS", freshVerificationEvidence=True))
-        self.assertEqual(allowed["decision"], "ALLOW")
+        unbound = self._decide(self._context(action="CLAIM_PASS", freshVerificationEvidence=True))
+        self.assertEqual(
+            (unbound["decision"], unbound["reason"]),
+            ("BLOCK", "DURABLE_CONTEXT_EVIDENCE_SOURCE_NOT_PROVEN"),
+        )
 
     def test_image_mutation_requires_explicit_owner_command(self) -> None:
         blocked = self._decide(self._context(action="IMAGE_MUTATION", explicitOwnerImageMutationCommand=False))

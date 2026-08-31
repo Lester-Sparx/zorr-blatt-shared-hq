@@ -50,3 +50,42 @@ jobs:
           path: r04-assets/
           if-no-files-found: error
           retention-days: 30
+
+  validate-upstream-character:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pinned OSS character runtime
+        uses: actions/checkout@v4
+        with:
+          repository: Seyamalam/blood-league-kickoff
+          ref: aa02a4e6d8337a0604d2da131bcbbeb1f01badf0
+
+      - name: Use upstream Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.x
+          cache: npm
+
+      - name: Install pinned upstream dependencies
+        run: npm ci
+
+      - name: Run upstream character asset validator unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r04-upstream-validation
+          node scripts/validate-character-assets.mjs --json | tee r04-upstream-validation/character-validation.json
+
+      - name: Run upstream character runtime tests unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vitest run src/render/objects/EnemyCharacterAssetPool.test.ts src/render/objects/CharacterAnimationController.test.ts | tee r04-upstream-validation/runtime-tests.txt
+
+      - name: Upload upstream validation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: r04-upstream-character-validation
+          path: r04-upstream-validation/
+          if-no-files-found: error
+          retention-days: 30

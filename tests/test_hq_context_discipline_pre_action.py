@@ -42,6 +42,23 @@ class ContextDisciplinePreActionTests(unittest.TestCase):
             "source_refs": ["github:issue:235"],
         }
 
+    @staticmethod
+    def head_fact(fact_id: str, value: str, source_ref: str) -> dict[str, object]:
+        return {
+            "schema": "ZB_CONTEXT_FACT_V1",
+            "fact_id": fact_id,
+            "class": "E2",
+            "key": "ACTIVE_HEAD",
+            "value": value,
+            "exclusive": True,
+            "verified": True,
+            "authority": "GITHUB",
+            "created_at": "2026-08-31T18:00:00Z",
+            "scope_tags": ["LESTER", "SECURITY_R02"],
+            "source_refs": [source_ref],
+            "supersedes": [],
+        }
+
     def test_not_proven_context_packet_blocks_substantive_action(self) -> None:
         result = hq_pre_action.evaluate_pre_action(
             self.context(),
@@ -96,6 +113,24 @@ class ContextDisciplinePreActionTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(hq_pre_action.PreActionError, "CONTEXT_PACKET_INVALID"):
             hq_pre_action.evaluate_pre_action(self.context(), context_packet=forged)
+
+    def test_unseen_conflicting_proven_heads_fail_closed_before_claim_pass(self) -> None:
+        stale = self.packet("PROVEN")
+        stale["current_state"] = {
+            "schema": "ZB_CONTEXT_CURRENT_STATE_V1",
+            "facts": [
+                self.head_fact("head-a", "stale-head", "github:commit:stale-head"),
+                self.head_fact("head-b", "fresh-head", "github:commit:fresh-head"),
+            ],
+        }
+        claim = self.context()
+        claim["action"] = "CLAIM_PASS"
+        claim["freshVerificationEvidence"] = True
+        with self.assertRaisesRegex(
+            hq_pre_action.PreActionError,
+            "DURABLE_CONTEXT_NOT_PROVEN|CONTEXT_PACKET_INVALID",
+        ):
+            hq_pre_action.evaluate_pre_action(claim, context_packet=stale)
 
     def test_cli_consumes_context_packet_without_archive_lookup(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

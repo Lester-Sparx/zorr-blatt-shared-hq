@@ -19,7 +19,7 @@ export const ACTION_LOCK = {
   attackClip: 'Sword_Attack',
   attackPoseFraction: 0.35,
   dodgeClip: 'Roll',
-  dodgePoseFraction: 0.55,
+  dodgePoseFraction: 0.60,
   measuredPrototypeClearanceM: 0.0970096418,
   cameraPositionM: [3.10, 1.55, 3.65] as const,
   cameraTargetM: [0.12, 1.02, -0.38] as const,
@@ -110,9 +110,10 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
   const platform = scene.getMeshByName('set:platform');
   if (platform) {
     const floor = new StandardMaterial('action:material:white-floor', scene);
-    floor.diffuseColor = new Color3(0.18, 0.18, 0.18);
-    floor.emissiveColor = new Color3(0.76, 0.76, 0.76);
+    floor.diffuseColor = new Color3(0.96, 0.96, 0.96);
+    floor.emissiveColor = new Color3(0.96, 0.96, 0.96);
     floor.specularColor = Color3.Black();
+    floor.disableLighting = true;
     platform.material = floor;
   }
   for (const lightName of ['set:light:key', 'set:light:portal', 'set:light:fill']) {
@@ -198,7 +199,7 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
   const socket = new TransformNode('action:blade:socket', scene);
   socket.parent = hand;
   socket.position.copyFromFloats(0, 0, 0);
-  socket.rotation.x = Math.PI / 2;
+  socket.rotation.x = -Math.PI / 2;
   socket.scaling.copyFromFloats(
     ACTION_LOCK.bladeScale,
     ACTION_LOCK.bladeScale,

@@ -1,10 +1,10 @@
 {
   "schemaVersion": "zorr-scene-manifest-v1",
   "sceneId": "ZB-CINEMATIC-SCENE-R01",
-  "sceneVersion": "R03",
+  "sceneVersion": "R04",
   "authority": "PROTOTYPE_NON_CANON",
-  "designIntent": "BLADE_DODGE_PRODUCTION_GREYBOX",
-  "sourceImplementationHead": "650e94d359388066e51c2ec2caad8a448fdf6ae1",
+  "designIntent": "ADULT_SKINNED_BLADE_DODGE_WHITE_STAGE",
+  "sourceImplementationHead": "1e240f967d2a87f9840feee1ca00c7a7b9eae597",
   "openSourceOnly": true,
   "codeDependencies": [
     {
@@ -50,43 +50,57 @@
   ],
   "externalArtAssets": [
     {
-      "path": "public/oxihuman-b0-body.glb",
-      "sourceRepository": "cool-japan/oxihuman",
-      "sourceCommit": "603b446854c3d5a9ca478214e7b85008d54786b9",
-      "license": "Apache-2.0",
-      "sha256": "626be02ae16ddf2bfd8760633761489a3c24f5b35d1e5b3f4a0c9a602cbffaf0",
-      "authority": "DERIVED_NON_CANON_BODY_SURFACE"
+      "path": "public/assets/r04/quaternius-superhero-male.glb",
+      "sourceRepository": "Seyamalam/blood-league-kickoff",
+      "sourceCommit": "aa02a4e6d8337a0604d2da131bcbbeb1f01badf0",
+      "sourcePack": "Quaternius Universal Base Characters Standard",
+      "license": "CC0",
+      "sha256": "a466828c67a4acc9b2413212ce6d9cde235e3aed9b675680c14fd9673858f118",
+      "authority": "ADULT_SKINNED_MECHANICS_BASELINE"
+    },
+    {
+      "path": "public/assets/r04/quaternius-ual.glb",
+      "sourceRepository": "Seyamalam/blood-league-kickoff",
+      "sourceCommit": "aa02a4e6d8337a0604d2da131bcbbeb1f01badf0",
+      "sourcePack": "Quaternius Universal Animation Library",
+      "license": "CC0",
+      "sha256": "4c748767741a3e495d89667b9a218b690ba9810b9517a12e960780e3ca72c4e9",
+      "authority": "OPEN_COMBAT_MOTION"
+    },
+    {
+      "path": "public/assets/r04/sword.glb",
+      "sourceRepository": "ilrein/warptracker",
+      "sourceCommit": "71bbfbdfacd118196994b26da68eec1876d55c6b",
+      "sourcePack": "Quaternius Animated Knight Pack",
+      "license": "CC0",
+      "sha256": "62add428c985df2ec32f7e516ab685a327cca886926446f798fe92d6ca180d3a",
+      "authority": "HAND_ATTACHED_WEAPON"
     }
   ],
   "materials": [
     {
-      "id": "set:material:graphite",
-      "source": "PROCEDURAL_CODE_AUTHORED"
+      "id": "action:material:white-floor",
+      "source": "EXISTING_BABYLON_STANDARD_MATERIAL"
     },
     {
-      "id": "set:material:threshold",
-      "source": "PROCEDURAL_CODE_AUTHORED"
-    },
-    {
-      "id": "set:material:stone",
-      "source": "PROCEDURAL_CODE_AUTHORED"
-    },
-    {
-      "id": "set:material:distant-stone",
-      "source": "PROCEDURAL_CODE_AUTHORED"
-    },
-    {
-      "id": "set:material:magenta-emissive",
-      "source": "PROCEDURAL_CODE_AUTHORED"
-    },
-    {
-      "id": "set:material:cyan-emissive",
-      "source": "PROCEDURAL_CODE_AUTHORED"
+      "id": "character-and-weapon-materials",
+      "source": "PINNED_SOURCE_GLTF"
     }
   ],
   "geometry": {
-    "source": "BABYLON_NATIVE_PROCEDURAL_SET_PLUS_PINNED_OXIHUMAN_GLB",
-    "externalMeshes": ["public/oxihuman-b0-body.glb"]
+    "source": "PINNED_CC0_SKINNED_GLTF_PLUS_EXISTING_BABYLON_STAGE",
+    "externalMeshes": [
+      "public/assets/r04/quaternius-superhero-male.glb",
+      "public/assets/r04/sword.glb"
+    ],
+    "vertexWarp": false,
+    "proceduralWeapon": false
+  },
+  "animation": {
+    "library": "public/assets/r04/quaternius-ual.glb",
+    "attackerClip": "Sword_Attack",
+    "defenderClip": "Roll",
+    "retargetRequired": false
   },
   "textures": [],
   "hdris": [],
@@ -94,17 +108,7 @@
   "audio": [],
   "remoteServices": [],
   "setMeshNames": [
-    "set:platform",
-    "set:threshold",
-    "set:portal:left",
-    "set:portal:right",
-    "set:portal:top",
-    "set:monolith:left",
-    "set:monolith:right",
-    "set:horizon-slab",
-    "set:accent:portal-left",
-    "set:accent:portal-right",
-    "set:accent:floor-line"
+    "set:platform"
   ],
   "capture": {
     "widthPx": 1280,
@@ -116,6 +120,7 @@
   "deterministicInputs": [
     "cinematic-scene-r01.json",
     "cinematicSet.ts",
+    "actionScene.ts",
     "compiler.ts",
     "proxy.ts",
     "timeline.ts",

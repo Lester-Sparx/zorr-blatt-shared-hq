@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import argparse, hashlib, json
+import argparse, hashlib, io, json, zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -118,6 +118,18 @@ def contour_error(raw: np.ndarray, simple: np.ndarray) -> dict[str, Any]:
     return {"mean_px": float(d.mean()), "rms_px": float(np.sqrt(np.mean(d * d))), "max_px": float(d.max())}
 
 
+def save_npz_deterministic(path: Path, arrays: dict[str, np.ndarray]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=1) as zf:
+        for key in sorted(arrays):
+            buf = io.BytesIO()
+            np.save(buf, arrays[key], allow_pickle=False)
+            info = zipfile.ZipInfo(f"{key}.npy", date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o600 << 16
+            zf.writestr(info, buf.getvalue(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=1)
+
+
 def analyze(source: Path, out_json: Path, out_npz: Path, p: AnalysisParams) -> dict[str, Any]:
     p.validate()
     image = cv2.imread(str(source), cv2.IMREAD_UNCHANGED)
@@ -127,7 +139,11 @@ def analyze(source: Path, out_json: Path, out_npz: Path, p: AnalysisParams) -> d
     h, w = rgb.shape[:2]
     lum = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY).astype(np.float32)
     gx, gy = cv2.Scharr(lum, cv2.CV_32F, 1, 0), cv2.Scharr(lum, cv2.CV_32F, 0, 1)
-    mag, angle = cv2.magnitude(gx, gy), cv2.phase(gx, gy, angleInDegrees=False)
+    # OpenCV Scharr remains the derivative authority. Compute the contract's
+    # G=sqrt(Gx^2+Gy^2) in float64 then store float32 so identical inputs
+    # produce byte-identical evidence across repeated runs in this runtime.
+    mag = np.sqrt(gx.astype(np.float64) * gx + gy.astype(np.float64) * gy).astype(np.float32)
+    angle = cv2.phase(gx, gy, angleInDegrees=False)
     mask, lab, silhouette_info = silhouette_from_border(rgb)
     fg = mask.astype(bool)
     if not fg.any():
@@ -178,29 +194,41 @@ def analyze(source: Path, out_json: Path, out_npz: Path, p: AnalysisParams) -> d
             "quantiles_05_25_50_75_95": [float(x) for x in np.quantile(lum[fg], [.05,.25,.5,.75,.95])],
             "local_tone_std": float(local[fg].std()), "sigma_px": p.tone_sigma_px, "provenance": "DERIVED"}
 
-    out_npz.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(out_npz, **arrays)
+    save_npz_deterministic(out_npz, arrays)
     npz_hash = sha256(out_npz)
     na = "NOT_APPLICABLE_NO_DRAWING_CANDIDATE"
     manifest = {
-        "contract": {"sha256": CONTRACT_SHA256, "status": "ENGINE_SPEC_NO_RENDER"},
+        "contract": {"sha256": CONTRACT_SHA256, "status": "ENGINE_SPEC_NO_RENDER", "provenance": "OBSERVED"},
         "source": {"name": source.name, "sha256": sha256(source), "width_px": w, "height_px": h, "provenance": "OBSERVED"},
         "runtime": {"opencv_python_version": cv2.__version__, "opencv_inspected_ref": OPENCV_REF,
-                    "numpy_version": np.__version__, "custom_cv_algorithm": "NO", "image_generation": "NO", "image_editing": "NO"},
+                    "numpy_version": np.__version__, "gradient_derivatives": "OpenCV Scharr",
+                    "gradient_magnitude": "sqrt(Gx^2+Gy^2) float64->float32 deterministic glue",
+                    "custom_cv_algorithm": "NO", "image_generation": "NO", "image_editing": "NO", "provenance": "OBSERVED"},
         "parameters": {"simplification_epsilon_px": p.simplification_epsilon_px, "tone_sigma_px": p.tone_sigma_px,
-                       "color_clusters": p.color_clusters, "internal_edge_otsu_threshold_u8": float(grad_otsu)},
+                       "color_clusters": p.color_clusters, "internal_edge_otsu_threshold_u8": float(grad_otsu), "provenance": "OBSERVED"},
         "visible_bbox_px": bbox, "visible_silhouette": {"npz_key": "L3_visible_silhouette_mask", **silhouette_info},
         "contours": contour_records, "anchors": anchors, "proportion_graph": proportions(anchors, bbox["width_px"]),
         "occlusion_graph": {"relations": [], "provenance": "UNKNOWN", "reason": "not directly proven; not inferred"},
         "color_regions": regions, "tone_field_summary": tone, "texture_summary": texture, "lighting_evidence_summary": lighting,
         "uncertainty_mask": {"npz_key": "L10_uncertainty_subject_geometry_mask", "scope": "subject_geometry_authority",
                              "provenance": "DERIVED", "rule": "outside visible silhouette has no subject geometry authority"},
-        "layers": {"L0":"PASS","L1":"PASS","L2":"PASS","L3":"PASS","L4":"PARTIAL","L5":"PARTIAL",
-                   "L6":"PARTIAL","L7":"UNKNOWN","L8":"PARTIAL","L9":"PARTIAL","L10":"PASS"},
-        "qc_vector": {k: na for k in ["E_silhouette_px","E_anchor_px","E_proportion","E_occlusion","E_tone","E_color","E_texture","E_line_topology"]},
-        "artifacts": {"layers_npz": {"name": out_npz.name, "sha256": npz_hash}},
+        "layers": {
+            "L0": {"status":"PASS","provenance":"OBSERVED"},
+            "L1": {"status":"PASS","provenance":"DERIVED"},
+            "L2": {"status":"PASS","provenance":"DERIVED"},
+            "L3": {"status":"PARTIAL","provenance":"DERIVED","reason":"segmentation executed; no ground-truth pixel mask exists"},
+            "L4": {"status":"PARTIAL","provenance":"DERIVED","reason":"binary edge evidence only; no semantic line class"},
+            "L5": {"status":"PARTIAL","provenance":"DERIVED","reason":"Lab masses only; no semantic object labels"},
+            "L6": {"status":"PARTIAL","provenance":"DERIVED","reason":"visible silhouette extrema only; anatomy not inferred"},
+            "L7": {"status":"UNKNOWN","provenance":"UNKNOWN","reason":"occlusion graph not directly proven"},
+            "L8": {"status":"PARTIAL","provenance":"DERIVED","reason":"global visible-region frequency summary"},
+            "L9": {"status":"PARTIAL","provenance":"DERIVED","reason":"2D luminance-gradient evidence only"},
+            "L10": {"status":"PARTIAL","provenance":"DERIVED","reason":"M_VISIBLE/M_UNKNOWN emitted; M_OCCLUDED remains UNKNOWN"},
+        },
+        "qc_vector": {"provenance":"UNKNOWN", "metrics": {k: na for k in ["E_silhouette_px","E_anchor_px","E_proportion","E_occlusion","E_tone","E_color","E_texture","E_line_topology"]}},
+        "artifacts": {"layers_npz": {"name": out_npz.name, "sha256": npz_hash, "provenance":"DERIVED"}},
         "terminal": {"structure_state":"CREATED","renderer":"NOT_STARTED","unknown_promoted_to_geometry":False,
-                     "image_generation":"NO","image_editing":"NO"},
+                     "image_generation":"NO","image_editing":"NO","provenance":"OBSERVED"},
     }
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_json.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False)+"\n", encoding="utf-8")

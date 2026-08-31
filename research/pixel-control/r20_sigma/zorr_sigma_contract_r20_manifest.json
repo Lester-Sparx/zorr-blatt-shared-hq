@@ -1,0 +1,119 @@
+{
+  "boundaries": {
+    "controlnet_depth_edge_need": "NOT PROVEN",
+    "free_seam_background_continuity": "NOT MEASURED ON REAL BACKEND",
+    "image_generation_or_editing": "NONE",
+    "minimum_vram_bytes": "UNKNOWN",
+    "production_visual_quality": "NOT PROVEN",
+    "raw_real_backend_leakage": "UNKNOWN",
+    "real_diffusion_runtime": "NOT PROVEN",
+    "source_equivalent_sigma_vector_current_host": "MEASURED",
+    "target_r17_sigma_fingerprint": "NOT PROVEN"
+  },
+  "date": "2026-08-31",
+  "effective_scheduler_defaults_bound_r20": {
+    "final_sigmas_type": "zero",
+    "rescale_betas_zero_snr": false,
+    "timestep_type": "discrete",
+    "trained_betas": null,
+    "use_beta_sigmas": false,
+    "use_exponential_sigmas": false
+  },
+  "framework": {
+    "euler_scheduler_blob_pinned_and_fresh": "eac6efe18aaf775b846e7536fd972686d3ec9683",
+    "euler_test_blob_pinned_and_fresh": "ee99465abfc39e7a7ce7a6734b22dbeb42df5efd",
+    "fresh_main_ref": "2e618cb6027037597cf80905fc3e356a71923087",
+    "license": "Apache-2.0",
+    "license_blob": "038e32f6445e8f265bde482613cf0d2f43d86dbc",
+    "pinned_ref": "c1bf18c92c6285334adcaac7e75ef8946a227f49",
+    "pipeline_blob_pinned_and_fresh": "3f18cbe21d0fe12f89859d188dba2a487f3d87c5",
+    "repo": "huggingface/diffusers",
+    "version": "0.41.0.dev0"
+  },
+  "inherited_model": {
+    "id": "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
+    "license_name": "CreativeML Open RAIL++-M License",
+    "license_state": "INHERITED_R12_AND_FRESH_MODEL_CARD_RECHECK_NO_NEW_LEGAL_INTERPRETATION",
+    "license_tag": "openrail++",
+    "pipeline": "StableDiffusionXLInpaintPipeline",
+    "revision": "212ee7d92278cfec477f0ccd1e369cd9d6e9c7e3",
+    "use_safetensors": true,
+    "variant": "fp16"
+  },
+  "measured_source_equivalent_sigma_receipt": {
+    "begin_index": 1,
+    "denoise_sigma_count": 19,
+    "denoise_sigmas_sha256_le_f32": "e03af84d27673cb3cd8226551a084405224f01ead40a3ccc6c0189b993da24ec",
+    "effective_first_sigma_index": 1,
+    "effective_first_timestep": 901,
+    "first_step_sigma_f32": 8.390686988830566,
+    "full_sigma_count": 21,
+    "full_sigmas_float32": [11.028335571289062,8.390686988830566,6.506400108337402,5.134433269500732,4.116698265075684,3.3477649688720703,2.756196975708008,2.2928547859191895,1.9234442710876465,1.6236929893493652,1.376179575920105,1.1682164669036865,0.9904093742370605,0.8356532454490662,0.6983985900878906,0.574050784111023,0.4583331346511841,0.3461872935295105,0.22814728319644928,0.04131447896361351,0.0],
+    "full_sigmas_ieee754_le_hex": ["10743041","41400641","6e34d040","474da440","febb8340","c8415640","88653040","22be1240","6c33f63f","2cd5cf3f","a726b03f","1e88953f","788b7d3f","5fed553f","40ca323f","fef4123f","a4aaea3e","763fb13e","719f693e","5f39293d","00000000"],
+    "full_sigmas_sha256_le_f32": "dd2b4c6776c6cad5ddb460a30f3906d4ccb3b1f694bf9e6e9e89a2dba07d578f",
+    "identity_encoding": "SHA-256 over contiguous little-endian IEEE-754 binary32 bytes",
+    "initial_add_noise_sigma_f32": 8.390686988830566,
+    "last_effective_sigma_index": 19,
+    "numeric_environment": {
+      "cuda_available": false,
+      "cuda_device_count": 0,
+      "diffusers_imported": false,
+      "diffusers_version": null,
+      "implementation": "CPython",
+      "machine": "x86_64",
+      "numpy": "2.3.5",
+      "python": "3.13.5",
+      "system": "Linux",
+      "torch": "2.10.0+cpu",
+      "torch_cuda_build": null
+    },
+    "requested_timesteps": [951,901,851,801,751,701,651,601,551,501,451,401,351,301,251,201,151,101,51,1],
+    "successor_sigma_count": 19,
+    "successor_sigmas_sha256_le_f32": "600d524c9374a76235a04b0665cfdf03752792232a57b4f2d402ceabf8a1a1e2",
+    "terminal_sigma_index": 20,
+    "terminal_successor_sigma_f32": 0.0,
+    "unused_leading_sigma_f32": 11.028335571289062,
+    "unused_leading_sigma_index": 0,
+    "unused_leading_timestep": 951
+  },
+  "predecessor_sha256": {
+    "test_zorr_timestep_contract_r16.py": "a3ec95bb4c9fd106e75cabc787e2097966c0f4905d3d8a5251b5f15fc0257a7d",
+    "zorr_backend_manifest_r04.json": "c7c334cebe94dbad833f89b436771a18a7f46983842bf0d114054a0a573b1c95",
+    "zorr_timestep_contract_r16.py": "cfaf3773628f19a7353425f92826fdfebb2f95a6971dc8e7a9c34c8fec1a4f62",
+    "zorr_timestep_contract_r16_manifest.json": "48e2bef311c5d12de3c4472b5925bf07ced8322c579e9968792b0ddac34e11e5"
+  },
+  "r16_timestep_contract": {
+    "effective_denoising_steps": 19,
+    "effective_timesteps": [901,851,801,751,701,651,601,551,501,451,401,351,301,251,201,151,101,51,1],
+    "init_timestep": 19,
+    "initial_noise_timestep": 901,
+    "requested_timesteps": [951,901,851,801,751,701,651,601,551,501,451,401,351,301,251,201,151,101,51,1],
+    "scheduler_order": 1,
+    "semantics": "R04 num_inference_steps=20 is the requested scheduler resolution. Under the pinned SDXL inpaint get_timesteps() with strength=0.99, the actual denoising loop contains 19 timesteps.",
+    "t_start": 1
+  },
+  "schema": "ZORR_SIGMA_CONTRACT_R20",
+  "selected_scheduler_config": {
+    "_class_name": "EulerDiscreteScheduler",
+    "beta_end": 0.012,
+    "beta_schedule": "scaled_linear",
+    "beta_start": 0.00085,
+    "interpolation_type": "linear",
+    "num_train_timesteps": 1000,
+    "prediction_type": "epsilon",
+    "steps_offset": 1,
+    "timestep_spacing": "leading",
+    "use_karras_sigmas": false
+  },
+  "source_semantics": {
+    "alphas_cumprod": "torch.cumprod(1-betas)",
+    "begin_index": "pipeline get_timesteps sets scheduler.begin_index = t_start * order = 1",
+    "first_step": "scheduler.step initializes step_index from begin_index and uses the same sigmas[1]",
+    "inference_sigma": "np.interp(requested_timesteps, arange(train_steps), training_sigma)",
+    "initial_add_noise": "scheduler.add_noise uses sigmas[begin_index] when begin_index set and step_index is None",
+    "scaled_linear_betas": "torch.linspace(sqrt(beta_start), sqrt(beta_end), num_train_timesteps, float32) ** 2",
+    "terminal_sigma": "0.0 because pinned EulerDiscreteScheduler final_sigmas_type default is zero",
+    "training_sigma": "sqrt((1-alpha_cumprod)/alpha_cumprod)"
+  },
+  "status": "SOURCE_EQUIVALENT_SIGMA_EXECUTION_CONTRACT_CLOSED_TARGET_RUNTIME_NOT_PROVEN"
+}

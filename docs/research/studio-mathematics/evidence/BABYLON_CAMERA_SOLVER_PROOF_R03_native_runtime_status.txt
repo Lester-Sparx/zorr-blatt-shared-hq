@@ -1,0 +1,4 @@
+@babylonjs/core@9.23.0 local dependency: NOT INSTALLED
+npm registry attempt: FAIL / EAI_AGAIN
+native harness syntax (node --check): PASS
+BABYLON_NATIVE_AGREEMENT: NOT_PROVEN

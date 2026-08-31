@@ -12,6 +12,7 @@ jobs:
         with:
           persist-credentials: false
       - run: python3 scripts/hq_validate.py
+      - run: python3 scripts/validate_three_chat_sheriff.py
       - run: python3 -m unittest discover -s tests -v
   hq-scope-guard:
     runs-on: ubuntu-latest

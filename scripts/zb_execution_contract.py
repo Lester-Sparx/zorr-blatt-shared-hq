@@ -199,6 +199,11 @@ def _require_nonempty(value: str) -> str:
     return value
 
 
+def _test_evidence_binds_workflow_run(test_evidence_refs: tuple[str, ...], workflow_run_id: str) -> bool:
+    prefix = f"run:{workflow_run_id}"
+    return any(ref == prefix or ref.startswith(prefix + ":") for ref in test_evidence_refs)
+
+
 def parse_execution_request(body: str) -> ExecutionRequest:
     values = _parse_exact_fields(body, REQUEST_MARKER, REQUEST_FIELDS)
     if values["NO_AUTO_MERGE"] != "TRUE":
@@ -264,7 +269,12 @@ def parse_execution_result(body: str) -> ExecutionResult:
 
     process_exit_code = _require_int(values["PROCESS_EXIT_CODE"])
     test_evidence_refs = _require_list(values["TEST_EVIDENCE_REFS"], allow_empty=True)
-    if terminal_state == "PASS" and (process_exit_code != 0 or not test_evidence_refs):
+    workflow_run_id = _require_identifier(values["WORKFLOW_RUN_ID"])
+    if terminal_state == "PASS" and (
+        process_exit_code != 0
+        or not test_evidence_refs
+        or not _test_evidence_binds_workflow_run(test_evidence_refs, workflow_run_id)
+    ):
         terminal_state = "FAIL"
 
     return ExecutionResult(
@@ -287,7 +297,7 @@ def parse_execution_result(body: str) -> ExecutionResult:
         changed_files=_require_list(values["CHANGED_FILES"], allow_empty=True),
         test_evidence_refs=test_evidence_refs,
         artifact_evidence_refs=_require_list(values["ARTIFACT_EVIDENCE_REFS"], allow_empty=True),
-        workflow_run_id=_require_identifier(values["WORKFLOW_RUN_ID"]),
+        workflow_run_id=workflow_run_id,
         workflow_run_attempt=_require_positive_int(values["WORKFLOW_RUN_ATTEMPT"]),
         runner_provenance=_require_identifier(values["RUNNER_PROVENANCE"]),
         started_at=_require_nonempty(values["STARTED_AT"]),

@@ -1,0 +1,42 @@
+{
+  "status": "SOURCE-DERIVED_SELECTION / RUNTIME_NOT_PROVEN",
+  "selected_model": {
+    "model_id": "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
+    "immutable_revision": "212ee7d92278cfec477f0ccd1e369cd9d6e9c7e3",
+    "pipeline_class": "StableDiffusionXLInpaintPipeline",
+    "variant": "fp16",
+    "format": "safetensors",
+    "license_tag": "openrail++",
+    "license_name": "CreativeML Open RAIL++-M License",
+    "selection_note": "Pinned immutable revision chosen for R04 reproducibility. This file does not claim that this revision is the current Hugging Face main HEAD."
+  },
+  "source_derived_baseline": {
+    "num_inference_steps": 20,
+    "guidance_scale": 8.0,
+    "strength": 0.99,
+    "seed": 0,
+    "note": "These mirror the model-card example. They are not ZORR quality thresholds."
+  },
+  "framework": {
+    "repo": "huggingface/diffusers",
+    "revision": "c1bf18c92c6285334adcaac7e75ef8946a227f49",
+    "version_at_revision": "0.41.0.dev0",
+    "license": "Apache-2.0"
+  },
+  "contract": {
+    "input_raster": [1080, 1920],
+    "mask_convention": "0=KEEP/context, 255=FREE/repaint",
+    "mask_binary_required": true,
+    "backend_has_final_pixel_authority": false,
+    "raw_backend_leakage_must_be_measured": true,
+    "hard_source_recomposite_required_after_backend": true,
+    "final_keep_exact_qc_required": true
+  },
+  "evidence": [
+    "https://huggingface.co/diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
+    "https://huggingface.co/diffusers/stable-diffusion-xl-1.0-inpainting-0.1/commit/212ee7d92278cfec477f0ccd1e369cd9d6e9c7e3",
+    "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md",
+    "https://github.com/huggingface/diffusers/blob/c1bf18c92c6285334adcaac7e75ef8946a227f49/src/diffusers/pipelines/stable_diffusion_xl/pipeline_stable_diffusion_xl_inpaint.py",
+    "https://github.com/huggingface/diffusers/blob/c1bf18c92c6285334adcaac7e75ef8946a227f49/tests/pipelines/stable_diffusion_xl/test_stable_diffusion_xl_inpaint.py"
+  ]
+}

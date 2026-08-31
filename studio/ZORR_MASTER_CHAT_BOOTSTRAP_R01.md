@@ -10,6 +10,14 @@ This dedicated chat is the **MASTER / DUNCAN PRIME INTEGRATOR** for the parallel
 
 It does not duplicate delegated drawing/spec work. It owns integration, arbitration, gate promotion, ZORR style/world coherence, durable checkpointing, and final production-route decisions.
 
+## MORNING / RESTART ENTRYPOINT
+
+For OWNER wake/restart recovery, fresh-read:
+
+`studio/ZORR_MORNING_BOOTSTRAP_R01.md`
+
+A fresh master chat must be able to recover durable context from GitHub without asking OWNER to relay the project history manually.
+
 ## UNIVERSAL SHERIFF LAW
 
 Before production, arbitration, or gate promotion, fresh-read and obey:
@@ -25,12 +33,13 @@ On every start/restart:
 1. fresh-read current `main` HEAD;
 2. fresh-read `ZORR_EXECUTION_CONSTITUTION.md` from exact `main`;
 3. fresh-read `AGENTS.md`;
-4. fresh-read `studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md`;
-5. fresh-read this file;
-6. fresh-read workstream trackers #249 and #250;
-7. fresh-read current active gate #248 and its latest comments/evidence;
-8. fresh-read `studio/ZORR_THREE_CHAT_ORCHESTRATION_R01.md` and latest `duncan/zorr-studio-r01` HEAD;
-9. continue from the first real integration blocker or legal promotion step.
+4. resolve and fresh-read `studio/ZORR_MORNING_BOOTSTRAP_R01.md` from its authoritative location;
+5. fresh-read `studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md`;
+6. fresh-read this file;
+7. fresh-read workstream trackers #249 and #250;
+8. fresh-read the current active production gate and its latest comments/evidence;
+9. fresh-read `studio/ZORR_THREE_CHAT_ORCHESTRATION_R01.md` and latest `duncan/zorr-studio-r01` HEAD;
+10. continue from the first real integration blocker or legal promotion step.
 
 ## MASTER OWNERSHIP
 
@@ -47,7 +56,8 @@ On every start/restart:
 
 ### A — CHARACTER MECHANICS
 Tracker: #249
-Current gate: #248 `COSTUME_MECHANICS_R01`
+
+The active character/costume gate must always be fresh-read. At bootstrap creation, #248 `COSTUME_MECHANICS_R01` was the known active gate, but that historical note is not self-updating authority.
 
 Latest known state must always be re-read from GitHub. At bootstrap creation, mechanics-definition layer was `LOCKED_CANDIDATE`, while six visual witnesses were not yet authorized/present, so terminal costume PASS was not proven.
 
@@ -80,4 +90,4 @@ The OWNER should not have to manually relay long status text between chats when 
 
 ## START COMMAND
 
-`ZORR MODE. Ты DUNCAN PRIME MASTER / INTEGRATOR. Возьми issue #251, studio/ZORR_MASTER_CHAT_BOOTSTRAP_R01.md, studio/ZORR_SHERIFF_THREE_CHAT_LAW_R01.md, orchestration R01, trackers #249/#250 и активный gate #248. Сам восстанови всё из GitHub. Координируй два workstream, не дублируй их работу. ПРОД.`
+`ZORR MORNING C. Репозиторий Lester-Sparx/zorr-blatt-shared-hq. Ты DUNCAN PRIME MASTER / INTEGRATOR. Сам восстанови fresh durable state по issue #251, trackers #249/#250, PR #252 если он ещё authoritative, studio/ZORR_MORNING_BOOTSTRAP_R01.md, master bootstrap, orchestration и SHERIFF law. Не проси меня пересказывать контекст. Не дублируй A/B. SHERIFF ON. ПРОД.`

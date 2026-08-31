@@ -96,30 +96,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  probe-girush-anime-body:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download CC0 Girush slim anime humanoid archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p r04-girush
-          curl --fail --location --retry 3 --user-agent 'Mozilla/5.0' -o r04-girush/girush.7z https://opengameart.org/sites/default/files/basemesh_a1_human_yw_by_girush_2.7z
-          file r04-girush/girush.7z
-          sha256sum r04-girush/girush.7z | tee r04-girush/SHA256SUMS.txt
-          7z l r04-girush/girush.7z | tee r04-girush/CONTENTS.txt
-          mkdir -p r04-girush/extracted
-          7z x -y -or04-girush/extracted r04-girush/girush.7z >/dev/null
-          find r04-girush/extracted -type f -printf '%P %s bytes\n' | sort | tee r04-girush/FILES.txt
-
-      - name: Upload Girush probe
-        uses: actions/upload-artifact@v4
-        with:
-          name: r04-girush-anime-body
-          path: r04-girush/
-          if-no-files-found: error
-          retention-days: 30
-
   practice-directing-v1:
     runs-on: ubuntu-latest
     steps:
@@ -143,19 +119,6 @@ jobs:
         with:
           node-version: 22.18.x
 
-      - name: Repair transparent source sword material with pinned upstream CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd experiments/directing-v1/public/assets/r04
-          npx --yes @gltf-transform/cli@4.4.1 copy sword.glb sword.gltf
-          jq '(.materials[].pbrMetallicRoughness.baseColorFactor[3]) = 1 | (.materials[].alphaMode) = "OPAQUE" | del(.materials[].alphaCutoff)' sword.gltf > sword-opaque.gltf
-          npx --yes @gltf-transform/cli@4.4.1 copy sword-opaque.gltf sword-fixed.glb
-          mv sword-fixed.glb sword.glb
-          npx --yes @gltf-transform/cli@4.4.1 copy sword.glb sword-check.gltf
-          jq -e 'all(.materials[]; .pbrMetallicRoughness.baseColorFactor[3] == 1 and ((.alphaMode // "OPAQUE") == "OPAQUE"))' sword-check.gltf
-          rm -f sword.gltf sword-opaque.gltf sword-check.gltf sword.bin sword-opaque.bin sword-check.bin
-
       - name: Install pinned directing dependencies
         working-directory: experiments/directing-v1
         run: npm ci
@@ -164,8 +127,7 @@ jobs:
         working-directory: experiments/directing-v1
         run: npm run typecheck
 
-      - name: Run existing unit tests (source-hash provenance diagnostic after deterministic material repair)
-        continue-on-error: true
+      - name: Run existing unit tests
         working-directory: experiments/directing-v1
         run: npm test
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import json
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ except ModuleNotFoundError:
 FACT_SCHEMA = "ZB_CONTEXT_FACT_V1"
 CURRENT_STATE_SCHEMA = "ZB_CONTEXT_CURRENT_STATE_V1"
 PACKET_SCHEMA = "ZB_CONTEXT_PACKET_V1"
+DELTA_SCHEMA = "ZB_CONTEXT_DELTA_V1"
 CLASSES = {"E0", "E1", "E2", "E3"}
 
 
@@ -263,3 +265,81 @@ def build_context_packet(
     if learning is not None:
         packet["learning"] = learning
     return packet
+
+
+def _state_values(state: dict[str, Any]) -> dict[str, list[Any]]:
+    if not isinstance(state, dict) or state.get("schema") != CURRENT_STATE_SCHEMA:
+        raise ContextDisciplineError("CONTEXT_CURRENT_STATE_INVALID")
+    facts = state.get("facts")
+    if not isinstance(facts, list):
+        raise ContextDisciplineError("CONTEXT_CURRENT_STATE_INVALID")
+    values: dict[str, list[Any]] = defaultdict(list)
+    for fact in facts:
+        if not isinstance(fact, dict) or not isinstance(fact.get("key"), str):
+            raise ContextDisciplineError("CONTEXT_CURRENT_STATE_INVALID")
+        value = fact.get("value")
+        if value not in values[fact["key"]]:
+            values[fact["key"]].append(value)
+    for key in values:
+        values[key].sort(key=lambda value: json.dumps(value, sort_keys=True, ensure_ascii=False, default=str))
+    return dict(values)
+
+
+def diff_current_state(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+    before = _state_values(previous)
+    after = _state_values(current)
+    changed: list[dict[str, Any]] = []
+    for key in sorted(set(before) | set(after)):
+        old_values = before.get(key, [])
+        new_values = after.get(key, [])
+        if old_values == new_values:
+            continue
+        old_value: Any = old_values[0] if len(old_values) == 1 else old_values or None
+        new_value: Any = new_values[0] if len(new_values) == 1 else new_values or None
+        changed.append({"key": key, "old": old_value, "new": new_value})
+    return {"schema": DELTA_SCHEMA, "changed": changed}
+
+
+def _render_value(value: Any) -> str:
+    if value is None:
+        return "<CLEARED>"
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return str(value)
+
+
+def render_owner_delta(
+    delta: dict[str, Any],
+    *,
+    blocker: str | None,
+    evidence: list[str],
+    next_action: str | None,
+) -> str:
+    if not isinstance(delta, dict) or delta.get("schema") != DELTA_SCHEMA:
+        raise ContextDisciplineError("CONTEXT_DELTA_INVALID")
+    changed = delta.get("changed")
+    if not isinstance(changed, list):
+        raise ContextDisciplineError("CONTEXT_DELTA_INVALID")
+    if blocker is not None and (not isinstance(blocker, str) or not blocker):
+        raise ContextDisciplineError("CONTEXT_BLOCKER_INVALID")
+    if not isinstance(evidence, list) or not all(isinstance(item, str) and item for item in evidence):
+        raise ContextDisciplineError("CONTEXT_EVIDENCE_INVALID")
+    if next_action is not None and (not isinstance(next_action, str) or not next_action):
+        raise ContextDisciplineError("CONTEXT_NEXT_ACTION_INVALID")
+
+    if not changed:
+        return "NO DELTA." + (f" BLOCKER = {blocker}" if blocker else "")
+
+    rendered_changes = []
+    for item in changed:
+        if not isinstance(item, dict) or not isinstance(item.get("key"), str) or "new" not in item:
+            raise ContextDisciplineError("CONTEXT_DELTA_INVALID")
+        rendered_changes.append(f"{item['key']}={_render_value(item['new'])}")
+    lines = ["DELTA: " + "; ".join(rendered_changes)]
+    if blocker:
+        lines.append("BLOCKER: " + blocker)
+    if evidence:
+        lines.append("EVIDENCE: " + " | ".join(evidence))
+    if next_action:
+        lines.append("NEXT: " + next_action)
+    return "\n".join(lines)

@@ -9,11 +9,14 @@ def test_params_validate() -> None:
 
 
 def test_otsu_silhouette_uses_source_border_evidence() -> None:
+    import cv2
     rgb = np.full((16, 16, 3), 250, dtype=np.uint8)
     rgb[4:12, 5:11] = np.array([30, 40, 50], dtype=np.uint8)
-    mask, _lab, info = silhouette_from_border(rgb)
+    mask, uncertainty, otsu, triangle, _lab, info = silhouette_from_border(rgb)
     assert mask[8, 8] == 255 and mask[0, 0] == 0
-    assert "Otsu" in info["method"]
+    assert np.array_equal(mask, cv2.bitwise_and(otsu, triangle))
+    assert np.array_equal(uncertainty, cv2.bitwise_xor(otsu, triangle))
+    assert "Otsu/Triangle consensus" in info["method"]
 
 
 def test_extrema_and_proportions_use_visible_mask_only() -> None:

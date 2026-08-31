@@ -90,6 +90,18 @@ Primary synthesis rule:
 
 The objective is not to average JoJo and BLEACH into a generic anime style. The objective is for borrowed principles to make the final result more recognizably ZORR, not more recognizably the reference.
 
+## Anti-Doll Training / QC
+
+Durable measurement and correction router:
+
+`studio/ZORR_ANTI_DOLL_MEASUREMENT_MATRIX_R01.md`
+
+Core training law:
+
+`LIFE != DEFORMATION`
+
+Use the matrix to bind anti-doll drills to measurable evidence, first-broken-layer diagnosis, existing C1-C8 correction operators, collateral checks, same-fail stop rules, and `NEW KEY / REDRAW` escalation. It does not authorize image generation/editing and does not change the active production gate.
+
 ## First production gate
 
 `OPENTOONZ CHARACTER LIFE SMOKE R01`

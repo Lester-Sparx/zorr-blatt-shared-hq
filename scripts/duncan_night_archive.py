@@ -365,7 +365,8 @@ def compute_duncan_context(archive_root: Path) -> dict[str, object]:
         taste_delta = record.get("owner_taste_model_delta", {})
         if not isinstance(self_delta, dict) or not isinstance(taste_delta, dict):
             raise DuncanNightArchiveError("DUNCAN_MODEL_DELTA_INVALID")
-        self_model.update({str(k): str(v) for k, v in self_delta.items()})
+        for key, value in self_delta.items():
+            self_model.setdefault(str(key), str(value))
         if record.get("owner_taste_model_delta_status") == "PROVEN":
             owner_taste_model.update({str(k): str(v) for k, v in taste_delta.items()})
         source_events.append(

@@ -1,0 +1,73 @@
+{
+  "concrete_gap_closed": "R16_SIGMA_VECTOR_NOT_PROVEN -> exact source-equivalent float32 sigma receipt + begin-index execution mapping on current measured host",
+  "date": "2026-08-31",
+  "derived": {
+    "begin_index": 1,
+    "effective_denoising_steps": 19,
+    "initial_add_noise_sigma_equals_first_step_sigma": true,
+    "last_step_successor_sigma_is_zero": true,
+    "timestep_951_sigma_is_skipped": true
+  },
+  "measured": {
+    "denoise_sigmas_sha256_le_f32": "e03af84d27673cb3cd8226551a084405224f01ead40a3ccc6c0189b993da24ec",
+    "full_sigma_count": 21,
+    "full_sigmas_sha256_le_f32": "dd2b4c6776c6cad5ddb460a30f3906d4ccb3b1f694bf9e6e9e89a2dba07d578f",
+    "host": {
+      "cuda_available": false,
+      "cuda_device_count": 0,
+      "diffusers_imported": false,
+      "diffusers_version": null,
+      "implementation": "CPython",
+      "machine": "x86_64",
+      "numpy": "2.3.5",
+      "python": "3.13.5",
+      "system": "Linux",
+      "torch": "2.10.0+cpu",
+      "torch_cuda_build": null
+    },
+    "initial_timestep_901_sigma": 8.390686988830566,
+    "initial_timestep_901_sigma_le_hex": "41400641",
+    "successor_sigmas_sha256_le_f32": "600d524c9374a76235a04b0665cfdf03752792232a57b4f2d402ceabf8a1a1e2",
+    "terminal_sigma": 0.0,
+    "terminal_sigma_le_hex": "00000000",
+    "unused_timestep_951_sigma": 11.028335571289062
+  },
+  "schema": "ZORR_SIGMA_CONTRACT_R20_PROOF",
+  "source_derived": {
+    "begin_index_evidence": "SDXL inpaint get_timesteps sets begin_index; Euler add_noise and step consume begin_index sigma",
+    "diffusers_fresh_main_ref": "2e618cb6027037597cf80905fc3e356a71923087",
+    "diffusers_license": "Apache-2.0",
+    "diffusers_license_blob": "038e32f6445e8f265bde482613cf0d2f43d86dbc",
+    "diffusers_pinned_ref": "c1bf18c92c6285334adcaac7e75ef8946a227f49",
+    "effective_defaults_bound": {
+      "final_sigmas_type": "zero",
+      "rescale_betas_zero_snr": false,
+      "timestep_type": "discrete",
+      "trained_betas": null,
+      "use_beta_sigmas": false,
+      "use_exponential_sigmas": false
+    },
+    "euler_scheduler_blob_pinned_and_fresh": "eac6efe18aaf775b846e7536fd972686d3ec9683",
+    "euler_test_blob_pinned_and_fresh": "ee99465abfc39e7a7ce7a6734b22dbeb42df5efd",
+    "pipeline_blob_pinned_and_fresh": "3f18cbe21d0fe12f89859d188dba2a487f3d87c5",
+    "scheduler_test_evidence": "upstream full_loop_custom_sigmas rebuilds Euler scheduler from scheduler.sigmas and asserts output equivalence <1e-5"
+  },
+  "tests": {
+    "compileall": "PASS",
+    "r16_regression": "10/10 PASS",
+    "r20": "13/13 PASS",
+    "verification_log_sha256": "67167452d29aace6492d127e9c189a5b8d907cff80e0f93575985dc9344e4e3f"
+  },
+  "truth_boundary": {
+    "CONTROLNET_DEPTH_EDGE_NEED": "NOT PROVEN",
+    "FREE_SEAM_BACKGROUND_CONTINUITY": "NOT MEASURED ON REAL BACKEND",
+    "IMAGE_GENERATION_OR_EDITING": "NONE",
+    "MINIMUM_VRAM_BYTES": "UNKNOWN",
+    "PRODUCTION_VISUAL_QUALITY": "NOT PROVEN",
+    "R20_BEGIN_INDEX_SIGMA_MAPPING": "PASS SOURCE-DERIVED + DETERMINISTIC MEASUREMENT",
+    "R20_SOURCE_EQUIVALENT_SIGMA_CONTRACT": "PASS",
+    "RAW_REAL_BACKEND_LEAKAGE": "UNKNOWN",
+    "REAL_DIFFUSION_RUNTIME": "NOT PROVEN",
+    "TARGET_R17_SIGMA_FINGERPRINT": "NOT PROVEN"
+  }
+}

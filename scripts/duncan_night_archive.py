@@ -276,7 +276,38 @@ def _all_records(archive_root: Path, *, require_raw: bool = False) -> list[dict[
 
 
 def _validated_records(archive_root: Path) -> list[dict[str, object]]:
-    return [record for record in _all_records(archive_root) if record.get("training_eligible") is True]
+    accepted: list[dict[str, object]] = []
+    skills: dict[str, str] = {}
+    for record in _all_records(archive_root):
+        if record.get("training_eligible") is not True:
+            continue
+        deltas = record.get("skill_deltas")
+        if not isinstance(deltas, list):
+            continue
+
+        transition_ok = True
+        for delta in deltas:
+            if not isinstance(delta, dict):
+                transition_ok = False
+                break
+            skill = str(delta.get("skill", ""))
+            before = str(delta.get("before", ""))
+            after = str(delta.get("after", ""))
+            if (
+                not skill
+                or before not in ALLOWED_SKILL_STATES
+                or after not in ALLOWED_SKILL_STATES
+                or before != skills.get(skill, "UNTESTED")
+            ):
+                transition_ok = False
+                break
+        if not transition_ok:
+            continue
+
+        accepted.append(record)
+        for delta in deltas:
+            skills[str(delta["skill"])] = str(delta["after"])
+    return accepted
 
 
 def compute_duncan_context(archive_root: Path) -> dict[str, object]:
@@ -360,7 +391,7 @@ def verify_duncan_archive(archive_root: Path) -> dict[str, int]:
     expected = _canonical_json(compute_duncan_context(root))
     if context_path.read_bytes() != expected:
         raise DuncanNightArchiveError("DUNCAN_CONTEXT_MISMATCH")
-    training_count = sum(1 for record in records if record.get("training_eligible") is True)
+    training_count = len(_validated_records(root))
     return {"duncan_events": len(records), "duncan_training_events": training_count}
 
 

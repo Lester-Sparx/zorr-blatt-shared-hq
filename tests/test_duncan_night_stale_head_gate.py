@@ -43,14 +43,15 @@ OWNER_TASTE_MODEL_DELTA =
 """
 
     @classmethod
-    def event(cls) -> bytes:
+    def event(cls, *, main_head: str = "stale-head", comment_id: int = 7301) -> bytes:
+        body = cls.body().replace("MAIN_HEAD_OBSERVED = stale-head", f"MAIN_HEAD_OBSERVED = {main_head}")
         return json.dumps(
             {
                 "action": "created",
                 "issue": {"number": 111},
                 "comment": {
-                    "id": 7301,
-                    "body": cls.body(),
+                    "id": comment_id,
+                    "body": body,
                     "user": {"login": "Lester-Sparx"},
                 },
             },
@@ -70,6 +71,23 @@ OWNER_TASTE_MODEL_DELTA =
             self.assertFalse(result["training_eligible"])
             self.assertIn("MAIN_HEAD_STALE", result["validation_errors"])
             self.assertEqual(rebuild_duncan_context(root)["skills"], {})
+
+    def test_matching_trusted_main_head_still_trains(self) -> None:
+        metadata = {
+            "event_name": "issue_comment",
+            "actor": "Lester-Sparx",
+            "trusted_main_head": "fresh-head",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = archive_duncan_night_event(
+                self.event(main_head="fresh-head", comment_id=7302), root, metadata
+            )
+            self.assertIsNotNone(result)
+            self.assertTrue(result["training_eligible"])
+            self.assertEqual(
+                rebuild_duncan_context(root)["skills"], {"silhouette_qc": "PARTIAL"}
+            )
 
     def test_cli_binds_github_sha_as_trusted_main_head(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

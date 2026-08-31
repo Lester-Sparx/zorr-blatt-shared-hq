@@ -310,6 +310,23 @@ class ContextDisciplineR01Tests(unittest.TestCase):
         self.assertIn("head:556082d", text)
         self.assertIn("NEXT: AUDIT_NEXT_GAP", text)
 
+    def test_agents_declares_context_discipline_and_executable_pre_action_contract(self) -> None:
+        agents_text = (Path(__file__).resolve().parents[1] / "AGENTS.md").read_text(encoding="utf-8")
+        for text in (
+            "CHAT = ACTIVE DELTA",
+            "CURRENT STATE = COMPACT UNSUPERSEDED VERIFIED PROJECTION",
+            "ARCHIVE = EXISTING FULL DURABLE HISTORY",
+            "RESTORE = MINIMUM EVIDENCE-COMPLETE JIT PACKET",
+            "NO DELTA",
+            "DURABLE_CONTEXT_NOT_PROVEN",
+            "RAW ORIGINAL EVENT > VERIFIED GITHUB HISTORY",
+            "--context-packet-path <context-packet.json>",
+            "github:pr:N",
+            "GITHUB_TOKEN",
+            "caller-supplied fresh head is not authority",
+        ):
+            self.assertIn(text, agents_text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -34,7 +34,7 @@ class ContextDisciplinePreActionTests(unittest.TestCase):
             "status": status,
             "mandatory_anchors": [{"key": "CURRENT_TASK", "value": "#235"}],
             "current_state": {
-                "schema": "ZB_UNIFIED_CURRENT_CONTEXT_V1",
+                "schema": "ZB_CONTEXT_CURRENT_STATE_V1",
                 "facts": [],
             },
             "jit_facets": {},

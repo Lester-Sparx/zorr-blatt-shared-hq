@@ -81,16 +81,16 @@
     {
       "id": "cam-scene-main",
       "position": {
-        "x": 4.5,
-        "y": 1.35,
-        "z": 8.0
+        "x": 2.65,
+        "y": 1.10,
+        "z": 4.70
       },
       "target": {
         "x": 0.0,
-        "y": 0.85,
+        "y": 0.82,
         "z": 0.0
       },
-      "fovDeg": 22,
+      "fovDeg": 25,
       "nearClip": 0.05,
       "farClip": 120
     }

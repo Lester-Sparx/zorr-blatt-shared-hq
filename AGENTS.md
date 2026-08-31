@@ -40,6 +40,18 @@ For a task-specific learning prefix, the deterministic compiler is `python3 scri
 
 The optimized policy is a derived compression/eval layer only. It may remove redundant verified rules when regression coverage is preserved, but it may never invent authority, resolve conflicting SHERIFF lessons by guessing, or override RAW/current GitHub evidence.
 
+## Pre-action enforcement
+
+Before each substantive action, construct the explicit current action context and run `python3 scripts/hq_pre_action.py --context-path <context.json>`. When the verified learning archive is available, also pass `--archive-root <archive-root> --query <task-or-error-signature>` so the decision carries the relevant CLOSED-SHERIFF lesson policy.
+
+The returned contract is `ZB_PRE_ACTION_DECISION_V1`. Only `decision = ALLOW` authorizes the proposed action. Every non-ALLOW decision stops that proposed action: `WAIT` means read the active result/evidence only; `BLOCK` means do not perform the action; `OWNER_REQUIRED` is legal only for a proven external boundary.
+
+`ACTIVE_ATTEMPT_OWNS_PATH` is a hard execution invariant: while an attempt is active, do not create another runner, workflow edit, alternate path, search loop, or process mutation. Read the active result or required evidence.
+
+Exact OWNER input supersedes asset search. Already-proven prerequisites are not reverified without a new physical contradiction. Process mutation requires a proven process blocker, and a second mutation for the same blocker requires a new physical blocker. OWNER is not used as a courier unless an external boundary is proven. PASS requires fresh verification. Image mutation requires an explicit OWNER image-mutation command.
+
+This repository gate is a real executable fail-closed control for execution surfaces that invoke it. It is not claimed to be a physical interceptor of the native chat tool boundary; native chat tool boundary enforcement still depends on the agent/session obeying this mandatory bootstrap law.
+
 If required durable context is missing, contradictory, or unreadable, fail closed with `DURABLE_CONTEXT_NOT_PROVEN`. Never guess.
 
 ## Evidence precedence

@@ -40,6 +40,8 @@
         "role": "human rig"
       }
     ],
+    "right_hand_bone": "hand_r",
+    "right_hand_bone_mapping_source": "Mesh2Motion RigifyMapper",
     "selected_motions": {
       "attack": {
         "path": "rigs/human/animation-human-sword-attack-air-vertical.blend",
@@ -65,7 +67,9 @@
     "geometry_verified": true,
     "source_long_axis_range_units_approx": 3.16938436,
     "target_blade_length_m": 1.08,
-    "wrist_attachment_status": "PENDING"
+    "attachment_target": "hand_r",
+    "attachment_engine_path": "Babylon.js native glTF bone/node attachment; attachToBone/linked transform node",
+    "wrist_attachment_status": "OSS_PATH_RESOLVED_RUNTIME_PROOF_PENDING"
   },
   "scene_seed": {
     "attacker_position": [-0.62, 0, 0.05],
@@ -81,6 +85,7 @@
   "gates": {
     "primary_physiology_visual_pass": false,
     "real_cc0_sword_asset_resolved": true,
+    "wrist_attachment_oss_path_resolved": true,
     "wrist_attachment_proven": false,
     "white_stage_render_pass": false,
     "attack_dodge_render_pass": false,
@@ -91,7 +96,7 @@
   "remaining_blockers": [
     "materialize and visually qualify an acceptable adult primary body",
     "materialize selected human motion data through an existing OSS/export path",
-    "prove the real CC0 sword attachment to the attacker wrist/hand",
+    "runtime-prove the real CC0 sword attached to hand_r",
     "render, measure and verify the white-stage and attack/dodge gates"
   ],
   "merge": "NO",

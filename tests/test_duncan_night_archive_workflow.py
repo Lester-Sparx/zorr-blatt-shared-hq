@@ -19,11 +19,23 @@ class DuncanNightArchiveWorkflowTests(unittest.TestCase):
     def event() -> bytes:
         body = """DUNCAN_NIGHT_REPORT_R01
 CYCLE_ID = DNR01-WORKFLOW-001
+SOURCE_WINDOW = bounded workflow fixture
 MAIN_HEAD_OBSERVED = deadbeef
+DAY_EVENTS_REVIEWED = issue:206 learning law
+ANIME_TOPICS_STUDIED = composition readability
+OPEN_SOURCE_CODE_INSPECTED = opencv/opencv; ref=4.x; license=Apache-2.0; modules=imgproc; APIs=connectedComponentsWithStats
+REFERENCE_PRINCIPLES = preserve readable structure
+EXERCISES = bounded original composition fixture plus changed case
+VERIFICATION = objective composition check PASS
+FAILURES = aggressive changed variant intentionally failed
+ROOT_CAUSES = over-cleaning removed identity-bearing structure
 REGRESSION_RESULTS = Prior composition lesson replay PASS on bounded fixture.
 TRANSFER_TEST = Changed/unseen composition fixture PASS; not used to tune original exercise.
+OWNER_TASTE_SIGNALS = existing durable silhouette-first law only
+ZORR_APPLICATION = candidate QC only; no production mutation
 PRIME_CORE_CHANGED = NO
 PRODUCTION_MUTATION = NO
+NEXT_TARGETS = another bounded changed fixture
 
 SKILL_DELTA =
 - composition_qc: UNTESTED -> PARTIAL

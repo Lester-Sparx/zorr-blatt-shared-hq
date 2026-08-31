@@ -105,10 +105,15 @@ class ContextDisciplineExternalFreshnessTests(unittest.TestCase):
             "lessons": [{"verdict_id": "SV1-CONTEXT-UNSEEN-001"}],
         }
         packet = self.packet("fresh-head")
+        baseline_packet = self.packet("fresh-head")
+        baseline_packet["current_state"] = {
+            "schema": "ZB_CONTEXT_CURRENT_STATE_V1",
+            "facts": [],
+        }
         baseline = hq_pre_action.evaluate_pre_action(
             self.context(),
             learning_policy=policy,
-            context_packet=packet,
+            context_packet=baseline_packet,
         )
         fresh_bound = hq_pre_action.evaluate_pre_action(
             self.context(),

@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
     command: ["-c", "/etc/nats/nats.conf"]
     environment:
-      NATS_PASSWORD: ${NATS_PASSWORD:-sheriff-dev-only}
+      NATS_PASSWORD: ${NATS_PASSWORD:?required}
     expose:
       - "4222"
       - "8222"
@@ -43,7 +43,7 @@ services:
     environment:
       POSTGRES_DB: sheriff
       POSTGRES_USER: sheriff
-      POSTGRES_PASSWORD: ${SHERIFF_DB_PASSWORD:-sheriff-dev-only}
+      POSTGRES_PASSWORD: ${SHERIFF_DB_PASSWORD:?required}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sheriff -d sheriff"]
       interval: 5s
@@ -90,8 +90,8 @@ services:
     image: grafana/grafana-oss:11.4.0
     restart: unless-stopped
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin-dev-only}
-      SHERIFF_DB_PASSWORD: ${SHERIFF_DB_PASSWORD:-sheriff-dev-only}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?required}
+      SHERIFF_DB_PASSWORD: ${SHERIFF_DB_PASSWORD:?required}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -107,8 +107,8 @@ services:
       dockerfile: config/sheriff/Dockerfile.worker
     restart: unless-stopped
     environment:
-      SHERIFF_NATS_URL: nats://sheriff:${NATS_PASSWORD:-sheriff-dev-only}@nats:4222
-      SHERIFF_POSTGRES_DSN: postgresql://sheriff:${SHERIFF_DB_PASSWORD:-sheriff-dev-only}@postgres:5432/sheriff
+      SHERIFF_NATS_URL: nats://sheriff:${NATS_PASSWORD:?required}@nats:4222
+      SHERIFF_POSTGRES_DSN: postgresql://sheriff:${SHERIFF_DB_PASSWORD:?required}@postgres:5432/sheriff
       SHERIFF_OPA_URL: http://opa:8181/v1/data/zorr/sheriff/decision
       SHERIFF_METRICS_PORT: "9464"
       SHERIFF_EVENT_SCHEMA_PATH: /app/schemas/SHERIFF_AGENT_EVENT_V1.schema.json

@@ -2,6 +2,7 @@
   "schema": "DUNCAN_R04_OSS_PRODUCTION_LOCK_V1",
   "state": "LOCKED_NOT_PASS",
   "pass": false,
+  "ci_transport_trigger": "2026-08-31T05:09:00+03:00",
   "zorr": {
     "repository": "Lester-Sparx/zorr-blatt-shared-hq",
     "branch": "lester/babylon-cinematic-scene-r01",

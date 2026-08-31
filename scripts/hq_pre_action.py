@@ -408,7 +408,7 @@ def _comment_proves_fact(
     expected_issue_url = f"{API_ROOT}/repos/{REPOSITORY}/issues/{expected_issue}"
     if issue_url != expected_issue_url:
         return False
-    if not isinstance(user, dict) or user.get("login") != TRANSPORT_ACTOR:
+    if not isinstance(user, dict) or user.get("login") != STATE_WRITER:
         return False
     body = comment.get("body")
     if not isinstance(body, str):

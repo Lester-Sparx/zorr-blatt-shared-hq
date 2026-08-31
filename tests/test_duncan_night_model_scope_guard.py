@@ -88,6 +88,19 @@ class DuncanNightModelScopeGuardTests(unittest.TestCase):
                 self.assertEqual(context["skills"], {})
                 self.assertEqual(context["source_events"], [])
 
+    def test_protected_namespace_aliases_and_children_fail_closed(self) -> None:
+        aliases = ("owner.relationship", "prime-core.method", "authority.boundary.child")
+        for offset, key in enumerate(aliases, start=1):
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = archive_duncan_night_event(
+                    self.event(key, comment_id=8200 + offset), root, self.metadata()
+                )
+                self.assertIsNotNone(result)
+                self.assertFalse(result["training_eligible"])
+                self.assertIn(f"SELF_MODEL_PROTECTED_KEY:{key}", result["validation_errors"])
+                self.assertEqual(rebuild_duncan_context(root)["self_model"], {})
+
     def test_legitimate_self_model_method_key_remains_trainable(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

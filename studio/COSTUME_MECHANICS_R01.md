@@ -1,9 +1,11 @@
 # COSTUME_MECHANICS_R01
 
-STATUS = ACTIVE HIGH-INFORMATION COSTUME GATE
+STATUS = MECHANICS SPEC CLOSED / VISUAL REPEATABILITY WITNESS OPEN
 TRACKER = #248
+WORKSTREAM = #249 / WORKSTREAM A
 BRANCH = `duncan/zorr-studio-r01`
 UPSTREAM = `FULL_CHARACTER_MODEL_LOCK_R02 = PASS`
+CONTROL_MATRIX = `studio/COSTUME_MECHANICS_R01_CONTROL_MATRIX_R01.md`
 IMAGE_GENERATION = NO
 IMAGE_EDITING = NO
 
@@ -54,6 +56,10 @@ No decorative hatching, equal-weight wrinkles, realistic cloth noise or random r
 5. `KNEE_BEND` — front/back knee tension/compression; trouser leg remains one large graphic tube.
 6. `STRIDE_ANKLE` — hip/leg direction + ankle/trouser break + shoe relation.
 
+The exact force/anchor/fold/failure law for all six controls is now frozen as a `LOCKED_CANDIDATE` mechanics specification in:
+
+`studio/COSTUME_MECHANICS_R01_CONTROL_MATRIX_R01.md`
+
 ## PASS CHECK
 
 Each control must satisfy:
@@ -67,9 +73,34 @@ Each control must satisfy:
 - no anatomy redesign under the garment;
 - no costume redesign between controls.
 
+## FRESH RESULT
+
+`MECHANICS_DEFINITION = LOCKED_CANDIDATE`
+
+Fresh upstream evidence used:
+
+- `FULL_CHARACTER_MODEL_LOCK_R02 = PASS`;
+- fresh cross-sheet audit confirms `COSTUME ATTACHMENT POINTS = LOCKED_CANDIDATE`;
+- accepted body construction remains body-under-costume authority;
+- accepted suit turnaround remains standing silhouette/attachment authority;
+- accepted costume/accessory source remains cuff/watch/belt/button/lapel/shoe authority;
+- accepted hand sources remain hand/cuff/watch interaction authority.
+
+No new identity, costume or attachment geometry was introduced.
+
+`VISUAL_REPEATABILITY_WITNESS = OPEN`
+
+Reason: the active tracker explicitly does not authorize image generation/editing. Existing accepted references establish identity, standing costume geometry and attachment anchors, but they do not constitute a fresh six-control deformation witness for this gate.
+
+Therefore:
+
+`COSTUME_MECHANICS_R01 != PASS`
+
+No terminal PASS is claimed.
+
 ## FAILURE ROUTER
 
-If a control fails:
+If a visual control later fails:
 
 `NAME FORCE POINT -> NAME BROKEN ATTACHMENT/FOLD -> REPAIR THAT REGION ONLY -> FRESH CHECK`
 
@@ -86,12 +117,22 @@ Per region/control:
 
 ## TERMINAL GATE
 
-`COSTUME_MECHANICS_R01 = PASS` only when all six required force classes have repeatable anime fold logic and no hidden redesign.
+`COSTUME_MECHANICS_R01 = PASS` only when all six required force classes have fresh repeatable visual evidence, attachment invariants hold, anime fold law is preserved, and no hidden redesign appears.
 
-This gate may use existing references for analysis immediately. Any new visual generation/editing requires separate exact OWNER authorization.
+## OPEN
+
+Exact remaining blocker:
+
+`SIX_COSTUME_MECHANICS_VISUAL_WITNESSES = NOT AUTHORIZED / NOT PRESENT`
+
+This is a narrow blocker on terminal #248 closure only. It does not reopen generic BODY / HAIR / HANDS work.
 
 ## NEXT
 
-After PASS:
+Next legal step:
+
+`OWNER AUTHORITY -> SIX BOUNDED COSTUME-MECHANICS VISUAL WITNESSES -> FRESH MATRIX CHECK -> PASS/FAIL`
+
+Only after real PASS:
 
 `POSE_MECHANICS_VISUAL_R01 -> CAMERA_LAYOUT_VISUAL_R01`

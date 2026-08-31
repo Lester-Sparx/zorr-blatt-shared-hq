@@ -1,0 +1,86 @@
+{
+  "schema": "DUNCAN_R04_OSS_PRODUCTION_LOCK_V1",
+  "state": "LOCKED_NOT_PASS",
+  "pass": false,
+  "zorr": {
+    "repository": "Lester-Sparx/zorr-blatt-shared-hq",
+    "branch": "lester/babylon-cinematic-scene-r01",
+    "observed_source_head": "69bec491c0aa7afb44d51d1e1b045f3c8c22c77a",
+    "engine": "existing Babylon.js @babylonjs/core + @babylonjs/loaders"
+  },
+  "rules": {
+    "new_custom_code_allowed": false,
+    "whole_surface_vertex_warp_allowed": false,
+    "primitive_or_floating_weapon_allowed": false,
+    "proprietary_or_unverified_assets_allowed": false
+  },
+  "rejected_r03": {
+    "normalizeBody_vertex_warp": true,
+    "world_space_primitive_blade": true,
+    "reason": "R04 fail-closed: use real skinned rig geometry and a real hand-attached weapon"
+  },
+  "mesh2motion": {
+    "app_repository": "Mesh2Motion/mesh2motion-app",
+    "app_commit": "12712269e576fd3ffb520ad6c6d45a8e265ea894",
+    "app_code_license": "MIT",
+    "asset_repository": "Mesh2Motion/mesh2motion-assets",
+    "asset_commit": "529c9b6baeb536ee4c379c3677e4b1439ed0d8fb",
+    "asset_license": "CC0-1.0",
+    "reference_assets": [
+      {
+        "path": "static/models/model-human.glb",
+        "size_bytes": 364868,
+        "git_blob_sha": "c7bcbfd497c720c2ca7f31fbe47eea27566914c8",
+        "role": "mechanics/reference human; primary physiology gate remains pending"
+      },
+      {
+        "path": "static/rigs/rig-human.glb",
+        "size_bytes": 21280,
+        "git_blob_sha": "832a222a611bd0ee9112c64145a3a49df9b89b3e",
+        "role": "human rig"
+      }
+    ],
+    "selected_motions": {
+      "attack": {
+        "path": "rigs/human/animation-human-sword-attack-air-vertical.blend",
+        "git_blob_sha": "67a295a3ce50318a87b2c90d28552af9d23b1365",
+        "size_bytes": 1055139
+      },
+      "dodge": {
+        "path": "rigs/human/animation-human-dodge-back.blend",
+        "git_blob_sha": "ac452e8af65585e7362e91521e01f4d15124aa6b",
+        "size_bytes": 1088119
+      }
+    },
+    "retarget_required_for_reference_rig": false
+  },
+  "scene_seed": {
+    "attacker_position": [-0.62, 0, 0.05],
+    "attacker_yaw_deg": -8,
+    "dodger_position": [0.62, 0, -0.05],
+    "dodger_yaw_deg": 15,
+    "blade_length_m": 1.08,
+    "target_clearance_m": 0.0970096418,
+    "camera_position": [3.10, 1.55, 3.65],
+    "camera_target": [0.12, 1.02, -0.38],
+    "camera_fov_deg": 39
+  },
+  "gates": {
+    "primary_physiology_visual_pass": false,
+    "real_cc0_sword_asset_resolved": false,
+    "wrist_attachment_proven": false,
+    "white_stage_render_pass": false,
+    "attack_dodge_render_pass": false,
+    "anatomy_measurements_pass": false,
+    "clearance_and_grounding_pass": false,
+    "tests_typecheck_build_chromium_pass": false
+  },
+  "remaining_blockers": [
+    "materialize and visually qualify an acceptable adult primary body",
+    "materialize selected human motion data through an existing OSS/export path",
+    "resolve a real CC0 sword and existing OSS wrist-attachment path",
+    "render, measure and verify the white-stage and attack/dodge gates"
+  ],
+  "merge": "NO",
+  "canon": "NO"
+}

@@ -158,14 +158,18 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
     errors: list[str] = []
     cycle_id = _field(body, "CYCLE_ID")
     main_head = _field(body, "MAIN_HEAD_OBSERVED")
+    trusted_main_head = metadata.get("trusted_main_head", "").strip()
     regression_results = _field(body, "REGRESSION_RESULTS")
     transfer_test = _field(body, "TRANSFER_TEST")
     prime_core_changed = _field(body, "PRIME_CORE_CHANGED")
     production_mutation = _field(body, "PRODUCTION_MUTATION")
+    canon_mutation = _field(body, "CANON_MUTATION")
     if not cycle_id:
         errors.append("CYCLE_ID_MISSING")
     if not main_head:
         errors.append("MAIN_HEAD_OBSERVED_MISSING")
+    if trusted_main_head and main_head != trusted_main_head:
+        errors.append("MAIN_HEAD_STALE")
     for field in REQUIRED_REPORT_FIELDS:
         if not _field(body, field):
             errors.append(f"{field}_MISSING")
@@ -177,6 +181,8 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
         errors.append("PRIME_CORE_MUTATION_FORBIDDEN")
     if production_mutation != "NO":
         errors.append("PRODUCTION_MUTATION_FORBIDDEN")
+    if canon_mutation is not None and canon_mutation != "NO":
+        errors.append("CANON_MUTATION_FORBIDDEN")
 
     skills, skill_errors = _parse_skill_deltas(_section_lines(body, "SKILL_DELTA"))
     self_model, self_errors = _parse_model_entries(
@@ -371,6 +377,7 @@ def main(argv: list[str] | None = None) -> int:
         metadata = {
             "event_name": os.environ.get("GITHUB_EVENT_NAME", ""),
             "actor": os.environ.get("GITHUB_ACTOR", ""),
+            "trusted_main_head": os.environ.get("GITHUB_SHA", ""),
         }
         archive_duncan_night_event(args.event_path.read_bytes(), args.archive_root, metadata)
     context = rebuild_duncan_from_raw(args.archive_root)

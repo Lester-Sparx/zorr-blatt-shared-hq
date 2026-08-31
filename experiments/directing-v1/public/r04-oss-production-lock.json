@@ -1,10 +1,11 @@
 {
   "schema": "DUNCAN_R04_OSS_PRODUCTION_LOCK_V1",
-  "state": "LOCKED_NOT_PASS",
+  "state": "EXECUTABLE_BASELINE_PROVEN_NOT_CANON",
   "pass": false,
   "zorr": {
     "repository": "Lester-Sparx/zorr-blatt-shared-hq",
     "branch": "lester/babylon-cinematic-scene-r01",
+    "execution_head": "bfaf74e06bd0feee87376bcbb7614a4f53cfa8b0",
     "engine": "existing Babylon.js @babylonjs/core + @babylonjs/loaders"
   },
   "rules": {
@@ -17,15 +18,32 @@
     "r03_normalizeBody_vertex_warp": true,
     "r03_world_space_primitive_blade": true,
     "kbve_quaternius_lfs_mirror": "REJECTED: Git LFS objects missing on server (404)",
-    "metaverse_avatar_builtin_primitive_sword": "REJECTED: use attachFile with the verified CC0 GLB sword instead"
+    "tinqs_regular_male_transport": "REJECTED: Git endpoint requires authentication",
+    "girush_slim_anime_body": "REJECTED_FOR_THIS_PATH: CC0 archive materialized but contains Blender source only; no-Blender execution lock",
+    "vitruvian_body": "REJECTED_FOR_THIS_PATH: would require a retarget path outside the current same-skeleton no-Blender baseline",
+    "metaverse_avatar_builtin_primitive_sword": "REJECTED: verified CC0 GLB sword is used instead"
+  },
+  "final_execution_evidence": {
+    "workflow": ".github/workflows/r04-oss-assets.yml",
+    "run_id": 33357493122,
+    "run_number": 26,
+    "head_commit": "bfaf74e06bd0feee87376bcbb7614a4f53cfa8b0",
+    "artifact_id": 9745602228,
+    "artifact_name": "r04-babylon-combat-proof",
+    "artifact_digest": "sha256:60ea9cc4cc4c746f94db1377b9cab40d2dcd474e7f008431a7d02f793f3a6dc9",
+    "capture": "zorr-cinematic-scene-r01.png",
+    "capture_size": [1280, 720],
+    "typecheck": "PASS",
+    "unit_tests": "PASS",
+    "build": "PASS",
+    "chromium_playwright": "PASS",
+    "upstream_character_validator": "PASS",
+    "upstream_character_runtime_tests": "PASS"
   },
   "verified_ci_transport": {
     "workflow": ".github/workflows/r04-oss-assets.yml",
-    "head_commit": "749d2fdce78c074fc4ed7bbbc2ea4c691ac2e496",
-    "run_id": 33354530436,
-    "artifact_id": 9744688604,
+    "run_id": 33357493122,
     "artifact_name": "r04-verified-oss-assets",
-    "artifact_digest": "sha256:e8cce637a55fadd08efc29fbda54e59c85b9a7412725a115de66926f9f136a4a",
     "hash_verification": true
   },
   "adult_rig_baseline": {
@@ -42,8 +60,10 @@
     "skin_joint_count": 65,
     "body_mesh": "SuperHero_Male",
     "right_hand_bone": "hand_r",
+    "validated_height_m": 1.8195864,
+    "validated_min_foot_y_m": -0.0095096696,
     "core_bones_verified": ["root","pelvis","spine_01","spine_02","spine_03","neck_01","Head","clavicle_l","clavicle_r","upperarm_l","upperarm_r","lowerarm_l","lowerarm_r","hand_l","hand_r","thigh_l","thigh_r","calf_l","calf_r","foot_l","foot_r"],
-    "role": "adult skinned mechanics/compatibility baseline; final slim physiology gate still pending"
+    "role": "proven adult skinned combat mechanics baseline; final requested slim/anime physiology is still not accepted"
   },
   "compatible_animation_library": {
     "repository": "Seyamalam/blood-league-kickoff",
@@ -55,35 +75,10 @@
     "size_bytes": 2714756,
     "sha256": "4c748767741a3e495d89667b9a218b690ba9810b9517a12e960780e3ca72c4e9",
     "verified_combat_clips": ["Sword_Attack","Sword_Idle","Roll","Hit_Chest","Hit_Head","Punch_Cross","Punch_Jab"],
+    "selected_attack": "Sword_Attack",
+    "selected_dodge": "Roll",
     "skeleton_name_compatibility_verified": true,
-    "retarget_required": false,
-    "existing_runtime_reference": {
-      "path": "src/render/objects/EnemyCharacterAssetPool.ts",
-      "mechanics": ["GLTFLoader.loadAsync body + animation library","SkeletonUtils.clone skinned source","independent AnimationMixer per character","clip lookup by animation name"]
-    }
-  },
-  "secondary_adult_rig_baseline": {
-    "repository": "UMRAM-Bilkent/supine-human-model",
-    "commit": "728f23ab5eb9d6cb2c8fb39acb3440bd81db0d3e",
-    "license": "CC0",
-    "path": "assets/human.glb",
-    "git_blob_sha": "de56d83cdcd5d741955fe6acd983a61e50e367c3",
-    "size_bytes": 698560,
-    "sha256": "ce4d543e82e455d5a1253798c9759f12b9eec74929ddbca464447eeaa3a42c5d",
-    "rigged": true,
-    "animations_verified": ["Idle","Run","Walk"],
-    "role": "independent adult rig sanity baseline; low-poly, not final primary physiology"
-  },
-  "mesh2motion_reference": {
-    "app_repository": "Mesh2Motion/mesh2motion-app",
-    "app_commit": "12712269e576fd3ffb520ad6c6d45a8e265ea894",
-    "code_license": "MIT",
-    "asset_repository": "Mesh2Motion/mesh2motion-assets",
-    "asset_commit": "529c9b6baeb536ee4c379c3677e4b1439ed0d8fb",
-    "asset_license": "CC0-1.0",
-    "packed_animation_sha256": "406eb0a8dc4ab366e623b79b6e3005a4951392e1bda78ae39c1099d31147733c",
-    "source_attack": "rigs/human/animation-human-sword-attack-air-vertical.blend",
-    "source_dodge": "rigs/human/animation-human-dodge-back.blend"
+    "retarget_required": false
   },
   "weapon": {
     "repository": "ilrein/warptracker",
@@ -98,26 +93,31 @@
     "geometry_verified": true,
     "target_blade_length_m": 1.08,
     "attachment_target": "hand_r",
-    "attachment_reference": {
-      "repository": "richardanaya/metaverse-avatar",
-      "license": "MIT",
-      "path": "attachments.js",
-      "method": "Attachments.attachFile",
-      "verified_behavior": "loads a GLB with GLTFLoader and parents gltf.scene under the selected skeleton bone",
-      "bone_mapping": "mWristRight in reference rig -> hand_r in Quaternius rig"
-    },
-    "wrist_attachment_status": "OSS_IMPLEMENTATION_RESOLVED_RUNTIME_PROOF_PENDING"
+    "source_bytes_preserved": true,
+    "runtime_visibility_fix": "existing Babylon material alpha state set to opaque after import; source GLB bytes remain hash-pinned",
+    "wrist_attachment_status": "PROVEN_IN_CHROMIUM_CAPTURE"
   },
   "scene_seed": {
-    "attacker_position": [-0.62, 0, 0.05],
+    "attacker_position": [-0.50, 0.00951, 0.05],
     "attacker_yaw_deg": -8,
-    "dodger_position": [0.62, 0,-0.05],
+    "dodger_position": [0.50, 0.00951, -0.05],
     "dodger_yaw_deg": 15,
     "blade_length_m": 1.08,
-    "target_clearance_m": 0.0970096418,
-    "camera_position": [3.10,1.55,3.65],
-    "camera_target": [0.12,1.02,-0.38],
+    "attack_pose_fraction": 0.35,
+    "dodge_pose_fraction": 0.60,
+    "camera_position": [3.10, 1.55, 3.65],
+    "camera_target": [0.12, 1.02, -0.38],
     "camera_fov_deg": 39
+  },
+  "visual_observation": {
+    "exactly_two_full_body_humanoids_visible": true,
+    "neutral_white_background_and_floor_visible": true,
+    "legacy_debug_ground_visible": false,
+    "real_sword_visible": true,
+    "sword_visually_attached_to_attacker_right_hand": true,
+    "attacker_and_defender_actions_read_as_attack_and_evasion": true,
+    "feet_and_weapon_inside_frame": true,
+    "formal_slim_anime_physiology_acceptance": false
   },
   "gates": {
     "asset_transport_pass": true,
@@ -126,19 +126,18 @@
     "real_cc0_sword_asset_resolved": true,
     "wrist_attachment_oss_path_resolved": true,
     "existing_multi_skinned_runtime_reference_resolved": true,
+    "wrist_attachment_proven": true,
+    "white_stage_render_pass": true,
+    "attack_dodge_render_pass": true,
+    "tests_typecheck_build_chromium_pass": true,
     "primary_physiology_visual_pass": false,
-    "wrist_attachment_proven": false,
-    "white_stage_render_pass": false,
-    "attack_dodge_render_pass": false,
     "anatomy_measurements_pass": false,
-    "clearance_and_grounding_pass": false,
-    "tests_typecheck_build_chromium_pass": false
+    "clearance_and_grounding_pass": false
   },
   "remaining_blockers": [
-    "visually qualify a slimmer adult primary body at 7.0-8.3 heads",
-    "runtime-prove Sword_Attack plus defender Roll/dodge on two skinned bodies",
-    "runtime-prove verified CC0 sword.glb attached to hand_r using the pinned OSS attachment implementation",
-    "render, measure and verify white-stage, grounding, clearance and framing gates"
+    "replace the muscular Superhero baseline with an accepted slimmer adult/anime primary body on an equally open reproducible path",
+    "record formal head-height/shoulder-width/hip-height anatomy measurements for the accepted primary body",
+    "record formal blade-to-defender clearance and final support-foot grounding measurements for the accepted primary body"
   ],
   "merge": "NO",
   "canon": "NO"

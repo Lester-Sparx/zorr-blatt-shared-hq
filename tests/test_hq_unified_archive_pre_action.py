@@ -245,8 +245,11 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
     def test_image_mutation_requires_explicit_owner_command(self) -> None:
         blocked = self._decide(self._context(action="IMAGE_MUTATION", explicitOwnerImageMutationCommand=False))
         self.assertEqual((blocked["decision"], blocked["reason"]), ("BLOCK", "OWNER_IMAGE_MUTATION_COMMAND_REQUIRED"))
-        allowed = self._decide(self._context(action="IMAGE_MUTATION", explicitOwnerImageMutationCommand=True))
-        self.assertEqual(allowed["decision"], "ALLOW")
+        unbound = self._decide(self._context(action="IMAGE_MUTATION", explicitOwnerImageMutationCommand=True))
+        self.assertEqual(
+            (unbound["decision"], unbound["reason"]),
+            ("BLOCK", "DURABLE_OWNER_COMMAND_NOT_PROVEN"),
+        )
 
     def test_non_product_busywork_is_blocked(self) -> None:
         result = self._decide(self._context(directlyAdvancesPhysicalResult=False))

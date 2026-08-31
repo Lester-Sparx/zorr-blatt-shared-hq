@@ -29,6 +29,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Resolve Forgejo immutable digest
+        run: docker buildx imagetools inspect codeberg.org/forgejo/forgejo:15.0.7
+
       - name: Parse Compose
         run: docker compose -f config/sheriff/docker-compose.yml config
 

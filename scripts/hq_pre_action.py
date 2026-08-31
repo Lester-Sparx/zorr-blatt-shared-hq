@@ -54,6 +54,7 @@ _NEW_BLOCKER_IDENTITY_KEYS = {
     "ERROR_SIGNATURE",
     "PROCESS_MUTATION_ERROR_SIGNATURE",
 }
+_PERMISSION_E2_KEYS = _NEW_BLOCKER_IDENTITY_KEYS | {"RESULT"}
 _E2_EVIDENCE_MARKER = "ZB_CONTEXT_E2_EVIDENCE_V1"
 
 
@@ -331,7 +332,7 @@ def _verify_new_blocker_identity_evidence(
     present = {
         str(fact.get("key")): fact
         for fact in _packet_facts(context_packet)
-        if fact.get("key") in _NEW_BLOCKER_IDENTITY_KEYS
+        if fact.get("key") in _PERMISSION_E2_KEYS
     }
     if not present or github_api is None:
         return frozenset()
@@ -467,6 +468,14 @@ def evaluate_pre_action(
                     learning_policy,
                     context_packet,
                 )
+        if action == "CLAIM_PASS" and _packet_has_verified_terminal_pass(context_packet) and "RESULT" not in _externally_proven_e2_keys:
+            return _decision(
+                context,
+                "BLOCK",
+                "DURABLE_CONTEXT_EVIDENCE_SOURCE_NOT_PROVEN",
+                learning_policy,
+                context_packet,
+            )
         packet_active_head = _packet_active_head(context_packet)
         if action not in READ_ONLY_WHILE_ACTIVE and packet_active_head is not None and fresh_active_head is None:
             return _decision(context, "BLOCK", "DURABLE_CONTEXT_NOT_PROVEN", learning_policy, context_packet)
@@ -530,6 +539,14 @@ def evaluate_pre_action_with_github_freshness(
         if fact.get("key") in _NEW_BLOCKER_IDENTITY_KEYS
     }
     if context["newPhysicalBlocker"] and present_identity_keys and not present_identity_keys.issubset(externally_proven_e2_keys):
+        return _decision(
+            context,
+            "BLOCK",
+            "DURABLE_CONTEXT_EVIDENCE_SOURCE_NOT_PROVEN",
+            learning_policy,
+            context_packet,
+        )
+    if action == "CLAIM_PASS" and _packet_has_verified_terminal_pass(context_packet) and "RESULT" not in externally_proven_e2_keys:
         return _decision(
             context,
             "BLOCK",

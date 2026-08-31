@@ -162,6 +162,28 @@ def _packet_active_head(context_packet: dict[str, Any]) -> str | None:
     return heads[0]
 
 
+def _packet_has_verified_terminal_pass(context_packet: dict[str, Any]) -> bool:
+    current_state = context_packet.get("current_state")
+    facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
+    results = [
+        fact
+        for fact in facts
+        if isinstance(fact, dict) and fact.get("key") == "RESULT"
+    ]
+    if len(results) != 1:
+        return False
+    result = results[0]
+    refs = result.get("source_refs")
+    return (
+        result.get("class") == "E2"
+        and result.get("verified") is True
+        and result.get("value") == "PASS"
+        and isinstance(refs, list)
+        and bool(refs)
+        and all(isinstance(item, str) and item for item in refs)
+    )
+
+
 def _context_view(context_packet: dict[str, Any] | None) -> dict[str, Any] | None:
     if context_packet is None:
         return None
@@ -274,6 +296,14 @@ def evaluate_pre_action(
 
     if action == "CLAIM_PASS" and not context["freshVerificationEvidence"]:
         return _decision(context, "BLOCK", "FRESH_VERIFICATION_REQUIRED", learning_policy, context_packet)
+    if action == "CLAIM_PASS" and context_packet is not None and not _packet_has_verified_terminal_pass(context_packet):
+        return _decision(
+            context,
+            "BLOCK",
+            "DURABLE_TERMINAL_EVIDENCE_NOT_PROVEN",
+            learning_policy,
+            context_packet,
+        )
 
     if not context["directlyAdvancesPhysicalResult"] and action not in READ_ONLY_WHILE_ACTIVE:
         return _decision(context, "BLOCK", "NO_DIRECT_PRODUCT_PROGRESS", learning_policy, context_packet)

@@ -1,0 +1,27 @@
+name: agent-controller-tests
+
+on:
+  pull_request:
+    paths:
+      - "agent-controller/**"
+      - ".github/workflows/agent-controller-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify Python
+        run: python3 --version
+      - name: Install agent-controller with test dependencies
+        run: python3 -m pip install --disable-pip-version-check -e './agent-controller[test]'
+      - name: Run complete agent-controller pytest suite
+        run: python3 -m pytest -q agent-controller/tests

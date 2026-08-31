@@ -10,11 +10,11 @@ from typing import Any
 try:
     from scripts.hq_context_discipline import ContextDisciplineError, project_current_state
     from scripts.hq_unified_archive import build_learning_policy
-    from scripts.zb_communication_base import API_ROOT, REPOSITORY, GitHubApi, PersistenceError
+    from scripts.zb_communication_base import API_ROOT, REPOSITORY, TRANSPORT_ACTOR, GitHubApi, PersistenceError
 except ModuleNotFoundError:
     from hq_context_discipline import ContextDisciplineError, project_current_state
     from hq_unified_archive import build_learning_policy
-    from zb_communication_base import API_ROOT, REPOSITORY, GitHubApi, PersistenceError
+    from zb_communication_base import API_ROOT, REPOSITORY, TRANSPORT_ACTOR, GitHubApi, PersistenceError
 
 
 SCHEMA = "ZB_PRE_ACTION_DECISION_V1"
@@ -46,6 +46,7 @@ REQUIRED_FIELDS = ("action", *BOOL_FIELDS, "processMutationCountForBlocker")
 READ_ONLY_WHILE_ACTIVE = {"READ_ACTIVE_RESULT", "READ_REQUIRED_EVIDENCE"}
 _GITHUB_PR_SOURCE = re.compile(r"^github:pr:([1-9][0-9]*)$")
 _GITHUB_ISSUE_COMMENT_SOURCE = re.compile(r"^github:issue-comment:([1-9][0-9]*)$")
+_TASK_ISSUE = re.compile(r"^#([1-9][0-9]*)$")
 _SHA40 = re.compile(r"^[0-9a-f]{40}$")
 _TRUSTED_DURABLE_AUTHORITIES = {"GITHUB", "OWNER", "SHERIFF"}
 _NEW_BLOCKER_IDENTITY_KEYS = {
@@ -120,7 +121,6 @@ def _validate_context_packet(context_packet: dict[str, Any]) -> None:
     status = context_packet.get("status")
     if status not in {"PROVEN", "NOT_PROVEN"}:
         raise PreActionError("CONTEXT_PACKET_INVALID")
-
     anchors = context_packet.get("mandatory_anchors")
     if not isinstance(anchors, list):
         raise PreActionError("CONTEXT_PACKET_INVALID")
@@ -132,7 +132,6 @@ def _validate_context_packet(context_packet: dict[str, Any]) -> None:
             or "value" not in anchor
         ):
             raise PreActionError("CONTEXT_PACKET_INVALID")
-
     current_state = context_packet.get("current_state")
     if (
         not isinstance(current_state, dict)
@@ -146,13 +145,11 @@ def _validate_context_packet(context_packet: dict[str, Any]) -> None:
         raise PreActionError("DURABLE_CONTEXT_NOT_PROVEN") from exc
     if reprojection != current_state:
         raise PreActionError("CONTEXT_PACKET_INVALID")
-
     jit_facets = context_packet.get("jit_facets")
     if not isinstance(jit_facets, dict):
         raise PreActionError("CONTEXT_PACKET_INVALID")
     if not all(isinstance(key, str) and key and isinstance(value, list) for key, value in jit_facets.items()):
         raise PreActionError("CONTEXT_PACKET_INVALID")
-
     missing_facets = context_packet.get("missing_facets")
     source_refs = context_packet.get("source_refs")
     if not isinstance(missing_facets, list) or not all(isinstance(item, str) and item for item in missing_facets):
@@ -167,6 +164,21 @@ def _packet_facts(context_packet: dict[str, Any]) -> list[dict[str, Any]]:
     current_state = context_packet.get("current_state")
     facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
     return [fact for fact in facts if isinstance(fact, dict)]
+
+
+def _packet_current_task_issue(context_packet: dict[str, Any]) -> int | None:
+    anchors = context_packet.get("mandatory_anchors")
+    if not isinstance(anchors, list):
+        return None
+    values = [
+        anchor.get("value")
+        for anchor in anchors
+        if isinstance(anchor, dict) and anchor.get("key") == "CURRENT_TASK"
+    ]
+    if len(values) != 1 or not isinstance(values[0], str):
+        return None
+    match = _TASK_ISSUE.fullmatch(values[0])
+    return int(match.group(1)) if match is not None else None
 
 
 def _packet_active_head_fact(context_packet: dict[str, Any]) -> dict[str, Any] | None:
@@ -278,7 +290,19 @@ def _fact_issue_comment_id(fact: dict[str, Any]) -> int | None:
     return matches[0]
 
 
-def _comment_proves_fact(comment: dict[str, Any], fact: dict[str, Any]) -> bool:
+def _comment_proves_fact(
+    comment: dict[str, Any],
+    fact: dict[str, Any],
+    *,
+    expected_issue: int,
+) -> bool:
+    issue_url = comment.get("issue_url")
+    user = comment.get("user")
+    expected_issue_url = f"{API_ROOT}/repos/{REPOSITORY}/issues/{expected_issue}"
+    if issue_url != expected_issue_url:
+        return False
+    if not isinstance(user, dict) or user.get("login") != TRANSPORT_ACTOR:
+        return False
     body = comment.get("body")
     if not isinstance(body, str):
         return False
@@ -309,9 +333,10 @@ def _verify_new_blocker_identity_evidence(
         for fact in _packet_facts(context_packet)
         if fact.get("key") in _NEW_BLOCKER_IDENTITY_KEYS
     }
-    if not present:
+    if not present or github_api is None:
         return frozenset()
-    if github_api is None:
+    expected_issue = _packet_current_task_issue(context_packet)
+    if expected_issue is None:
         return frozenset()
     proven: set[str] = set()
     for key, fact in present.items():
@@ -324,7 +349,7 @@ def _verify_new_blocker_identity_evidence(
             comment = github_api.read_comment(comment_id)
         except PersistenceError:
             continue
-        if _comment_proves_fact(comment, fact):
+        if _comment_proves_fact(comment, fact, expected_issue=expected_issue):
             proven.add(key)
     return frozenset(proven)
 
@@ -461,7 +486,6 @@ def evaluate_pre_action(
         return _decision(context, "BLOCK", "PREREQUISITE_ALREADY_PROVEN", learning_policy, context_packet)
     if action == "PROCESS_MUTATION" and not context["provenProcessBlocker"]:
         return _decision(context, "BLOCK", "PROCESS_MUTATION_REQUIRES_PROVEN_PROCESS_BLOCKER", learning_policy, context_packet)
-
     if action not in READ_ONLY_WHILE_ACTIVE and effective_process_mutation_count >= 1 and context["newPhysicalBlocker"]:
         if not durable_new_physical_blocker:
             return _decision(context, "BLOCK", "DURABLE_NEW_BLOCKER_NOT_PROVEN", learning_policy, context_packet)
@@ -469,10 +493,8 @@ def evaluate_pre_action(
             return _decision(context, "BLOCK", "DURABLE_NEW_BLOCKER_SIGNATURE_NOT_PROVEN", learning_policy, context_packet)
         if current_error_signature == process_mutation_error_signature:
             return _decision(context, "BLOCK", "DURABLE_NEW_BLOCKER_NOT_DISTINCT", learning_policy, context_packet)
-
     if action not in READ_ONLY_WHILE_ACTIVE and effective_process_mutation_count >= 1 and not context["newPhysicalBlocker"]:
         return _decision(context, "BLOCK", "REPEAT_PROCESS_MUTATION_REQUIRES_NEW_BLOCKER", learning_policy, context_packet)
-
     if action == "REQUEST_OWNER_ACTION":
         if not context["provenExternalBoundary"]:
             return _decision(context, "BLOCK", "OWNER_IS_NOT_A_COURIER", learning_policy, context_packet)
@@ -497,11 +519,9 @@ def evaluate_pre_action_with_github_freshness(
     action = context["action"]
     if context_packet is None or action in READ_ONLY_WHILE_ACTIVE:
         return evaluate_pre_action(context, learning_policy=learning_policy, context_packet=context_packet)
-
     _validate_context_packet(context_packet)
     if context_packet["status"] != "PROVEN":
         return evaluate_pre_action(context, learning_policy=learning_policy, context_packet=context_packet)
-
     externally_proven_e2_keys = _verify_new_blocker_identity_evidence(context_packet, github_api)
     facts = _packet_facts(context_packet)
     present_identity_keys = {
@@ -517,7 +537,6 @@ def evaluate_pre_action_with_github_freshness(
             learning_policy,
             context_packet,
         )
-
     packet_active_head = _packet_active_head(context_packet)
     if packet_active_head is None:
         return evaluate_pre_action(
@@ -526,7 +545,6 @@ def evaluate_pre_action_with_github_freshness(
             context_packet=context_packet,
             _externally_proven_e2_keys=externally_proven_e2_keys,
         )
-
     pr_number = _packet_active_head_pr(context_packet)
     if pr_number is None or github_api is None:
         return _decision(context, "BLOCK", "DURABLE_CONTEXT_FRESHNESS_SOURCE_NOT_PROVEN", learning_policy, context_packet)
@@ -566,12 +584,10 @@ def main() -> int:
     parser.add_argument("--query")
     parser.add_argument("--limit", type=int, default=5)
     args = parser.parse_args()
-
     if (args.archive_root is None) != (args.query is None):
         raise PreActionError("PRE_ACTION_LEARNING_ARGS_INCOMPLETE")
     if args.limit < 1:
         raise PreActionError("PRE_ACTION_CONTEXT_INVALID:LIMIT")
-
     context = _load_context(args.context_path)
     context_packet = None
     if args.context_packet_path is not None:
@@ -579,7 +595,6 @@ def main() -> int:
     policy = None
     if args.archive_root is not None and args.query is not None:
         policy = build_learning_policy(args.archive_root, args.query, limit=args.limit)
-
     github_api = None
     github_token = os.environ.get("GITHUB_TOKEN")
     if github_token:
@@ -587,7 +602,6 @@ def main() -> int:
             github_api = GitHubApi(github_token)
         except PersistenceError:
             github_api = None
-
     result = evaluate_pre_action_with_github_freshness(
         context,
         learning_policy=policy,

@@ -177,7 +177,14 @@ test('cinematic scene exports deterministic PNG and Babylon scene', async ({
       };
       zorrOpenSourcePolicy?: {
         externalArtAssets?: unknown[];
+        geometry?: string;
+        materials?: string;
         remoteInference?: boolean;
+      };
+      zorrActionScene?: {
+        revision?: string;
+        vertexWarp?: boolean;
+        weaponAttachment?: string;
       };
     };
     cameras?: Array<{ name?: string }>;
@@ -189,10 +196,19 @@ test('cinematic scene exports deterministic PNG and Babylon scene', async ({
     authority: 'PROTOTYPE_NON_CANON',
   });
   expect(exported.metadata?.zorrOpenSourcePolicy).toEqual({
-    externalArtAssets: ['OXIHUMAN_B0_DERIVED_GLB'],
-    geometry: 'PROCEDURAL_SET_PLUS_OXIHUMAN_DERIVED_BODY',
-    materials: 'CODE_AUTHORED_STANDARD_MATERIALS',
+    externalArtAssets: [
+      'QUATERNIUS_UBC_CC0',
+      'QUATERNIUS_UAL_CC0',
+      'QUATERNIUS_ANIMATED_KNIGHT_SWORD_CC0',
+    ],
+    geometry: 'PINNED_SKINNED_GLTF_PLUS_EXISTING_BABYLON_SET',
+    materials: 'SOURCE_GLTF_PLUS_WHITE_STAGE_STANDARD_MATERIAL',
     remoteInference: false,
+  });
+  expect(exported.metadata?.zorrActionScene).toMatchObject({
+    revision: 'R04',
+    vertexWarp: false,
+    weaponAttachment: 'hand_r',
   });
   expect(exported.cameras?.map(({ name }) => name)).toContain(
     'camera:cam-scene-main',
@@ -206,11 +222,9 @@ test('cinematic scene exports deterministic PNG and Babylon scene', async ({
   );
   expect(exported.meshes?.map(({ name }) => name)).toEqual(
     expect.arrayContaining([
-      'set:portal:left',
-      'set:portal:right',
-      'set:portal:top',
-      'actor:A:mesh:head',
-      'actor:B:mesh:head',
+      'action:actor:attacker:surface:2',
+      'action:actor:dodger:surface:2',
+      'action:blade',
     ]),
   );
 
@@ -240,15 +254,34 @@ test('cinematic scene exports deterministic PNG and Babylon scene', async ({
     return response.text();
   });
   const manifest = JSON.parse(manifestText) as {
+    sceneVersion?: string;
     openSourceOnly?: boolean;
-    externalArtAssets?: unknown[];
+    externalArtAssets?: Array<{
+      sourceCommit?: string;
+      license?: string;
+      sha256?: string;
+    }>;
     remoteServices?: unknown[];
   };
+  expect(manifest.sceneVersion).toBe('R04');
   expect(manifest.openSourceOnly).toBe(true);
-  expect(manifest.externalArtAssets).toEqual([expect.objectContaining({
-    sourceCommit: '603b446854c3d5a9ca478214e7b85008d54786b9',
-    license: 'Apache-2.0',
-  })]);
+  expect(manifest.externalArtAssets).toEqual([
+    expect.objectContaining({
+      sourceCommit: 'aa02a4e6d8337a0604d2da131bcbbeb1f01badf0',
+      license: 'CC0',
+      sha256: 'a466828c67a4acc9b2413212ce6d9cde235e3aed9b675680c14fd9673858f118',
+    }),
+    expect.objectContaining({
+      sourceCommit: 'aa02a4e6d8337a0604d2da131bcbbeb1f01badf0',
+      license: 'CC0',
+      sha256: '4c748767741a3e495d89667b9a218b690ba9810b9517a12e960780e3ca72c4e9',
+    }),
+    expect.objectContaining({
+      sourceCommit: '71bbfbdfacd118196994b26da68eec1876d55c6b',
+      license: 'CC0',
+      sha256: '62add428c985df2ec32f7e516ab685a327cca886926446f798fe92d6ca180d3a',
+    }),
+  ]);
   expect(manifest.remoteServices).toEqual([]);
 
   await mkdir('artifacts', { recursive: true });

@@ -1,0 +1,95 @@
+version: 2
+source:
+  path: "SOURCE.png"
+  expected_size: [1086, 1448]
+  sha256: "bd00c26373180a8678675dd9e7dc74a34c12899add8be246c82c6107b5f12d30"
+
+animation:
+  t_values: [0.0, 0.1666667, 0.3333333, 0.5, 0.6666667, 0.8333333, 1.0]
+  easing: smootherstep
+
+render:
+  interpolation: linear
+
+qc:
+  max_displacement_px: 18.0
+  min_line_energy_ratio_inside: 0.55
+
+regions:
+  - name: mouth_smile_arc
+    blend_mode: weighted_average
+    rbf_sigma_px: 36
+    regularization: 0.000001
+    mask:
+      type: ellipse
+      center: [546, 583]
+      axes: [112, 61]
+      feather_inward_px: 10
+    controls:
+      - {id: mouth_corner_left, semantic: mouthSmileLeft, xy: [495, 579], delta_at_1: [-5, -15]}
+      - {id: mouth_corner_right, semantic: mouthSmileRight, xy: [597, 579], delta_at_1: [5, -15]}
+      - {id: upper_lip_left, semantic: mouthUpperUpLeft, xy: [520, 577], delta_at_1: [-2, -7]}
+      - {id: upper_lip_center, semantic: lip_center_stabilizer, xy: [546, 578], delta_at_1: [0, -1]}
+      - {id: upper_lip_right, semantic: mouthUpperUpRight, xy: [572, 577], delta_at_1: [2, -7]}
+      - {id: lower_lip_left, semantic: mouthLowerDownLeft, xy: [520, 599], delta_at_1: [-1, -5]}
+      - {id: lower_lip_center, semantic: lower_lip_stabilizer, xy: [546, 601], delta_at_1: [0, 0]}
+      - {id: lower_lip_right, semantic: mouthLowerDownRight, xy: [571, 599], delta_at_1: [1, -5]}
+    locks: [[438,540],[492,530],[546,528],[600,530],[654,540],[430,584],[662,584],[446,635],[500,643],[546,646],[592,643],[648,635]]
+
+  - name: left_cheek_lift
+    blend_mode: weighted_average
+    rbf_sigma_px: 28
+    regularization: 0.000001
+    mask:
+      type: ellipse
+      center: [466, 545]
+      axes: [62, 50]
+      feather_inward_px: 10
+    controls:
+      - {id: cheek_left_inner, semantic: cheekSquintLeft, xy: [455, 548], delta_at_1: [-1, -6]}
+      - {id: cheek_left_outer, semantic: cheekSquintLeft, xy: [480, 553], delta_at_1: [0, -5]}
+    locks: [[410,510],[466,500],[520,510],[410,580],[466,592],[520,580]]
+
+  - name: right_cheek_lift
+    blend_mode: weighted_average
+    rbf_sigma_px: 28
+    regularization: 0.000001
+    mask:
+      type: ellipse
+      center: [626, 545]
+      axes: [62, 50]
+      feather_inward_px: 10
+    controls:
+      - {id: cheek_right_inner, semantic: cheekSquintRight, xy: [612, 553], delta_at_1: [0, -5]}
+      - {id: cheek_right_outer, semantic: cheekSquintRight, xy: [637, 548], delta_at_1: [1, -6]}
+    locks: [[572,510],[626,500],[682,510],[572,580],[626,592],[682,580]]
+
+  - name: left_lower_eyelid_response
+    blend_mode: weighted_average
+    rbf_sigma_px: 22
+    regularization: 0.000001
+    mask:
+      type: ellipse
+      center: [449, 416]
+      axes: [63, 24]
+      feather_inward_px: 7
+    controls:
+      - {id: lid_left_a, semantic: cheekSquintLeft, xy: [423, 419], delta_at_1: [0, -1.5]}
+      - {id: lid_left_b, semantic: cheekSquintLeft, xy: [450, 422], delta_at_1: [0, -2.5]}
+      - {id: lid_left_c, semantic: cheekSquintLeft, xy: [479, 418], delta_at_1: [0, -1.5]}
+    locks: [[390,394],[449,390],[508,394],[390,438],[449,442],[508,438]]
+
+  - name: right_lower_eyelid_response
+    blend_mode: weighted_average
+    rbf_sigma_px: 22
+    regularization: 0.000001
+    mask:
+      type: ellipse
+      center: [640, 416]
+      axes: [63, 24]
+      feather_inward_px: 7
+    controls:
+      - {id: lid_right_a, semantic: cheekSquintRight, xy: [613, 418], delta_at_1: [0, -1.5]}
+      - {id: lid_right_b, semantic: cheekSquintRight, xy: [641, 422], delta_at_1: [0, -2.5]}
+      - {id: lid_right_c, semantic: cheekSquintRight, xy: [669, 419], delta_at_1: [0, -1.5]}
+    locks: [[582,394],[640,390],[700,394],[582,438],[640,442],[700,438]]

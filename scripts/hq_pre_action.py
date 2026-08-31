@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from scripts.hq_unified_archive import build_learning_policy
+try:
+    from scripts.hq_unified_archive import build_learning_policy
+except ModuleNotFoundError:
+    from hq_unified_archive import build_learning_policy
 
 
 SCHEMA = "ZB_PRE_ACTION_DECISION_V1"

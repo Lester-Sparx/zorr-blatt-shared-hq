@@ -223,6 +223,29 @@ def _packet_process_mutation_count(context_packet: dict[str, Any]) -> int | None
     return value
 
 
+def _packet_has_verified_true_fact(context_packet: dict[str, Any], key: str) -> bool:
+    current_state = context_packet.get("current_state")
+    facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
+    matches = [
+        fact
+        for fact in facts
+        if isinstance(fact, dict) and fact.get("key") == key
+    ]
+    if len(matches) != 1:
+        return False
+    fact = matches[0]
+    refs = fact.get("source_refs")
+    return (
+        fact.get("class") == "E2"
+        and fact.get("verified") is True
+        and fact.get("value") is True
+        and fact.get("authority") in {"GITHUB", "OWNER", "SHERIFF"}
+        and isinstance(refs, list)
+        and bool(refs)
+        and all(isinstance(item, str) and item for item in refs)
+    )
+
+
 def _read_current_pr_head(github_api: GitHubApi, pr_number: int) -> str:
     try:
         payload = github_api._request_json(f"{API_ROOT}/repos/{REPOSITORY}/pulls/{pr_number}")
@@ -301,6 +324,7 @@ def evaluate_pre_action(
     _validate_context(context)
     action = context["action"]
     effective_process_mutation_count = context["processMutationCountForBlocker"]
+    durable_new_physical_blocker = False
     if fresh_active_head is not None and (not isinstance(fresh_active_head, str) or not fresh_active_head):
         raise PreActionError("FRESH_ACTIVE_HEAD_INVALID")
     if context_packet is None and action not in READ_ONLY_WHILE_ACTIVE:
@@ -342,6 +366,10 @@ def evaluate_pre_action(
                 effective_process_mutation_count,
                 durable_process_mutation_count,
             )
+        durable_new_physical_blocker = _packet_has_verified_true_fact(
+            context_packet,
+            "NEW_PHYSICAL_BLOCKER",
+        )
         packet_active_head = _packet_active_head(context_packet)
         if action not in READ_ONLY_WHILE_ACTIVE and packet_active_head is not None and fresh_active_head is None:
             return _decision(
@@ -386,6 +414,20 @@ def evaluate_pre_action(
             context,
             "BLOCK",
             "PROCESS_MUTATION_REQUIRES_PROVEN_PROCESS_BLOCKER",
+            learning_policy,
+            context_packet,
+        )
+
+    if (
+        action not in READ_ONLY_WHILE_ACTIVE
+        and effective_process_mutation_count >= 1
+        and context["newPhysicalBlocker"]
+        and not durable_new_physical_blocker
+    ):
+        return _decision(
+            context,
+            "BLOCK",
+            "DURABLE_NEW_BLOCKER_NOT_PROVEN",
             learning_policy,
             context_packet,
         )

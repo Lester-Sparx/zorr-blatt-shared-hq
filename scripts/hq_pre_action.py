@@ -45,8 +45,15 @@ BOOL_FIELDS = (
 REQUIRED_FIELDS = ("action", *BOOL_FIELDS, "processMutationCountForBlocker")
 READ_ONLY_WHILE_ACTIVE = {"READ_ACTIVE_RESULT", "READ_REQUIRED_EVIDENCE"}
 _GITHUB_PR_SOURCE = re.compile(r"^github:pr:([1-9][0-9]*)$")
+_GITHUB_ISSUE_COMMENT_SOURCE = re.compile(r"^github:issue-comment:([1-9][0-9]*)$")
 _SHA40 = re.compile(r"^[0-9a-f]{40}$")
 _TRUSTED_DURABLE_AUTHORITIES = {"GITHUB", "OWNER", "SHERIFF"}
+_NEW_BLOCKER_IDENTITY_KEYS = {
+    "NEW_PHYSICAL_BLOCKER",
+    "ERROR_SIGNATURE",
+    "PROCESS_MUTATION_ERROR_SIGNATURE",
+}
+_E2_EVIDENCE_MARKER = "ZB_CONTEXT_E2_EVIDENCE_V1"
 
 
 class PreActionError(RuntimeError):
@@ -156,14 +163,14 @@ def _validate_context_packet(context_packet: dict[str, Any]) -> None:
         raise PreActionError("CONTEXT_PACKET_INVALID")
 
 
-def _packet_active_head_fact(context_packet: dict[str, Any]) -> dict[str, Any] | None:
+def _packet_facts(context_packet: dict[str, Any]) -> list[dict[str, Any]]:
     current_state = context_packet.get("current_state")
     facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
-    heads = [
-        fact
-        for fact in facts
-        if isinstance(fact, dict) and fact.get("key") == "ACTIVE_HEAD"
-    ]
+    return [fact for fact in facts if isinstance(fact, dict)]
+
+
+def _packet_active_head_fact(context_packet: dict[str, Any]) -> dict[str, Any] | None:
+    heads = [fact for fact in _packet_facts(context_packet) if fact.get("key") == "ACTIVE_HEAD"]
     if len(heads) != 1:
         return None
     return heads[0]
@@ -199,13 +206,7 @@ def _packet_active_head_pr(context_packet: dict[str, Any]) -> int | None:
 
 
 def _packet_process_mutation_count(context_packet: dict[str, Any]) -> int | None:
-    current_state = context_packet.get("current_state")
-    facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
-    counts = [
-        fact
-        for fact in facts
-        if isinstance(fact, dict) and fact.get("key") == "PROCESS_MUTATION_COUNT"
-    ]
+    counts = [fact for fact in _packet_facts(context_packet) if fact.get("key") == "PROCESS_MUTATION_COUNT"]
     if len(counts) != 1:
         return None
     fact = counts[0]
@@ -225,13 +226,7 @@ def _packet_process_mutation_count(context_packet: dict[str, Any]) -> int | None
 
 
 def _packet_verified_fact(context_packet: dict[str, Any], key: str) -> dict[str, Any] | None:
-    current_state = context_packet.get("current_state")
-    facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
-    matches = [
-        fact
-        for fact in facts
-        if isinstance(fact, dict) and fact.get("key") == key
-    ]
+    matches = [fact for fact in _packet_facts(context_packet) if fact.get("key") == key]
     if len(matches) != 1:
         return None
     fact = matches[0]
@@ -263,6 +258,77 @@ def _packet_verified_string_fact(context_packet: dict[str, Any], key: str) -> st
     return value
 
 
+def _canonical_evidence_value(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def _fact_issue_comment_id(fact: dict[str, Any]) -> int | None:
+    refs = fact.get("source_refs")
+    if not isinstance(refs, list):
+        return None
+    matches: list[int] = []
+    for ref in refs:
+        if not isinstance(ref, str):
+            continue
+        match = _GITHUB_ISSUE_COMMENT_SOURCE.fullmatch(ref)
+        if match is not None:
+            matches.append(int(match.group(1)))
+    if len(matches) != 1:
+        return None
+    return matches[0]
+
+
+def _comment_proves_fact(comment: dict[str, Any], fact: dict[str, Any]) -> bool:
+    body = comment.get("body")
+    if not isinstance(body, str):
+        return False
+    lines = body.splitlines()
+    if not lines or lines[0].strip() != _E2_EVIDENCE_MARKER:
+        return False
+    fields: dict[str, str] = {}
+    for line in lines[1:]:
+        if " = " not in line:
+            continue
+        key, value = line.split(" = ", 1)
+        if key in fields:
+            return False
+        fields[key] = value
+    return (
+        fields.get("KEY") == fact.get("key")
+        and fields.get("VALUE_JSON") == _canonical_evidence_value(fact.get("value"))
+        and fields.get("AUTHORITY") == fact.get("authority")
+    )
+
+
+def _verify_new_blocker_identity_evidence(
+    context_packet: dict[str, Any],
+    github_api: GitHubApi | None,
+) -> frozenset[str]:
+    present = {
+        str(fact.get("key")): fact
+        for fact in _packet_facts(context_packet)
+        if fact.get("key") in _NEW_BLOCKER_IDENTITY_KEYS
+    }
+    if not present:
+        return frozenset()
+    if github_api is None:
+        return frozenset()
+    proven: set[str] = set()
+    for key, fact in present.items():
+        if _packet_verified_fact(context_packet, key) is None:
+            continue
+        comment_id = _fact_issue_comment_id(fact)
+        if comment_id is None:
+            continue
+        try:
+            comment = github_api.read_comment(comment_id)
+        except PersistenceError:
+            continue
+        if _comment_proves_fact(comment, fact):
+            proven.add(key)
+    return frozenset(proven)
+
+
 def _read_current_pr_head(github_api: GitHubApi, pr_number: int) -> str:
     try:
         payload = github_api._request_json(f"{API_ROOT}/repos/{REPOSITORY}/pulls/{pr_number}")
@@ -280,13 +346,7 @@ def _read_current_pr_head(github_api: GitHubApi, pr_number: int) -> str:
 
 
 def _packet_has_verified_terminal_pass(context_packet: dict[str, Any]) -> bool:
-    current_state = context_packet.get("current_state")
-    facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
-    results = [
-        fact
-        for fact in facts
-        if isinstance(fact, dict) and fact.get("key") == "RESULT"
-    ]
+    results = [fact for fact in _packet_facts(context_packet) if fact.get("key") == "RESULT"]
     if len(results) != 1:
         return False
     result = results[0]
@@ -337,6 +397,7 @@ def evaluate_pre_action(
     learning_policy: dict[str, Any] | None = None,
     context_packet: dict[str, Any] | None = None,
     fresh_active_head: str | None = None,
+    _externally_proven_e2_keys: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     _validate_context(context)
     action = context["action"]
@@ -347,166 +408,81 @@ def evaluate_pre_action(
     if fresh_active_head is not None and (not isinstance(fresh_active_head, str) or not fresh_active_head):
         raise PreActionError("FRESH_ACTIVE_HEAD_INVALID")
     if context_packet is None and action not in READ_ONLY_WHILE_ACTIVE:
-        return _decision(
-            context,
-            "BLOCK",
-            "DURABLE_CONTEXT_NOT_PROVEN",
-            learning_policy,
-            None,
-        )
+        return _decision(context, "BLOCK", "DURABLE_CONTEXT_NOT_PROVEN", learning_policy, None)
     if context_packet is not None:
         _validate_context_packet(context_packet)
         if context_packet["status"] != "PROVEN":
-            return _decision(
-                context,
-                "BLOCK",
-                "DURABLE_CONTEXT_NOT_PROVEN",
-                learning_policy,
-                context_packet,
-            )
-        current_state = context_packet.get("current_state")
-        facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
-        process_mutation_count_facts = [
-            fact
-            for fact in facts
-            if isinstance(fact, dict) and fact.get("key") == "PROCESS_MUTATION_COUNT"
-        ]
+            return _decision(context, "BLOCK", "DURABLE_CONTEXT_NOT_PROVEN", learning_policy, context_packet)
+        facts = _packet_facts(context_packet)
+        process_mutation_count_facts = [fact for fact in facts if fact.get("key") == "PROCESS_MUTATION_COUNT"]
         durable_process_mutation_count = _packet_process_mutation_count(context_packet)
         if process_mutation_count_facts and durable_process_mutation_count is None:
-            return _decision(
-                context,
-                "BLOCK",
-                "DURABLE_CONTEXT_NOT_PROVEN",
-                learning_policy,
-                context_packet,
-            )
+            return _decision(context, "BLOCK", "DURABLE_CONTEXT_NOT_PROVEN", learning_policy, context_packet)
         if durable_process_mutation_count is not None:
-            effective_process_mutation_count = max(
-                effective_process_mutation_count,
-                durable_process_mutation_count,
-            )
-        durable_new_physical_blocker = _packet_has_verified_true_fact(
-            context_packet,
-            "NEW_PHYSICAL_BLOCKER",
-        )
-        current_error_signature = _packet_verified_string_fact(
-            context_packet,
-            "ERROR_SIGNATURE",
-        )
-        process_mutation_error_signature = _packet_verified_string_fact(
-            context_packet,
-            "PROCESS_MUTATION_ERROR_SIGNATURE",
-        )
+            effective_process_mutation_count = max(effective_process_mutation_count, durable_process_mutation_count)
+        durable_new_physical_blocker = _packet_has_verified_true_fact(context_packet, "NEW_PHYSICAL_BLOCKER")
+        current_error_signature = _packet_verified_string_fact(context_packet, "ERROR_SIGNATURE")
+        process_mutation_error_signature = _packet_verified_string_fact(context_packet, "PROCESS_MUTATION_ERROR_SIGNATURE")
+        if (
+            action not in READ_ONLY_WHILE_ACTIVE
+            and effective_process_mutation_count >= 1
+            and context["newPhysicalBlocker"]
+            and durable_new_physical_blocker
+        ):
+            present_identity_keys = {
+                str(fact.get("key"))
+                for fact in facts
+                if fact.get("key") in _NEW_BLOCKER_IDENTITY_KEYS
+            }
+            if not present_identity_keys.issubset(_externally_proven_e2_keys):
+                return _decision(
+                    context,
+                    "BLOCK",
+                    "DURABLE_CONTEXT_EVIDENCE_SOURCE_NOT_PROVEN",
+                    learning_policy,
+                    context_packet,
+                )
         packet_active_head = _packet_active_head(context_packet)
         if action not in READ_ONLY_WHILE_ACTIVE and packet_active_head is not None and fresh_active_head is None:
-            return _decision(
-                context,
-                "BLOCK",
-                "DURABLE_CONTEXT_NOT_PROVEN",
-                learning_policy,
-                context_packet,
-            )
+            return _decision(context, "BLOCK", "DURABLE_CONTEXT_NOT_PROVEN", learning_policy, context_packet)
         if fresh_active_head is not None:
             if packet_active_head is None:
-                return _decision(
-                    context,
-                    "BLOCK",
-                    "DURABLE_CONTEXT_NOT_PROVEN",
-                    learning_policy,
-                    context_packet,
-                )
+                return _decision(context, "BLOCK", "DURABLE_CONTEXT_NOT_PROVEN", learning_policy, context_packet)
             if packet_active_head != fresh_active_head:
-                return _decision(
-                    context,
-                    "BLOCK",
-                    "DURABLE_CONTEXT_STALE",
-                    learning_policy,
-                    context_packet,
-                )
+                return _decision(context, "BLOCK", "DURABLE_CONTEXT_STALE", learning_policy, context_packet)
 
     if action == "IMAGE_MUTATION" and not context["explicitOwnerImageMutationCommand"]:
         return _decision(context, "BLOCK", "OWNER_IMAGE_MUTATION_COMMAND_REQUIRED", learning_policy, context_packet)
-
     if context["activeAttempt"] and action not in READ_ONLY_WHILE_ACTIVE:
         return _decision(context, "WAIT", "ACTIVE_ATTEMPT_OWNS_PATH", learning_policy, context_packet)
-
     if action == "SEARCH_ASSET" and context["exactOwnerInputProvided"]:
         return _decision(context, "BLOCK", "EXACT_OWNER_INPUT_SUPERSEDES_SEARCH", learning_policy, context_packet)
-
     if action == "VERIFY_PREREQUISITE" and context["prerequisiteAlreadyProven"]:
         return _decision(context, "BLOCK", "PREREQUISITE_ALREADY_PROVEN", learning_policy, context_packet)
-
     if action == "PROCESS_MUTATION" and not context["provenProcessBlocker"]:
-        return _decision(
-            context,
-            "BLOCK",
-            "PROCESS_MUTATION_REQUIRES_PROVEN_PROCESS_BLOCKER",
-            learning_policy,
-            context_packet,
-        )
+        return _decision(context, "BLOCK", "PROCESS_MUTATION_REQUIRES_PROVEN_PROCESS_BLOCKER", learning_policy, context_packet)
 
-    if (
-        action not in READ_ONLY_WHILE_ACTIVE
-        and effective_process_mutation_count >= 1
-        and context["newPhysicalBlocker"]
-    ):
+    if action not in READ_ONLY_WHILE_ACTIVE and effective_process_mutation_count >= 1 and context["newPhysicalBlocker"]:
         if not durable_new_physical_blocker:
-            return _decision(
-                context,
-                "BLOCK",
-                "DURABLE_NEW_BLOCKER_NOT_PROVEN",
-                learning_policy,
-                context_packet,
-            )
+            return _decision(context, "BLOCK", "DURABLE_NEW_BLOCKER_NOT_PROVEN", learning_policy, context_packet)
         if current_error_signature is None or process_mutation_error_signature is None:
-            return _decision(
-                context,
-                "BLOCK",
-                "DURABLE_NEW_BLOCKER_SIGNATURE_NOT_PROVEN",
-                learning_policy,
-                context_packet,
-            )
+            return _decision(context, "BLOCK", "DURABLE_NEW_BLOCKER_SIGNATURE_NOT_PROVEN", learning_policy, context_packet)
         if current_error_signature == process_mutation_error_signature:
-            return _decision(
-                context,
-                "BLOCK",
-                "DURABLE_NEW_BLOCKER_NOT_DISTINCT",
-                learning_policy,
-                context_packet,
-            )
+            return _decision(context, "BLOCK", "DURABLE_NEW_BLOCKER_NOT_DISTINCT", learning_policy, context_packet)
 
-    if (
-        action not in READ_ONLY_WHILE_ACTIVE
-        and effective_process_mutation_count >= 1
-        and not context["newPhysicalBlocker"]
-    ):
-        return _decision(
-            context,
-            "BLOCK",
-            "REPEAT_PROCESS_MUTATION_REQUIRES_NEW_BLOCKER",
-            learning_policy,
-            context_packet,
-        )
+    if action not in READ_ONLY_WHILE_ACTIVE and effective_process_mutation_count >= 1 and not context["newPhysicalBlocker"]:
+        return _decision(context, "BLOCK", "REPEAT_PROCESS_MUTATION_REQUIRES_NEW_BLOCKER", learning_policy, context_packet)
 
     if action == "REQUEST_OWNER_ACTION":
         if not context["provenExternalBoundary"]:
             return _decision(context, "BLOCK", "OWNER_IS_NOT_A_COURIER", learning_policy, context_packet)
         return _decision(context, "OWNER_REQUIRED", "PROVEN_EXTERNAL_BOUNDARY", learning_policy, context_packet)
-
     if action == "CLAIM_PASS" and not context["freshVerificationEvidence"]:
         return _decision(context, "BLOCK", "FRESH_VERIFICATION_REQUIRED", learning_policy, context_packet)
     if action == "CLAIM_PASS" and context_packet is not None and not _packet_has_verified_terminal_pass(context_packet):
-        return _decision(
-            context,
-            "BLOCK",
-            "DURABLE_TERMINAL_EVIDENCE_NOT_PROVEN",
-            learning_policy,
-            context_packet,
-        )
-
+        return _decision(context, "BLOCK", "DURABLE_TERMINAL_EVIDENCE_NOT_PROVEN", learning_policy, context_packet)
     if not context["directlyAdvancesPhysicalResult"] and action not in READ_ONLY_WHILE_ACTIVE:
         return _decision(context, "BLOCK", "NO_DIRECT_PRODUCT_PROGRESS", learning_policy, context_packet)
-
     return _decision(context, "ALLOW", "PRE_ACTION_GATE_PASS", learning_policy, context_packet)
 
 
@@ -520,18 +496,26 @@ def evaluate_pre_action_with_github_freshness(
     _validate_context(context)
     action = context["action"]
     if context_packet is None or action in READ_ONLY_WHILE_ACTIVE:
-        return evaluate_pre_action(
-            context,
-            learning_policy=learning_policy,
-            context_packet=context_packet,
-        )
+        return evaluate_pre_action(context, learning_policy=learning_policy, context_packet=context_packet)
 
     _validate_context_packet(context_packet)
     if context_packet["status"] != "PROVEN":
-        return evaluate_pre_action(
+        return evaluate_pre_action(context, learning_policy=learning_policy, context_packet=context_packet)
+
+    externally_proven_e2_keys = _verify_new_blocker_identity_evidence(context_packet, github_api)
+    facts = _packet_facts(context_packet)
+    present_identity_keys = {
+        str(fact.get("key"))
+        for fact in facts
+        if fact.get("key") in _NEW_BLOCKER_IDENTITY_KEYS
+    }
+    if context["newPhysicalBlocker"] and present_identity_keys and not present_identity_keys.issubset(externally_proven_e2_keys):
+        return _decision(
             context,
-            learning_policy=learning_policy,
-            context_packet=context_packet,
+            "BLOCK",
+            "DURABLE_CONTEXT_EVIDENCE_SOURCE_NOT_PROVEN",
+            learning_policy,
+            context_packet,
         )
 
     packet_active_head = _packet_active_head(context_packet)
@@ -540,32 +524,22 @@ def evaluate_pre_action_with_github_freshness(
             context,
             learning_policy=learning_policy,
             context_packet=context_packet,
+            _externally_proven_e2_keys=externally_proven_e2_keys,
         )
 
     pr_number = _packet_active_head_pr(context_packet)
     if pr_number is None or github_api is None:
-        return _decision(
-            context,
-            "BLOCK",
-            "DURABLE_CONTEXT_FRESHNESS_SOURCE_NOT_PROVEN",
-            learning_policy,
-            context_packet,
-        )
+        return _decision(context, "BLOCK", "DURABLE_CONTEXT_FRESHNESS_SOURCE_NOT_PROVEN", learning_policy, context_packet)
     try:
         fresh_active_head = _read_current_pr_head(github_api, pr_number)
     except PersistenceError:
-        return _decision(
-            context,
-            "BLOCK",
-            "DURABLE_CONTEXT_FRESHNESS_SOURCE_NOT_PROVEN",
-            learning_policy,
-            context_packet,
-        )
+        return _decision(context, "BLOCK", "DURABLE_CONTEXT_FRESHNESS_SOURCE_NOT_PROVEN", learning_policy, context_packet)
     return evaluate_pre_action(
         context,
         learning_policy=learning_policy,
         context_packet=context_packet,
         fresh_active_head=fresh_active_head,
+        _externally_proven_e2_keys=externally_proven_e2_keys,
     )
 
 

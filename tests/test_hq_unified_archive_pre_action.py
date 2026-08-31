@@ -174,6 +174,7 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
                 },
             ]
         )
+        packet["current_state"] = gate.project_current_state(packet["current_state"]["facts"])
         allowed = gate.evaluate_pre_action(context, context_packet=packet)
         self.assertEqual(allowed["decision"], "ALLOW")
 

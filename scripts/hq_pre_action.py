@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
+import re
 from typing import Any
 
 try:
     from scripts.hq_context_discipline import ContextDisciplineError, project_current_state
     from scripts.hq_unified_archive import build_learning_policy
+    from scripts.zb_communication_base import API_ROOT, REPOSITORY, GitHubApi, PersistenceError
 except ModuleNotFoundError:
     from hq_context_discipline import ContextDisciplineError, project_current_state
     from hq_unified_archive import build_learning_policy
+    from zb_communication_base import API_ROOT, REPOSITORY, GitHubApi, PersistenceError
 
 
 SCHEMA = "ZB_PRE_ACTION_DECISION_V1"
@@ -40,6 +44,8 @@ BOOL_FIELDS = (
 )
 REQUIRED_FIELDS = ("action", *BOOL_FIELDS, "processMutationCountForBlocker")
 READ_ONLY_WHILE_ACTIVE = {"READ_ACTIVE_RESULT", "READ_REQUIRED_EVIDENCE"}
+_GITHUB_PR_SOURCE = re.compile(r"^github:pr:([1-9][0-9]*)$")
+_SHA40 = re.compile(r"^[0-9a-f]{40}$")
 
 
 class PreActionError(RuntimeError):
@@ -149,17 +155,62 @@ def _validate_context_packet(context_packet: dict[str, Any]) -> None:
         raise PreActionError("CONTEXT_PACKET_INVALID")
 
 
-def _packet_active_head(context_packet: dict[str, Any]) -> str | None:
+def _packet_active_head_fact(context_packet: dict[str, Any]) -> dict[str, Any] | None:
     current_state = context_packet.get("current_state")
     facts = current_state.get("facts", []) if isinstance(current_state, dict) else []
     heads = [
-        fact.get("value")
+        fact
         for fact in facts
         if isinstance(fact, dict) and fact.get("key") == "ACTIVE_HEAD"
     ]
-    if len(heads) != 1 or not isinstance(heads[0], str) or not heads[0]:
+    if len(heads) != 1:
         return None
     return heads[0]
+
+
+def _packet_active_head(context_packet: dict[str, Any]) -> str | None:
+    fact = _packet_active_head_fact(context_packet)
+    if fact is None:
+        return None
+    value = fact.get("value")
+    if not isinstance(value, str) or not value:
+        return None
+    return value
+
+
+def _packet_active_head_pr(context_packet: dict[str, Any]) -> int | None:
+    fact = _packet_active_head_fact(context_packet)
+    if fact is None:
+        return None
+    refs = fact.get("source_refs")
+    if not isinstance(refs, list):
+        return None
+    matches: list[int] = []
+    for ref in refs:
+        if not isinstance(ref, str):
+            continue
+        match = _GITHUB_PR_SOURCE.fullmatch(ref)
+        if match is not None:
+            matches.append(int(match.group(1)))
+    if len(matches) != 1:
+        return None
+    return matches[0]
+
+
+def _read_current_pr_head(github_api: GitHubApi, pr_number: int) -> str:
+    try:
+        payload = github_api._request_json(f"{API_ROOT}/repos/{REPOSITORY}/pulls/{pr_number}")
+    except PersistenceError:
+        raise
+    except Exception as exc:
+        raise PersistenceError("GitHub PR freshness read failed") from exc
+    if not isinstance(payload, dict):
+        raise PersistenceError("GitHub PR freshness read returned non-object")
+    head = payload.get("head")
+    sha = head.get("sha") if isinstance(head, dict) else None
+    if not isinstance(sha, str) or _SHA40.fullmatch(sha) is None:
+        raise PersistenceError("GitHub PR freshness read returned invalid head SHA")
+    return sha
 
 
 def _packet_has_verified_terminal_pass(context_packet: dict[str, Any]) -> bool:
@@ -326,6 +377,65 @@ def evaluate_pre_action(
     return _decision(context, "ALLOW", "PRE_ACTION_GATE_PASS", learning_policy, context_packet)
 
 
+def evaluate_pre_action_with_github_freshness(
+    context: dict[str, Any],
+    *,
+    learning_policy: dict[str, Any] | None = None,
+    context_packet: dict[str, Any] | None = None,
+    github_api: GitHubApi | None = None,
+) -> dict[str, Any]:
+    _validate_context(context)
+    action = context["action"]
+    if context_packet is None or action in READ_ONLY_WHILE_ACTIVE:
+        return evaluate_pre_action(
+            context,
+            learning_policy=learning_policy,
+            context_packet=context_packet,
+        )
+
+    _validate_context_packet(context_packet)
+    if context_packet["status"] != "PROVEN":
+        return evaluate_pre_action(
+            context,
+            learning_policy=learning_policy,
+            context_packet=context_packet,
+        )
+
+    packet_active_head = _packet_active_head(context_packet)
+    if packet_active_head is None:
+        return evaluate_pre_action(
+            context,
+            learning_policy=learning_policy,
+            context_packet=context_packet,
+        )
+
+    pr_number = _packet_active_head_pr(context_packet)
+    if pr_number is None or github_api is None:
+        return _decision(
+            context,
+            "BLOCK",
+            "DURABLE_CONTEXT_FRESHNESS_SOURCE_NOT_PROVEN",
+            learning_policy,
+            context_packet,
+        )
+    try:
+        fresh_active_head = _read_current_pr_head(github_api, pr_number)
+    except PersistenceError:
+        return _decision(
+            context,
+            "BLOCK",
+            "DURABLE_CONTEXT_FRESHNESS_SOURCE_NOT_PROVEN",
+            learning_policy,
+            context_packet,
+        )
+    return evaluate_pre_action(
+        context,
+        learning_policy=learning_policy,
+        context_packet=context_packet,
+        fresh_active_head=fresh_active_head,
+    )
+
+
 def _load_json_object(path: Path, error: str) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -362,11 +472,20 @@ def main() -> int:
     policy = None
     if args.archive_root is not None and args.query is not None:
         policy = build_learning_policy(args.archive_root, args.query, limit=args.limit)
-    result = evaluate_pre_action(
+
+    github_api = None
+    github_token = os.environ.get("GITHUB_TOKEN")
+    if github_token:
+        try:
+            github_api = GitHubApi(github_token)
+        except PersistenceError:
+            github_api = None
+
+    result = evaluate_pre_action_with_github_freshness(
         context,
         learning_policy=policy,
         context_packet=context_packet,
-        fresh_active_head=args.fresh_active_head,
+        github_api=github_api,
     )
     print(json.dumps(result, sort_keys=True, ensure_ascii=False))
     return 0 if result["decision"] == "ALLOW" else 2

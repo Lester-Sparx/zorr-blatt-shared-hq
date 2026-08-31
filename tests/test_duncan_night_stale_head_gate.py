@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from scripts.duncan_night_archive import archive_duncan_night_event, rebuild_duncan_context
+from scripts.duncan_night_archive import archive_duncan_night_event, main, rebuild_duncan_context
 
 
 class DuncanNightStaleHeadGateTests(unittest.TestCase):
-    def test_stale_main_head_cannot_train_future_context(self) -> None:
-        body = """DUNCAN_NIGHT_REPORT_R01
+    @staticmethod
+    def body() -> str:
+        return """DUNCAN_NIGHT_REPORT_R01
 CYCLE_ID = DNR01-STALE-001
 SOURCE_WINDOW = bounded changed case
 MAIN_HEAD_OBSERVED = stale-head
@@ -38,18 +41,23 @@ SELF_MODEL_DELTA =
 OWNER_TASTE_MODEL_DELTA =
 - SILHOUETTE_FIRST = CONFIRMED_HIGH
 """
-        event = json.dumps(
+
+    @classmethod
+    def event(cls) -> bytes:
+        return json.dumps(
             {
                 "action": "created",
                 "issue": {"number": 111},
                 "comment": {
                     "id": 7301,
-                    "body": body,
+                    "body": cls.body(),
                     "user": {"login": "Lester-Sparx"},
                 },
             },
             sort_keys=True,
         ).encode("utf-8")
+
+    def test_stale_main_head_cannot_train_future_context(self) -> None:
         metadata = {
             "event_name": "issue_comment",
             "actor": "Lester-Sparx",
@@ -57,10 +65,30 @@ OWNER_TASTE_MODEL_DELTA =
         }
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            result = archive_duncan_night_event(event, root, metadata)
+            result = archive_duncan_night_event(self.event(), root, metadata)
             self.assertIsNotNone(result)
             self.assertFalse(result["training_eligible"])
             self.assertIn("MAIN_HEAD_STALE", result["validation_errors"])
+            self.assertEqual(rebuild_duncan_context(root)["skills"], {})
+
+    def test_cli_binds_github_sha_as_trusted_main_head(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            event_path = root / "event.json"
+            event_path.write_bytes(self.event())
+            with patch.dict(
+                os.environ,
+                {
+                    "GITHUB_EVENT_NAME": "issue_comment",
+                    "GITHUB_ACTOR": "Lester-Sparx",
+                    "GITHUB_SHA": "fresh-head",
+                },
+                clear=False,
+            ):
+                self.assertEqual(
+                    main(["--event-path", str(event_path), "--archive-root", str(root)]),
+                    0,
+                )
             self.assertEqual(rebuild_duncan_context(root)["skills"], {})
 
 

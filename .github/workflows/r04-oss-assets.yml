@@ -6,8 +6,12 @@ on:
       - lester/babylon-cinematic-scene-r01
     paths:
       - .github/workflows/r04-oss-assets.yml
-      - experiments/directing-v1/public/r04-oss-production-lock.json
+      - experiments/directing-v1/src/actionScene.ts
+      - experiments/directing-v1/src/cinematicSet.ts
+      - experiments/directing-v1/tests/capture.spec.ts
       - experiments/directing-v1/public/cinematic-scene-r01.json
+      - experiments/directing-v1/public/cinematic-scene-r01.manifest.json
+      - experiments/directing-v1/public/r04-oss-production-lock.json
   workflow_dispatch:
 
 permissions:
@@ -115,38 +119,23 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  deliver-known-combat-png:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout pinned Warptracker combat proof
-        uses: actions/checkout@v4
-        with:
-          repository: ilrein/warptracker
-          ref: 71bbfbdfacd118196994b26da68eec1876d55c6b
-          sparse-checkout: |
-            docs/media/combat.png
-          sparse-checkout-cone-mode: false
-
-      - name: Verify combat PNG
-        shell: bash
-        run: |
-          set -euo pipefail
-          file docs/media/combat.png
-          sha256sum docs/media/combat.png
-
-      - name: Upload combat PNG
-        uses: actions/upload-artifact@v4
-        with:
-          name: r04-known-oss-combat-png
-          path: docs/media/combat.png
-          if-no-files-found: error
-          retention-days: 30
-
   practice-directing-v1:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout directing branch
         uses: actions/checkout@v4
+
+      - name: Materialize pinned R04 runtime assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p experiments/directing-v1/public/assets/r04
+          curl --fail --location --retry 3 -o experiments/directing-v1/public/assets/r04/quaternius-superhero-male.glb https://raw.githubusercontent.com/Seyamalam/blood-league-kickoff/aa02a4e6d8337a0604d2da131bcbbeb1f01badf0/public/assets/vendor/quaternius/night-striker.glb
+          curl --fail --location --retry 3 -o experiments/directing-v1/public/assets/r04/quaternius-ual.glb https://raw.githubusercontent.com/Seyamalam/blood-league-kickoff/aa02a4e6d8337a0604d2da131bcbbeb1f01badf0/public/assets/vendor/quaternius/universal-animation-library.glb
+          curl --fail --location --retry 3 -o experiments/directing-v1/public/assets/r04/sword.glb https://raw.githubusercontent.com/ilrein/warptracker/71bbfbdfacd118196994b26da68eec1876d55c6b/public/models/sword.glb
+          test "$(sha256sum experiments/directing-v1/public/assets/r04/quaternius-superhero-male.glb | cut -d' ' -f1)" = "a466828c67a4acc9b2413212ce6d9cde235e3aed9b675680c14fd9673858f118"
+          test "$(sha256sum experiments/directing-v1/public/assets/r04/quaternius-ual.glb | cut -d' ' -f1)" = "4c748767741a3e495d89667b9a218b690ba9810b9517a12e960780e3ca72c4e9"
+          test "$(sha256sum experiments/directing-v1/public/assets/r04/sword.glb | cut -d' ' -f1)" = "62add428c985df2ec32f7e516ab685a327cca886926446f798fe92d6ca180d3a"
 
       - name: Use Node
         uses: actions/setup-node@v4
@@ -157,18 +146,30 @@ jobs:
         working-directory: experiments/directing-v1
         run: npm ci
 
+      - name: Typecheck existing directing app
+        working-directory: experiments/directing-v1
+        run: npm run typecheck
+
+      - name: Run existing unit tests
+        working-directory: experiments/directing-v1
+        run: npm test
+
+      - name: Build existing directing app
+        working-directory: experiments/directing-v1
+        run: npm run build
+
       - name: Install Chromium for existing Playwright proof
         working-directory: experiments/directing-v1
         run: npx playwright install --with-deps chromium
 
-      - name: Run existing Babylon browser proof unchanged
+      - name: Run existing Babylon browser proof
         working-directory: experiments/directing-v1
         run: npm run test:browser
 
-      - name: Upload directing practice PNG
+      - name: Upload R04 Babylon proof
         uses: actions/upload-artifact@v4
         with:
-          name: r04-directing-practice-png
-          path: experiments/directing-v1/artifacts/zorr-cinematic-scene-r01.png
+          name: r04-babylon-combat-proof
+          path: experiments/directing-v1/artifacts/
           if-no-files-found: error
           retention-days: 30

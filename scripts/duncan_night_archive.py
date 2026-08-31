@@ -34,6 +34,12 @@ REQUIRED_REPORT_FIELDS = (
     "ZORR_APPLICATION",
     "NEXT_TARGETS",
 )
+FORBIDDEN_OPTIONAL_FLAGS = {
+    "CANON_MUTATION": "CANON_MUTATION_FORBIDDEN",
+    "AUTHORITY_EXPANSION": "AUTHORITY_EXPANSION_FORBIDDEN",
+    "AUTO_MERGE": "AUTO_MERGE_FORBIDDEN",
+    "SELF_AWARDED_QC_PASS": "SELF_AWARDED_QC_PASS_FORBIDDEN",
+}
 
 
 class DuncanNightArchiveError(RuntimeError):
@@ -163,7 +169,6 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
     transfer_test = _field(body, "TRANSFER_TEST")
     prime_core_changed = _field(body, "PRIME_CORE_CHANGED")
     production_mutation = _field(body, "PRODUCTION_MUTATION")
-    canon_mutation = _field(body, "CANON_MUTATION")
     if not cycle_id:
         errors.append("CYCLE_ID_MISSING")
     if not main_head:
@@ -181,8 +186,10 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
         errors.append("PRIME_CORE_MUTATION_FORBIDDEN")
     if production_mutation != "NO":
         errors.append("PRODUCTION_MUTATION_FORBIDDEN")
-    if canon_mutation is not None and canon_mutation != "NO":
-        errors.append("CANON_MUTATION_FORBIDDEN")
+    for field, error in FORBIDDEN_OPTIONAL_FLAGS.items():
+        value = _field(body, field)
+        if value is not None and value != "NO":
+            errors.append(error)
 
     skills, skill_errors = _parse_skill_deltas(_section_lines(body, "SKILL_DELTA"))
     self_model, self_errors = _parse_model_entries(

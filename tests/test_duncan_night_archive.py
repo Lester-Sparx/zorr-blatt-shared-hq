@@ -202,7 +202,7 @@ class DuncanNightArchiveTests(unittest.TestCase):
             )
             archive_duncan_night_event(
                 self.event(
-                    self.report(cycle="DNR01-TEST-002", skill_state="PROVEN"),
+                    self.report(cycle="DNR01-TEST-002", skill_state="PARTIAL"),
                     comment_id=7002,
                 ),
                 root,
@@ -216,7 +216,7 @@ class DuncanNightArchiveTests(unittest.TestCase):
 
             self.assertEqual(first, second)
             self.assertEqual(first_bytes, second_bytes)
-            self.assertEqual(second["skills"]["silhouette_qc"], "PROVEN")
+            self.assertEqual(second["skills"]["silhouette_qc"], "PARTIAL")
             self.assertEqual(second["latest_cycle_id"], "DNR01-TEST-002")
 
 

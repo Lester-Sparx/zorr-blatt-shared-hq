@@ -199,9 +199,12 @@ def _require_nonempty(value: str) -> str:
     return value
 
 
-def _test_evidence_binds_workflow_run(test_evidence_refs: tuple[str, ...], workflow_run_id: str) -> bool:
+def _run_specific_test_evidence_matches_workflow(
+    test_evidence_refs: tuple[str, ...], workflow_run_id: str
+) -> bool:
     prefix = f"run:{workflow_run_id}"
-    return any(ref == prefix or ref.startswith(prefix + ":") for ref in test_evidence_refs)
+    run_specific_refs = tuple(ref for ref in test_evidence_refs if ref.startswith("run:"))
+    return all(ref == prefix or ref.startswith(prefix + ":") for ref in run_specific_refs)
 
 
 def parse_execution_request(body: str) -> ExecutionRequest:
@@ -273,7 +276,7 @@ def parse_execution_result(body: str) -> ExecutionResult:
     if terminal_state == "PASS" and (
         process_exit_code != 0
         or not test_evidence_refs
-        or not _test_evidence_binds_workflow_run(test_evidence_refs, workflow_run_id)
+        or not _run_specific_test_evidence_matches_workflow(test_evidence_refs, workflow_run_id)
     ):
         terminal_state = "FAIL"
 

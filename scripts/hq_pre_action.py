@@ -55,6 +55,7 @@ _NEW_BLOCKER_IDENTITY_KEYS = {
     "PROCESS_MUTATION_ERROR_SIGNATURE",
 }
 _PERMISSION_E2_KEYS = _NEW_BLOCKER_IDENTITY_KEYS | {"RESULT"}
+_TASK_E2_KEYS = {"PROCESS_BLOCKER", "EXTERNAL_BOUNDARY", "PROCESS_MUTATION_COUNT"}
 _E2_EVIDENCE_MARKER = "ZB_CONTEXT_E2_EVIDENCE_V1"
 
 
@@ -275,6 +276,90 @@ def _canonical_evidence_value(value: Any) -> str:
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
 
+def _parse_e2_evidence_comment(
+    comment: dict[str, Any],
+    *,
+    expected_issue: int,
+) -> tuple[str, Any] | None:
+    expected_issue_url = f"{API_ROOT}/repos/{REPOSITORY}/issues/{expected_issue}"
+    if comment.get("issue_url") != expected_issue_url:
+        return None
+    user = comment.get("user")
+    if not isinstance(user, dict) or user.get("login") != TRANSPORT_ACTOR:
+        return None
+    body = comment.get("body")
+    if not isinstance(body, str):
+        return None
+    lines = body.splitlines()
+    if not lines or lines[0].strip() != _E2_EVIDENCE_MARKER:
+        return None
+    fields: dict[str, str] = {}
+    for line in lines[1:]:
+        if " = " not in line:
+            continue
+        key, value = line.split(" = ", 1)
+        if key in fields:
+            return None
+        fields[key] = value
+    key = fields.get("KEY")
+    value_json = fields.get("VALUE_JSON")
+    if key not in _TASK_E2_KEYS or value_json is None or fields.get("AUTHORITY") != "GITHUB":
+        return None
+    try:
+        value = json.loads(value_json)
+    except json.JSONDecodeError:
+        return None
+    return key, value
+
+
+def _read_task_e2_evidence(
+    context_packet: dict[str, Any],
+    github_api: GitHubApi | None,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "PROCESS_BLOCKER": False,
+        "EXTERNAL_BOUNDARY": False,
+        "PROCESS_MUTATION_COUNT": None,
+    }
+    if github_api is None:
+        return result
+    expected_issue = _packet_current_task_issue(context_packet)
+    if expected_issue is None:
+        return result
+    list_comments = getattr(github_api, "_list_issue_comments", None)
+    if not callable(list_comments):
+        return result
+    issue_url = f"{API_ROOT}/repos/{REPOSITORY}/issues/{expected_issue}"
+    try:
+        comments = list_comments(issue_url, "context evidence")
+    except (PersistenceError, AttributeError, TypeError):
+        return result
+    if not isinstance(comments, list):
+        return result
+    boolean_values: dict[str, set[bool]] = {
+        "PROCESS_BLOCKER": set(),
+        "EXTERNAL_BOUNDARY": set(),
+    }
+    counts: list[int] = []
+    for comment in comments:
+        if not isinstance(comment, dict):
+            continue
+        parsed = _parse_e2_evidence_comment(comment, expected_issue=expected_issue)
+        if parsed is None:
+            continue
+        key, value = parsed
+        if key in boolean_values:
+            if type(value) is bool:
+                boolean_values[key].add(value)
+        elif key == "PROCESS_MUTATION_COUNT" and type(value) is int and value >= 0:
+            counts.append(value)
+    for key, values in boolean_values.items():
+        result[key] = values == {True}
+    if counts:
+        result["PROCESS_MUTATION_COUNT"] = max(counts)
+    return result
+
+
 def _fact_issue_comment_id(fact: dict[str, Any]) -> int | None:
     refs = fact.get("source_refs")
     if not isinstance(refs, list):
@@ -424,10 +509,15 @@ def evaluate_pre_action(
     context_packet: dict[str, Any] | None = None,
     fresh_active_head: str | None = None,
     _externally_proven_e2_keys: frozenset[str] = frozenset(),
+    _fresh_process_mutation_count: int | None = None,
 ) -> dict[str, Any]:
     _validate_context(context)
     action = context["action"]
     effective_process_mutation_count = context["processMutationCountForBlocker"]
+    if _fresh_process_mutation_count is not None:
+        if type(_fresh_process_mutation_count) is not int or _fresh_process_mutation_count < 0:
+            raise PreActionError("FRESH_PROCESS_MUTATION_COUNT_INVALID")
+        effective_process_mutation_count = max(effective_process_mutation_count, _fresh_process_mutation_count)
     durable_new_physical_blocker = False
     current_error_signature: str | None = None
     process_mutation_error_signature: str | None = None
@@ -534,6 +624,23 @@ def evaluate_pre_action_with_github_freshness(
     if context_packet["status"] != "PROVEN":
         return evaluate_pre_action(context, learning_policy=learning_policy, context_packet=context_packet)
     externally_proven_e2_keys = _verify_new_blocker_identity_evidence(context_packet, github_api)
+    task_e2 = _read_task_e2_evidence(context_packet, github_api)
+    if action == "PROCESS_MUTATION" and context["provenProcessBlocker"] and task_e2["PROCESS_BLOCKER"] is not True:
+        return _decision(
+            context,
+            "BLOCK",
+            "DURABLE_PROCESS_BLOCKER_NOT_PROVEN",
+            learning_policy,
+            context_packet,
+        )
+    if action == "REQUEST_OWNER_ACTION" and context["provenExternalBoundary"] and task_e2["EXTERNAL_BOUNDARY"] is not True:
+        return _decision(
+            context,
+            "BLOCK",
+            "DURABLE_EXTERNAL_BOUNDARY_NOT_PROVEN",
+            learning_policy,
+            context_packet,
+        )
     facts = _packet_facts(context_packet)
     present_identity_keys = {
         str(fact.get("key"))
@@ -563,6 +670,7 @@ def evaluate_pre_action_with_github_freshness(
             learning_policy=learning_policy,
             context_packet=context_packet,
             _externally_proven_e2_keys=externally_proven_e2_keys,
+            _fresh_process_mutation_count=task_e2["PROCESS_MUTATION_COUNT"],
         )
     pr_number = _packet_active_head_pr(context_packet)
     if pr_number is None or github_api is None:
@@ -577,6 +685,7 @@ def evaluate_pre_action_with_github_freshness(
         context_packet=context_packet,
         fresh_active_head=fresh_active_head,
         _externally_proven_e2_keys=externally_proven_e2_keys,
+        _fresh_process_mutation_count=task_e2["PROCESS_MUTATION_COUNT"],
     )
 
 

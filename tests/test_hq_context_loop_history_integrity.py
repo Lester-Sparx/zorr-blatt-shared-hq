@@ -80,6 +80,80 @@ class ContextLoopHistoryIntegrityTests(unittest.TestCase):
             "source_refs": ["github:test:process-mutation-count-proven"],
         }
 
+    @staticmethod
+    def packet_with_proven_new_blocker_same_signature() -> dict[str, object]:
+        signature = "hq-schema:assertion-error"
+        facts = [
+            {
+                "schema": "ZB_CONTEXT_FACT_V1",
+                "fact_id": "current-error-signature",
+                "class": "E2",
+                "key": "ERROR_SIGNATURE",
+                "value": signature,
+                "exclusive": True,
+                "verified": True,
+                "authority": "GITHUB",
+                "created_at": "2026-08-31T20:33:00Z",
+                "scope_tags": ["LESTER", "SECURITY_R02"],
+                "source_refs": ["github:test:current-error-signature"],
+                "supersedes": [],
+            },
+            {
+                "schema": "ZB_CONTEXT_FACT_V1",
+                "fact_id": "new-physical-blocker-proven",
+                "class": "E2",
+                "key": "NEW_PHYSICAL_BLOCKER",
+                "value": True,
+                "exclusive": True,
+                "verified": True,
+                "authority": "GITHUB",
+                "created_at": "2026-08-31T20:33:01Z",
+                "scope_tags": ["LESTER", "SECURITY_R02"],
+                "source_refs": ["github:test:new-physical-blocker-proven"],
+                "supersedes": [],
+            },
+            {
+                "schema": "ZB_CONTEXT_FACT_V1",
+                "fact_id": "process-mutation-count-proven",
+                "class": "E2",
+                "key": "PROCESS_MUTATION_COUNT",
+                "value": 1,
+                "exclusive": True,
+                "verified": True,
+                "authority": "GITHUB",
+                "created_at": "2026-08-31T20:33:02Z",
+                "scope_tags": ["LESTER", "SECURITY_R02"],
+                "source_refs": ["github:test:process-mutation-count-proven"],
+                "supersedes": [],
+            },
+            {
+                "schema": "ZB_CONTEXT_FACT_V1",
+                "fact_id": "process-mutation-error-signature",
+                "class": "E2",
+                "key": "PROCESS_MUTATION_ERROR_SIGNATURE",
+                "value": signature,
+                "exclusive": True,
+                "verified": True,
+                "authority": "GITHUB",
+                "created_at": "2026-08-31T20:33:03Z",
+                "scope_tags": ["LESTER", "SECURITY_R02"],
+                "source_refs": ["github:test:process-mutation-error-signature"],
+                "supersedes": [],
+            },
+        ]
+        return {
+            "schema": "ZB_CONTEXT_PACKET_V1",
+            "status": "PROVEN",
+            "mandatory_anchors": [{"key": "CURRENT_TASK", "value": "#235"}],
+            "current_state": {
+                "schema": "ZB_CONTEXT_CURRENT_STATE_V1",
+                "facts": facts,
+            },
+            "jit_facets": {},
+            "missing_facets": [],
+            "source_refs": ["github:test:same-signature-new-blocker"],
+        }
+
     def test_untrusted_process_mutation_count_cannot_be_ignored_to_reopen_loop(self) -> None:
         result = hq_pre_action.evaluate_pre_action(
             self.context(),
@@ -100,6 +174,18 @@ class ContextLoopHistoryIntegrityTests(unittest.TestCase):
         self.assertEqual(
             (result["decision"], result["reason"]),
             ("BLOCK", "DURABLE_NEW_BLOCKER_NOT_PROVEN"),
+        )
+
+    def test_proven_new_blocker_cannot_relabel_same_error_signature_as_new(self) -> None:
+        context = self.context()
+        context["newPhysicalBlocker"] = True
+        result = hq_pre_action.evaluate_pre_action(
+            context,
+            context_packet=self.packet_with_proven_new_blocker_same_signature(),
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("BLOCK", "DURABLE_NEW_BLOCKER_NOT_DISTINCT"),
         )
 
 

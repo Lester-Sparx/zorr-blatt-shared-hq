@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 
-_ROOT = "DUNCAN PRIME"
-_LEARNING_GATE = [
+ROOT_IDENTITY = "DUNCAN PRIME"
+COMMON_BASE_PATH = "hq/engine-profiles/FOUR_ENGINE_R01.md"
+ENGINE_IDS = ("SALVADOR", "GAUZZ", "LYNCH", "HOKUSAI")
+
+LEARNING_GATE = [
     "SOURCE_OR_LESSON",
     "EXERCISE",
     "OBJECTIVE_CHECK",
@@ -13,7 +16,8 @@ _LEARNING_GATE = [
     "DURABLE_EVIDENCE",
     "PROVEN_OR_PARTIAL_OR_FAILED",
 ]
-_REQUIRED_RESTORE = [
+
+REQUIRED_RESTORE = [
     "DUNCAN_ROOT_AND_ZORR_LAWS",
     "ENGINE_PROFILE",
     "CURRENT_TASK_EVIDENCE",
@@ -26,7 +30,9 @@ _REQUIRED_RESTORE = [
 ENGINE_PROFILES: dict[str, dict[str, Any]] = {
     "SALVADOR": {
         "engine_id": "SALVADOR",
-        "root_identity": _ROOT,
+        "command": "SALVADOR",
+        "profile_path": "hq/engine-profiles/SALVADOR.md",
+        "root_identity": ROOT_IDENTITY,
         "scope": "DRAW",
         "source_refs": ["#199", "#214", "#206"],
         "skill_domains": [
@@ -34,12 +40,14 @@ ENGINE_PROFILES: dict[str, dict[str, Any]] = {
             "CONTOUR", "VALUE", "TONE", "PERSPECTIVE", "DRAWING_SIMPLIFICATION",
             "MODEL_SHEET_CONSISTENCY",
         ],
-        "restore_query": "SALVADOR DRAW drawing identity silhouette line anatomy model sheet ZORR",
-        "learning_query": "SALVADOR DRAW drawing identity drift silhouette line transfer",
+        "restore_query": "SALVADOR drawing identity silhouette line anatomy model sheet ZORR",
+        "learning_query": "SALVADOR drawing identity drift silhouette line regression transfer",
     },
     "GAUZZ": {
         "engine_id": "GAUZZ",
-        "root_identity": _ROOT,
+        "command": "GAUZZ",
+        "profile_path": "hq/engine-profiles/GAUZZ.md",
+        "root_identity": ROOT_IDENTITY,
         "scope": "MATH_QC",
         "source_refs": ["#229", "#233", "#231"],
         "skill_domains": [
@@ -47,24 +55,29 @@ ENGINE_PROFILES: dict[str, dict[str, Any]] = {
             "TRAJECTORY", "TIMING", "STATISTICS", "ERROR", "UNCERTAINTY", "QC",
             "TRANSFER_MEASUREMENT",
         ],
-        "restore_query": "GAUZZ MATH QC geometry proportion FOV trajectory error uncertainty ZORR",
-        "learning_query": "GAUZZ MATH QC measurement regression transfer uncertainty",
+        "restore_query": "GAUZZ math QC geometry proportion FOV trajectory uncertainty ZORR",
+        "learning_query": "GAUZZ measurement error QC regression transfer uncertainty",
     },
     "LYNCH": {
         "engine_id": "LYNCH",
-        "root_identity": _ROOT,
+        "command": "LYNCH",
+        "profile_path": "hq/engine-profiles/LYNCH.md",
+        "root_identity": ROOT_IDENTITY,
         "scope": "SCENE_DIRECTING",
         "source_refs": ["#231", "#206"],
         "skill_domains": [
-            "STAGING", "BLOCKING", "CAMERA", "SHOT_SCALE", "SCREEN_GEOGRAPHY", "ACTING",
-            "ACTION_READABILITY", "CONTINUITY", "RHYTHM", "REVEAL", "MONTAGE", "PARALLAX", "DEPTH",
+            "STAGING", "DIRECTING", "BLOCKING", "CAMERA", "SHOT_SCALE", "SCREEN_GEOGRAPHY",
+            "ACTING", "ACTION_READABILITY", "CONTINUITY", "RHYTHM", "REVEAL", "MONTAGE",
+            "PARALLAX", "DEPTH",
         ],
         "restore_query": "LYNCH scene directing staging camera blocking acting continuity montage ZORR",
-        "learning_query": "LYNCH scene directing staging camera regression transfer action readability",
+        "learning_query": "LYNCH scene directing staging camera action readability regression transfer",
     },
     "HOKUSAI": {
         "engine_id": "HOKUSAI",
-        "root_identity": _ROOT,
+        "command": "HOKUSAI",
+        "profile_path": "hq/engine-profiles/HOKUSAI.md",
+        "root_identity": ROOT_IDENTITY,
         "scope": "DESIGN",
         "source_refs": ["#233", "#199", "#206"],
         "skill_domains": [
@@ -79,14 +92,16 @@ ENGINE_PROFILES: dict[str, dict[str, Any]] = {
 
 
 def resolve_engine_command(message: str) -> dict[str, Any] | None:
+    """Resolve only the four engine names; command == engine name, case-insensitive."""
     if not isinstance(message, str):
         return None
     tokens = message.strip().split()
     if not tokens:
         return None
     engine_id = tokens[0].upper()
-    profile = ENGINE_PROFILES.get(engine_id)
-    return dict(profile) if profile is not None else None
+    if engine_id not in ENGINE_IDS:
+        return None
+    return dict(ENGINE_PROFILES[engine_id])
 
 
 def build_activation_contract(message: str) -> dict[str, Any]:
@@ -96,20 +111,28 @@ def build_activation_contract(message: str) -> dict[str, Any]:
             "schema": "ZB_ENGINE_ACTIVATION_V1",
             "status": "NO_ENGINE_COMMAND",
             "engine_id": None,
-            "root_identity": _ROOT,
+            "root_identity": ROOT_IDENTITY,
+            "engine_count": 4,
         }
+
     return {
         "schema": "ZB_ENGINE_ACTIVATION_V1",
         "status": "ACTIVATE",
+        "engine_count": 4,
         "engine_id": profile["engine_id"],
-        "root_identity": _ROOT,
+        "command": profile["command"],
+        "command_law": "COMMAND_EQUALS_ENGINE_NAME",
+        "aliases": [],
+        "root_identity": ROOT_IDENTITY,
+        "common_base_path": COMMON_BASE_PATH,
+        "profile_path": profile["profile_path"],
         "scope": profile["scope"],
         "source_refs": list(profile["source_refs"]),
         "skill_domains": list(profile["skill_domains"]),
         "restore_query": profile["restore_query"],
         "learning_query": profile["learning_query"],
-        "required_restore": list(_REQUIRED_RESTORE),
+        "required_restore": list(REQUIRED_RESTORE),
         "skill_state_authority": "VERIFIED_EVIDENCE_ONLY",
-        "learning_gate": list(_LEARNING_GATE),
+        "learning_gate": list(LEARNING_GATE),
         "stale_derived_state_may_override_fresh_evidence": False,
     }

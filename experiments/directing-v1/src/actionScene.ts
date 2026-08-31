@@ -107,6 +107,10 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
   for (const mesh of scene.meshes) {
     if (mesh.name.startsWith('set:') && mesh.name !== 'set:platform') mesh.setEnabled(false);
   }
+  scene.getMeshByName('stage:ground')?.setEnabled(false);
+  const stageDebugLight = scene.getLightByName('stage:debug-light');
+  if (stageDebugLight) stageDebugLight.setEnabled(false);
+
   const platform = scene.getMeshByName('set:platform');
   if (platform) {
     platform.scaling.y = 0.01;

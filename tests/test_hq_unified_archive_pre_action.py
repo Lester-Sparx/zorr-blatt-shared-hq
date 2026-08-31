@@ -116,9 +116,35 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
         self.assertEqual(result["decision"], "ALLOW")
 
     def test_repeat_process_mutation_requires_new_physical_blocker(self) -> None:
+        gate = self._gate_module()
         blocked = self._decide(self._context(action="PROCESS_MUTATION", provenProcessBlocker=True, processMutationCountForBlocker=1, newPhysicalBlocker=False))
         self.assertEqual((blocked["decision"], blocked["reason"]), ("BLOCK", "REPEAT_PROCESS_MUTATION_REQUIRES_NEW_BLOCKER"))
-        allowed = self._decide(self._context(action="PROCESS_MUTATION", provenProcessBlocker=True, processMutationCountForBlocker=1, newPhysicalBlocker=True))
+
+        caller_only = self._decide(self._context(action="PROCESS_MUTATION", provenProcessBlocker=True, processMutationCountForBlocker=1, newPhysicalBlocker=True))
+        self.assertEqual(
+            (caller_only["decision"], caller_only["reason"]),
+            ("BLOCK", "DURABLE_NEW_BLOCKER_NOT_PROVEN"),
+        )
+
+        context = self._context(action="PROCESS_MUTATION", provenProcessBlocker=True, processMutationCountForBlocker=1, newPhysicalBlocker=True)
+        packet = self._packet(context)
+        packet["current_state"]["facts"].append(
+            {
+                "schema": "ZB_CONTEXT_FACT_V1",
+                "fact_id": "new-physical-blocker-proven",
+                "class": "E2",
+                "key": "NEW_PHYSICAL_BLOCKER",
+                "value": True,
+                "exclusive": True,
+                "verified": True,
+                "authority": "GITHUB",
+                "created_at": "2026-08-31T20:31:00Z",
+                "scope_tags": ["LESTER", "SECURITY_R02"],
+                "source_refs": ["github:test:new-physical-blocker-proven"],
+                "supersedes": [],
+            }
+        )
+        allowed = gate.evaluate_pre_action(context, context_packet=packet)
         self.assertEqual(allowed["decision"], "ALLOW")
 
     def test_repeat_process_mutation_cannot_bypass_gate_by_relabeling_action(self) -> None:

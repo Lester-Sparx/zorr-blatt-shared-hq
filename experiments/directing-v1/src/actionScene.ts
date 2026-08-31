@@ -11,7 +11,7 @@ import type { Skeleton } from '@babylonjs/core/Bones/skeleton';
 
 export const ACTION_LOCK = {
   attackerPositionM: [-0.50, 0.00951, 0.05] as const,
-  attackerYawDeg: -23,
+  attackerYawDeg: 7,
   dodgerPositionM: [0.50, 0.00951, -0.05] as const,
   dodgerYawDeg: 15,
   bladeLengthM: 1.08,
@@ -130,73 +130,25 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
     }
   }
 
-  const attackerImport = await SceneLoader.ImportMeshAsync(
-    '',
-    ASSET_ROOT,
-    'quaternius-superhero-male.glb',
-    scene,
-  );
+  const attackerImport = await SceneLoader.ImportMeshAsync('', ASSET_ROOT, 'quaternius-superhero-male.glb', scene);
   const attackerSkeleton = requireSkeleton(attackerImport.skeletons, 'attacker');
-  const attacker = setupActor(
-    scene,
-    attackerImport.meshes,
-    attackerSkeleton,
-    'attacker',
-    ACTION_LOCK.attackerPositionM,
-    ACTION_LOCK.attackerYawDeg,
-  );
+  const attacker = setupActor(scene, attackerImport.meshes, attackerSkeleton, 'attacker', ACTION_LOCK.attackerPositionM, ACTION_LOCK.attackerYawDeg);
 
-  const dodgerImport = await SceneLoader.ImportMeshAsync(
-    '',
-    ASSET_ROOT,
-    'quaternius-superhero-male.glb',
-    scene,
-  );
+  const dodgerImport = await SceneLoader.ImportMeshAsync('', ASSET_ROOT, 'quaternius-superhero-male.glb', scene);
   const dodgerSkeleton = requireSkeleton(dodgerImport.skeletons, 'dodger');
-  const dodger = setupActor(
-    scene,
-    dodgerImport.meshes,
-    dodgerSkeleton,
-    'dodger',
-    ACTION_LOCK.dodgerPositionM,
-    ACTION_LOCK.dodgerYawDeg,
-  );
+  const dodger = setupActor(scene, dodgerImport.meshes, dodgerSkeleton, 'dodger', ACTION_LOCK.dodgerPositionM, ACTION_LOCK.dodgerYawDeg);
 
-  const motionImport = await SceneLoader.ImportMeshAsync(
-    '',
-    ASSET_ROOT,
-    'quaternius-ual.glb',
-    scene,
-  );
+  const motionImport = await SceneLoader.ImportMeshAsync('', ASSET_ROOT, 'quaternius-ual.glb', scene);
   for (const mesh of motionImport.meshes) mesh.setEnabled(false);
-  const attackSource = motionImport.animationGroups.find(
-    (group) => group.name === ACTION_LOCK.attackClip,
-  );
-  const dodgeSource = motionImport.animationGroups.find(
-    (group) => group.name === ACTION_LOCK.dodgeClip,
-  );
+  const attackSource = motionImport.animationGroups.find((group) => group.name === ACTION_LOCK.attackClip);
+  const dodgeSource = motionImport.animationGroups.find((group) => group.name === ACTION_LOCK.dodgeClip);
   if (!attackSource) throw new Error(`R04_MOTION_MISSING:${ACTION_LOCK.attackClip}`);
   if (!dodgeSource) throw new Error(`R04_MOTION_MISSING:${ACTION_LOCK.dodgeClip}`);
 
-  const attackAnimation = poseGroup(
-    attackSource,
-    'action:animation:attacker:sword-attack',
-    attackerSkeleton,
-    ACTION_LOCK.attackPoseFraction,
-  );
-  const dodgeAnimation = poseGroup(
-    dodgeSource,
-    'action:animation:dodger:roll',
-    dodgerSkeleton,
-    ACTION_LOCK.dodgePoseFraction,
-  );
+  const attackAnimation = poseGroup(attackSource, 'action:animation:attacker:sword-attack', attackerSkeleton, ACTION_LOCK.attackPoseFraction);
+  const dodgeAnimation = poseGroup(dodgeSource, 'action:animation:dodger:roll', dodgerSkeleton, ACTION_LOCK.dodgePoseFraction);
 
-  const swordImport = await SceneLoader.ImportMeshAsync(
-    '',
-    ASSET_ROOT,
-    'sword.glb',
-    scene,
-  );
+  const swordImport = await SceneLoader.ImportMeshAsync('', ASSET_ROOT, 'sword.glb', scene);
   const swordRoot = swordImport.meshes[0];
   const hand = attackerSkeleton.bones.find((bone) => bone.name === 'hand_r')?.getTransformNode();
   if (!swordRoot) throw new Error('R04_SWORD_ROOT_MISSING');
@@ -206,11 +158,7 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
   socket.parent = hand;
   socket.position.copyFromFloats(0, 0, 0);
   socket.rotation.x = -Math.PI / 2;
-  socket.scaling.copyFromFloats(
-    ACTION_LOCK.bladeScale,
-    ACTION_LOCK.bladeScale,
-    ACTION_LOCK.bladeScale,
-  );
+  socket.scaling.copyFromFloats(ACTION_LOCK.bladeScale, ACTION_LOCK.bladeScale, ACTION_LOCK.bladeScale);
   swordRoot.parent = socket;
 
   const blade = renderMeshes(swordImport.meshes);

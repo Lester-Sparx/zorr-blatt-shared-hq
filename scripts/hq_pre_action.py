@@ -10,11 +10,25 @@ from typing import Any
 try:
     from scripts.hq_context_discipline import ContextDisciplineError, project_current_state
     from scripts.hq_unified_archive import build_learning_policy
-    from scripts.zb_communication_base import API_ROOT, REPOSITORY, TRANSPORT_ACTOR, GitHubApi, PersistenceError
+    from scripts.zb_communication_base import (
+        API_ROOT,
+        REPOSITORY,
+        STATE_WRITER,
+        TRANSPORT_ACTOR,
+        GitHubApi,
+        PersistenceError,
+    )
 except ModuleNotFoundError:
     from hq_context_discipline import ContextDisciplineError, project_current_state
     from hq_unified_archive import build_learning_policy
-    from zb_communication_base import API_ROOT, REPOSITORY, TRANSPORT_ACTOR, GitHubApi, PersistenceError
+    from zb_communication_base import (
+        API_ROOT,
+        REPOSITORY,
+        STATE_WRITER,
+        TRANSPORT_ACTOR,
+        GitHubApi,
+        PersistenceError,
+    )
 
 
 SCHEMA = "ZB_PRE_ACTION_DECISION_V1"
@@ -56,6 +70,7 @@ _NEW_BLOCKER_IDENTITY_KEYS = {
 }
 _PERMISSION_E2_KEYS = _NEW_BLOCKER_IDENTITY_KEYS | {"RESULT"}
 _TASK_E2_KEYS = {"PROCESS_BLOCKER", "EXTERNAL_BOUNDARY", "PROCESS_MUTATION_COUNT"}
+_PERMISSION_TASK_E2_KEYS = {"PROCESS_BLOCKER", "EXTERNAL_BOUNDARY"}
 _E2_EVIDENCE_MARKER = "ZB_CONTEXT_E2_EVIDENCE_V1"
 
 
@@ -285,8 +300,9 @@ def _parse_e2_evidence_comment(
     if comment.get("issue_url") != expected_issue_url:
         return None
     user = comment.get("user")
-    if not isinstance(user, dict) or user.get("login") != TRANSPORT_ACTOR:
+    if not isinstance(user, dict):
         return None
+    actor = user.get("login")
     body = comment.get("body")
     if not isinstance(body, str):
         return None
@@ -304,6 +320,11 @@ def _parse_e2_evidence_comment(
     key = fields.get("KEY")
     value_json = fields.get("VALUE_JSON")
     if key not in _TASK_E2_KEYS or value_json is None or fields.get("AUTHORITY") != "GITHUB":
+        return None
+    if key in _PERMISSION_TASK_E2_KEYS:
+        if actor != STATE_WRITER:
+            return None
+    elif actor not in {TRANSPORT_ACTOR, STATE_WRITER}:
         return None
     try:
         value = json.loads(value_json)

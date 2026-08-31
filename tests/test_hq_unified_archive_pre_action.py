@@ -175,7 +175,13 @@ class UnifiedArchivePreActionTests(unittest.TestCase):
             ]
         )
         packet["current_state"] = gate.project_current_state(packet["current_state"]["facts"])
-        allowed = gate.evaluate_pre_action(context, context_packet=packet)
+        allowed = gate.evaluate_pre_action(
+            context,
+            context_packet=packet,
+            _externally_proven_e2_keys=frozenset(
+                {"NEW_PHYSICAL_BLOCKER", "ERROR_SIGNATURE", "PROCESS_MUTATION_ERROR_SIGNATURE"}
+            ),
+        )
         self.assertEqual(allowed["decision"], "ALLOW")
 
     def test_repeat_process_mutation_cannot_bypass_gate_by_relabeling_action(self) -> None:

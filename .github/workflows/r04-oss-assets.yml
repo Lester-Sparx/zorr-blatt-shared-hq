@@ -25,8 +25,10 @@ jobs:
           curl --fail --location --retry 3 -o r04-assets/rig-human.glb https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/12712269e576fd3ffb520ad6c6d45a8e265ea894/static/rigs/rig-human.glb
           curl --fail --location --retry 3 -o r04-assets/human-base-animations.glb https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/12712269e576fd3ffb520ad6c6d45a8e265ea894/static/animations/human-base-animations.glb
           curl --fail --location --retry 3 -o r04-assets/sword.glb https://raw.githubusercontent.com/ilrein/warptracker/71bbfbdfacd118196994b26da68eec1876d55c6b/public/models/sword.glb
+          curl --fail --location --retry 3 -o r04-assets/Regular_Male_FullBody.glb https://media.githubusercontent.com/media/KBVE/workspace/6e8995862b7db4f4761343b1b2f7e1efa742ef42/apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/models/Regular_Male_FullBody.glb
+          curl --fail --location --retry 3 -o r04-assets/UAL2.glb https://media.githubusercontent.com/media/KBVE/workspace/6e8995862b7db4f4761343b1b2f7e1efa742ef42/apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/animations/UAL2.glb
 
-      - name: Verify pinned Git blob identities
+      - name: Verify pinned identities
         shell: bash
         run: |
           set -euo pipefail
@@ -34,6 +36,8 @@ jobs:
           test "$(git hash-object r04-assets/rig-human.glb)" = "832a222a611bd0ee9112c64145a3a49df9b89b3e"
           test "$(git hash-object r04-assets/human-base-animations.glb)" = "3c5b3258af3b982fb922bbc4008296ec4efa8814"
           test "$(git hash-object r04-assets/sword.glb)" = "d80d47cf6ac49ae72805ba992bccc2431dcfcbfc"
+          echo "030d5b44696c01943a254305f10d02f688780f704f810cb815968b4f57725c59  r04-assets/Regular_Male_FullBody.glb" | sha256sum --check --strict
+          echo "866c2ee822d30f0ceed521f50a5e84316d58ee4487d0b02158370bb988452416  r04-assets/UAL2.glb" | sha256sum --check --strict
           file r04-assets/*.glb
           sha256sum r04-assets/*.glb | tee r04-assets/SHA256SUMS.txt
 

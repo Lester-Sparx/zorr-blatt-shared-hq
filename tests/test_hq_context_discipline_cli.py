@@ -112,7 +112,7 @@ class ContextDisciplineCliTests(unittest.TestCase):
         report = json.loads(completed.stdout)
         self.assertEqual(report["schema"], "ZB_CONTEXT_BENCHMARK_V1")
         self.assertGreater(report["naive_context_bytes"], report["compact_context_bytes"])
-        self.assertGreater(report["compression_ratio"], 1.0)
+        self.assertGreater(report["compression_ratio"], 5.0)
         self.assertTrue(report["decision_parity"])
         self.assertTrue(report["critical_fact_recall"])
         self.assertTrue(report["stale_fact_rejection"])

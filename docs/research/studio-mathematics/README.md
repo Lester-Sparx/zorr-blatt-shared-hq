@@ -35,7 +35,8 @@ For perspective / camera / location / Babylon object-placement work, read in thi
 3. `code/zorr_perspective_master_r01.py` — executable research kernel; use mature OpenCV estimators instead of inventing duplicate RANSAC/PnP/calibration infrastructure.
 4. `BABYLON_CAMERA_PLACEMENT_MATHEMATICS_R02.md` — strict inverse-camera formulation for Babylon: screen targets, normalized/robust residuals, hard constraints, ArcRotate derivatives, analytic inverse seeds, observability, occlusion, uncertainty, null-space safe editing, temporal camera mathematics and Babylon-native verification.
 5. `BABYLON_CAMERA_OPTIMIZATION_ADVANCED_R02A.md` — advanced constrained-camera mathematics: KKT/SQP structure, robust IRLS, null-space/reduced solves, active-set editing, Schur complement, bilevel/Pareto formulations, robust/chance constraints, information-optimal anchors, feasibility envelopes, minimum-relaxation blockers, optimal control, screen stabilization and low-dimensional anime-style residuals.
-6. `BABYLON_CAMERA_MATH_CHAT_PROMPT_R02.md` — copy/paste durable prompt for a fresh mathematics chat to continue this exact Babylon camera research line.
+6. `BABYLON_CAMERA_SOLVER_PROOF_R03.md` — executable proof slice: general/OpenCV camera recovery, ArcRotate inverse recovery, projected-height solve, finite-difference Jacobians, observability/anchor selection, null-space and active-set editing, uncertainty, moving-target lock, changed synthetic scene, plus a fail-closed Babylon-native verification gate.
+7. `BABYLON_CAMERA_MATH_CHAT_PROMPT_R02.md` — copy/paste durable prompt for a fresh mathematics chat to continue this exact Babylon camera research line.
 
 Perspective / Babylon camera research rule:
 

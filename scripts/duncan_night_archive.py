@@ -192,6 +192,8 @@ def _record_from_event(event_bytes: bytes, metadata: Mapping[str, str]) -> dict[
             errors.append(error)
 
     skills, skill_errors = _parse_skill_deltas(_section_lines(body, "SKILL_DELTA"))
+    if any(delta.get("after") == "PROVEN" for delta in skills):
+        errors.append("SELF_REPORTED_PROVEN_FORBIDDEN")
     self_model, self_errors = _parse_model_entries(
         _section_lines(body, "SELF_MODEL_DELTA"), "SELF_MODEL_DELTA"
     )

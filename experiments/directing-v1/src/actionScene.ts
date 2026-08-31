@@ -19,7 +19,7 @@ export const ACTION_LOCK = {
   attackClip: 'Sword_Attack',
   attackPoseFraction: 0.45,
   dodgeClip: 'Roll',
-  dodgePoseFraction: 0.50,
+  dodgePoseFraction: 0.55,
   measuredPrototypeClearanceM: 0.0970096418,
   cameraPositionM: [3.10, 1.55, 3.65] as const,
   cameraTargetM: [0.12, 1.02, -0.38] as const,

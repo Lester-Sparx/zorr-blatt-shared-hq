@@ -16,19 +16,7 @@ jobs:
   materialize:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout pinned Quaternius mirror with Git LFS
-        uses: actions/checkout@v4
-        with:
-          repository: KBVE/workspace
-          ref: 6e8995862b7db4f4761343b1b2f7e1efa742ef42
-          path: kbve
-          lfs: true
-          sparse-checkout: |
-            apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/models/Regular_Male_FullBody.glb
-            apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/animations/UAL2.glb
-          sparse-checkout-cone-mode: false
-
-      - name: Materialize pinned OSS assets
+      - name: Download pinned OSS assets
         shell: bash
         run: |
           set -euo pipefail
@@ -37,8 +25,9 @@ jobs:
           curl --fail --location --retry 3 -o r04-assets/rig-human.glb https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/12712269e576fd3ffb520ad6c6d45a8e265ea894/static/rigs/rig-human.glb
           curl --fail --location --retry 3 -o r04-assets/human-base-animations.glb https://raw.githubusercontent.com/Mesh2Motion/mesh2motion-app/12712269e576fd3ffb520ad6c6d45a8e265ea894/static/animations/human-base-animations.glb
           curl --fail --location --retry 3 -o r04-assets/sword.glb https://raw.githubusercontent.com/ilrein/warptracker/71bbfbdfacd118196994b26da68eec1876d55c6b/public/models/sword.glb
-          cp kbve/apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/models/Regular_Male_FullBody.glb r04-assets/Regular_Male_FullBody.glb
-          cp kbve/apps/arcade/gilded-gazette/godot/assets/characters/quaternius_ubc/animations/UAL2.glb r04-assets/UAL2.glb
+          curl --fail --location --retry 3 -o r04-assets/umram-human.glb https://raw.githubusercontent.com/UMRAM-Bilkent/supine-human-model/728f23ab5eb9d6cb2c8fb39acb3440bd81db0d3e/assets/human.glb
+          curl --fail --location --retry 3 -o r04-assets/quaternius-superhero-male.glb https://raw.githubusercontent.com/Seyamalam/blood-league-kickoff/aa02a4e6d8337a0604d2da131bcbbeb1f01badf0/public/assets/vendor/quaternius/night-striker.glb
+          curl --fail --location --retry 3 -o r04-assets/quaternius-ual.glb https://raw.githubusercontent.com/Seyamalam/blood-league-kickoff/aa02a4e6d8337a0604d2da131bcbbeb1f01badf0/public/assets/vendor/quaternius/universal-animation-library.glb
 
       - name: Verify pinned identities
         shell: bash
@@ -48,8 +37,9 @@ jobs:
           test "$(git hash-object r04-assets/rig-human.glb)" = "832a222a611bd0ee9112c64145a3a49df9b89b3e"
           test "$(git hash-object r04-assets/human-base-animations.glb)" = "3c5b3258af3b982fb922bbc4008296ec4efa8814"
           test "$(git hash-object r04-assets/sword.glb)" = "d80d47cf6ac49ae72805ba992bccc2431dcfcbfc"
-          echo "030d5b44696c01943a254305f10d02f688780f704f810cb815968b4f57725c59  r04-assets/Regular_Male_FullBody.glb" | sha256sum --check --strict
-          echo "866c2ee822d30f0ceed521f50a5e84316d58ee4487d0b02158370bb988452416  r04-assets/UAL2.glb" | sha256sum --check --strict
+          test "$(git hash-object r04-assets/umram-human.glb)" = "de56d83cdcd5d741955fe6acd983a61e50e367c3"
+          test "$(git hash-object r04-assets/quaternius-superhero-male.glb)" = "14697e33502e41ddbc1b7fdbf56bbf0478027700"
+          test "$(git hash-object r04-assets/quaternius-ual.glb)" = "4fccf561b9b2ef73f611efe21981ef8739080065"
           file r04-assets/*.glb
           sha256sum r04-assets/*.glb | tee r04-assets/SHA256SUMS.txt
 

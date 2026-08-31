@@ -11,9 +11,9 @@ import type { Skeleton } from '@babylonjs/core/Bones/skeleton';
 
 export const ACTION_LOCK = {
   attackerPositionM: [-0.50, 0.00951, 0.05] as const,
-  attackerYawDeg: 7,
+  attackerYawDeg: 90,
   dodgerPositionM: [0.50, 0.00951, -0.05] as const,
-  dodgerYawDeg: 15,
+  dodgerYawDeg: -90,
   bladeLengthM: 1.08,
   bladeScale: 0.34076,
   attackClip: 'Sword_Attack',

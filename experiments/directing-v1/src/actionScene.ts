@@ -109,6 +109,8 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
   }
   const platform = scene.getMeshByName('set:platform');
   if (platform) {
+    platform.scaling.y = 0.01;
+    platform.position.y = -0.0009;
     const floor = new StandardMaterial('action:material:white-floor', scene);
     floor.diffuseColor = new Color3(0.96, 0.96, 0.96);
     floor.emissiveColor = new Color3(0.96, 0.96, 0.96);
@@ -209,6 +211,7 @@ export async function buildBladeDodgeAction(scene: Scene): Promise<ActionScene> 
 
   const blade = renderMeshes(swordImport.meshes);
   for (const mesh of blade) {
+    if (mesh.material) mesh.material.alpha = 1;
     mesh.name = 'action:blade';
     mesh.id = mesh.name;
     mesh.isPickable = false;

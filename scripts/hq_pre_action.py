@@ -343,7 +343,8 @@ def evaluate_pre_action(
         )
 
     if (
-        action == "PROCESS_MUTATION"
+        action not in READ_ONLY_WHILE_ACTIVE
+        and context["provenProcessBlocker"]
         and context["processMutationCountForBlocker"] >= 1
         and not context["newPhysicalBlocker"]
     ):

@@ -35,7 +35,9 @@ _AUTHORITY_SUBJECT_KEYS = (
 _AUTHORITY_REF_KEY = "AUTHORITY_REF"
 _AUTHORITY_MARKER = "ZB_AGENT_TASK_R03_V1"
 _AUTHORITY_ISSUE_URL = "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/111"
-_AUTHORITY_ACTOR = "Lester-Sparx"
+_TRACKER_ISSUE_URL = "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106"
+_STATE_WRITER = "github-actions[bot]"
+_DISPATCH_MARKER = "ZB_R03_DISPATCH_V1"
 
 
 def evaluate_pre_action(context, **kwargs):
@@ -80,6 +82,46 @@ def _parse_comment_fields(body):
     return lines[0].strip(), fields
 
 
+def _latest_trusted_dispatch_status(anchor_values, authority_comment_id, github_api):
+    try:
+        comments = github_api.list_tracker_comments()
+    except Exception:
+        return "DURABLE_CONTEXT_AUTHORITY_FRESHNESS_NOT_PROVEN"
+    if not isinstance(comments, list):
+        return "DURABLE_CONTEXT_AUTHORITY_FRESHNESS_NOT_PROVEN"
+    candidates = []
+    for comment in comments:
+        if not isinstance(comment, dict) or comment.get("issue_url") != _TRACKER_ISSUE_URL:
+            continue
+        user = comment.get("user")
+        if not isinstance(user, dict) or user.get("login") != _STATE_WRITER:
+            continue
+        parsed = _parse_comment_fields(comment.get("body"))
+        if parsed is None:
+            continue
+        marker, fields = parsed
+        if marker != _DISPATCH_MARKER:
+            continue
+        if fields.get("TASK_ID") != str(anchor_values["TASK_ID"]) or fields.get("TASK_REVISION") != str(anchor_values["TASK_REVISION"]):
+            continue
+        comment_id = comment.get("id")
+        root_comment_id = fields.get("ROOT_COMMENT_ID")
+        if not isinstance(comment_id, int) or isinstance(comment_id, bool):
+            continue
+        if not isinstance(root_comment_id, str) or not root_comment_id.isdigit() or int(root_comment_id) <= 0:
+            continue
+        candidates.append((comment_id, int(root_comment_id), fields))
+    if not candidates:
+        return "DURABLE_CONTEXT_AUTHORITY_FRESHNESS_NOT_PROVEN"
+    _, latest_root_comment_id, latest_fields = max(candidates, key=lambda item: item[0])
+    if latest_root_comment_id != authority_comment_id:
+        return "DURABLE_CONTEXT_AUTHORITY_STALE"
+    for key in _AUTHORITY_SUBJECT_KEYS:
+        if latest_fields.get(key) != str(anchor_values[key]):
+            return "DURABLE_CONTEXT_AUTHORITY_STALE"
+    return None
+
+
 def _terminal_authority_status(context_packet, github_api):
     anchor_values = _anchor_values(context_packet)
     if anchor_values is None or github_api is None:
@@ -92,8 +134,9 @@ def _terminal_authority_status(context_packet, github_api):
     match = _ISSUE_COMMENT_REF.fullmatch(authority_ref)
     if match is None:
         return "DURABLE_CONTEXT_AUTHORITY_SUBJECT_NOT_PROVEN"
+    authority_comment_id = int(match.group(1))
     try:
-        comment = github_api.read_comment(int(match.group(1)))
+        comment = github_api.read_comment(authority_comment_id)
     except Exception:
         return "DURABLE_CONTEXT_AUTHORITY_SUBJECT_NOT_PROVEN"
     if not isinstance(comment, dict):
@@ -117,7 +160,7 @@ def _terminal_authority_status(context_packet, github_api):
     for key in _AUTHORITY_SUBJECT_KEYS:
         if fields.get(key) != str(anchor_values[key]):
             return "DURABLE_CONTEXT_AUTHORITY_SUBJECT_MISMATCH"
-    return None
+    return _latest_trusted_dispatch_status(anchor_values, authority_comment_id, github_api)
 
 
 def _terminal_subject_matches(context_packet, github_api) -> bool:

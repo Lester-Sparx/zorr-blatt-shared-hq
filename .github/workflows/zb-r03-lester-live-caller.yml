@@ -154,14 +154,14 @@ jobs:
 
           dispatch = revalidate_r03_repository_dispatch(payload, port=api)
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write("dispatch_ready=true\\n")
-              output.write(f"message_id={dispatch.message_id}\\n")
-              output.write(f"correlation_id={dispatch.correlation_id}\\n")
-              output.write(f"task_id={dispatch.task_id}\\n")
-              output.write(f"task_revision={dispatch.task_revision}\\n")
-              output.write(f"base_sha={dispatch.base_sha}\\n")
-              output.write(f"authority_ref={dispatch.authority_ref}\\n")
-              output.write(f"task_spec_b64={dispatch.task_spec_b64}\\n")
+              output.write("dispatch_ready=true\n")
+              output.write(f"message_id={dispatch.message_id}\n")
+              output.write(f"correlation_id={dispatch.correlation_id}\n")
+              output.write(f"task_id={dispatch.task_id}\n")
+              output.write(f"task_revision={dispatch.task_revision}\n")
+              output.write(f"base_sha={dispatch.base_sha}\n")
+              output.write(f"authority_ref={dispatch.authority_ref}\n")
+              output.write(f"task_spec_b64={dispatch.task_spec_b64}\n")
           PY
 
   lester:

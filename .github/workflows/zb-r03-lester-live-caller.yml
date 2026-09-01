@@ -81,6 +81,10 @@ jobs:
               output.write(f"base_sha={dispatch.base_sha}\n")
               output.write(f"authority_ref={dispatch.authority_ref}\n")
               output.write(f"task_spec_b64={dispatch.task_spec_b64}\n")
+              output.write(f"root_comment_id={event['comment']['id']}\n")
+              output.write(f"task_spec_comment_id={dispatch.task_spec_comment_id}\n")
+              output.write(f"task_spec_sha256={dispatch.task_spec_sha256}\n")
+              output.write(f"replay_key={dispatch.replay_key}\n")
           PY
 
   revalidate:
@@ -112,11 +116,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           ROOT_COMMENT_ID: ${{ needs.admit.outputs.root_comment_id }}
-          MESSAGE_ID: ${{ needs.revalidate.outputs.message_id }}
-          CORRELATION_ID: ${{ needs.revalidate.outputs.correlation_id }}
-          TASK_ID: ${{ needs.revalidate.outputs.task_id }}
-          TASK_REVISION: ${{ needs.revalidate.outputs.task_revision }}
-          BASE_SHA: ${{ needs.revalidate.outputs.base_sha }}
+          MESSAGE_ID: ${{ needs.admit.outputs.message_id }}
+          CORRELATION_ID: ${{ needs.admit.outputs.correlation_id }}
+          TASK_ID: ${{ needs.admit.outputs.task_id }}
+          TASK_REVISION: ${{ needs.admit.outputs.task_revision }}
+          BASE_SHA: ${{ needs.admit.outputs.base_sha }}
           TASK_SPEC_COMMENT_ID: ${{ needs.admit.outputs.task_spec_comment_id }}
           TASK_SPEC_SHA256: ${{ needs.admit.outputs.task_spec_sha256 }}
           REPLAY_KEY: ${{ needs.admit.outputs.replay_key }}

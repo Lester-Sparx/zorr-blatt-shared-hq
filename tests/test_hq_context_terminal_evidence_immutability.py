@@ -11,6 +11,9 @@ RESULT_URL = "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/iss
 
 
 class FakeGitHubApi:
+    def __init__(self, *, missing_updated_at: bool = False) -> None:
+        self.missing_updated_at = missing_updated_at
+
     def read_comment(self, comment_id: int) -> dict[str, object]:
         if comment_id == 8801:
             return {
@@ -34,7 +37,7 @@ class FakeGitHubApi:
                 ),
             }
         if comment_id == 9901:
-            return {
+            result: dict[str, object] = {
                 "id": 9901,
                 "issue_url": RESULT_URL,
                 "created_at": "2026-09-01T00:01:00Z",
@@ -56,6 +59,9 @@ class FakeGitHubApi:
                     ]
                 ),
             }
+            if self.missing_updated_at:
+                result.pop("updated_at")
+            return result
         raise AssertionError(comment_id)
 
     def list_tracker_comments(self) -> list[dict[str, object]]:
@@ -82,7 +88,8 @@ class FakeGitHubApi:
 
 
 class TerminalEvidenceImmutabilityTests(unittest.TestCase):
-    def test_edited_terminal_pass_comment_is_rejected(self) -> None:
+    @staticmethod
+    def _evaluate(api: FakeGitHubApi) -> dict[str, object]:
         context = {
             "action": "CLAIM_PASS",
             "directlyAdvancesPhysicalResult": True,
@@ -130,13 +137,21 @@ class TerminalEvidenceImmutabilityTests(unittest.TestCase):
             "missing_facets": [],
             "source_refs": ["github:issue:235", "github:issue-comment:8801"],
         }
-
-        result = hq_pre_action.evaluate_pre_action_with_github_freshness(
+        return hq_pre_action.evaluate_pre_action_with_github_freshness(
             context,
             context_packet=packet,
-            github_api=FakeGitHubApi(),
+            github_api=api,
         )
 
+    def test_edited_terminal_pass_comment_is_rejected(self) -> None:
+        result = self._evaluate(FakeGitHubApi())
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("BLOCK", "DURABLE_CONTEXT_EVIDENCE_IMMUTABILITY_NOT_PROVEN"),
+        )
+
+    def test_changed_unseen_missing_terminal_timestamp_is_rejected(self) -> None:
+        result = self._evaluate(FakeGitHubApi(missing_updated_at=True))
         self.assertEqual(
             (result["decision"], result["reason"]),
             ("BLOCK", "DURABLE_CONTEXT_EVIDENCE_IMMUTABILITY_NOT_PROVEN"),

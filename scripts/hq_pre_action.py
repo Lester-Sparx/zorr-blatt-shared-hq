@@ -35,6 +35,7 @@ _AUTHORITY_SUBJECT_KEYS = (
 _AUTHORITY_REF_KEY = "AUTHORITY_REF"
 _AUTHORITY_MARKER = "ZB_AGENT_TASK_R03_V1"
 _AUTHORITY_ISSUE_URL = "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/111"
+_AUTHORITY_ACTOR = "Lester-Sparx"
 _TRACKER_ISSUE_URL = "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106"
 _STATE_WRITER = "github-actions[bot]"
 _DISPATCH_MARKER = "ZB_R03_DISPATCH_V1"

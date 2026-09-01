@@ -40,6 +40,7 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
             {"key": "BASE_SHA", "value": "a" * 40},
             {"key": "LESTER_EXECUTION_ID", "value": "exec-lester-9"},
             {"key": "DUNCAN_EXECUTION_ID", "value": "exec-duncan-10"},
+            {"key": "AUTHORITY_REF", "value": "github:issue-comment:202"},
         ]
 
     @staticmethod
@@ -76,7 +77,7 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
             },
             "jit_facets": {},
             "missing_facets": [],
-            "source_refs": ["github:issue:235"],
+            "source_refs": ["github:issue:235", "github:issue-comment:202"],
         }
 
     @staticmethod
@@ -102,12 +103,35 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
             ),
         }
 
+    @staticmethod
+    def authority_comment() -> dict[str, object]:
+        return {
+            "id": 202,
+            "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/111",
+            "created_at": "2026-08-31T19:00:00Z",
+            "updated_at": "2026-08-31T19:00:00Z",
+            "author_association": "OWNER",
+            "user": {"login": "Lester-Sparx"},
+            "body": "\n".join(
+                [
+                    "ZB_AGENT_TASK_R03_V1",
+                    "MESSAGE_ID = msg-17",
+                    "EVENT_ID = evt-17",
+                    "CORRELATION_ID = corr-42",
+                    "TASK_ID = ZB_EXECUTION_PROOF_R01",
+                    "TASK_REVISION = 2",
+                    f"BASE_SHA = {'a' * 40}",
+                    "TASK_SPEC_COMMENT_ID = 7701",
+                ]
+            ),
+        }
+
     def _proven_pass(self, *, learning_policy: dict[str, object] | None = None) -> dict[str, object]:
         return hq_pre_action.evaluate_pre_action_with_github_freshness(
             self.context(),
             learning_policy=learning_policy,
             context_packet=self.packet("PASS"),
-            github_api=FakeGitHubApi({201: self.pass_comment()}),
+            github_api=FakeGitHubApi({201: self.pass_comment(), 202: self.authority_comment()}),
         )
 
     def test_boolean_fresh_verification_without_durable_pass_cannot_claim_pass(self) -> None:

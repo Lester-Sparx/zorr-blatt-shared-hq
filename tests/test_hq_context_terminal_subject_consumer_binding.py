@@ -99,6 +99,8 @@ class TerminalSubjectConsumerBindingTests(unittest.TestCase):
         return {
             "id": 9901,
             "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/235",
+            "created_at": "2026-09-01T00:01:00Z",
+            "updated_at": "2026-09-01T00:01:00Z",
             "user": {"login": "github-actions[bot]"},
             "body": "\n".join(
                 [

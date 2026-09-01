@@ -32,6 +32,10 @@ jobs:
       base_sha: ${{ steps.gate.outputs.base_sha }}
       authority_ref: ${{ steps.gate.outputs.authority_ref }}
       task_spec_b64: ${{ steps.gate.outputs.task_spec_b64 }}
+      root_comment_id: ${{ steps.gate.outputs.root_comment_id }}
+      task_spec_comment_id: ${{ steps.gate.outputs.task_spec_comment_id }}
+      task_spec_sha256: ${{ steps.gate.outputs.task_spec_sha256 }}
+      replay_key: ${{ steps.gate.outputs.replay_key }}
     steps:
       - name: Checkout trusted admission code from current main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -79,9 +83,86 @@ jobs:
               output.write(f"task_spec_b64={dispatch.task_spec_b64}\n")
           PY
 
-  lester:
+  revalidate:
     needs: admit
     if: needs.admit.outputs.dispatch_ready == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      dispatch_ready: ${{ steps.verify.outputs.dispatch_ready }}
+      message_id: ${{ steps.verify.outputs.message_id }}
+      correlation_id: ${{ steps.verify.outputs.correlation_id }}
+      task_id: ${{ steps.verify.outputs.task_id }}
+      task_revision: ${{ steps.verify.outputs.task_revision }}
+      base_sha: ${{ steps.verify.outputs.base_sha }}
+      authority_ref: ${{ steps.verify.outputs.authority_ref }}
+      task_spec_b64: ${{ steps.verify.outputs.task_spec_b64 }}
+    steps:
+      - name: Checkout trusted revalidation code from current main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Fresh-read durable dispatch and current main
+        id: verify
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ROOT_COMMENT_ID: ${{ needs.admit.outputs.root_comment_id }}
+          MESSAGE_ID: ${{ needs.revalidate.outputs.message_id }}
+          CORRELATION_ID: ${{ needs.revalidate.outputs.correlation_id }}
+          TASK_ID: ${{ needs.revalidate.outputs.task_id }}
+          TASK_REVISION: ${{ needs.revalidate.outputs.task_revision }}
+          BASE_SHA: ${{ needs.revalidate.outputs.base_sha }}
+          TASK_SPEC_COMMENT_ID: ${{ needs.admit.outputs.task_spec_comment_id }}
+          TASK_SPEC_SHA256: ${{ needs.admit.outputs.task_spec_sha256 }}
+          REPLAY_KEY: ${{ needs.admit.outputs.replay_key }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+
+          from scripts import zb_communication_base as r01
+          from scripts.zb_r03_router import revalidate_r03_repository_dispatch
+
+          api = r01.GitHubApi(os.environ["GITHUB_TOKEN"])
+          payload = {
+              "root_comment_id": int(os.environ["ROOT_COMMENT_ID"]),
+              "message_id": os.environ["MESSAGE_ID"],
+              "correlation_id": os.environ["CORRELATION_ID"],
+              "task_id": os.environ["TASK_ID"],
+              "task_revision": int(os.environ["TASK_REVISION"]),
+              "base_sha": os.environ["BASE_SHA"],
+              "task_spec_comment_id": int(os.environ["TASK_SPEC_COMMENT_ID"]),
+              "task_spec_sha256": os.environ["TASK_SPEC_SHA256"],
+              "replay_key": os.environ["REPLAY_KEY"],
+          }
+          ref = api._request_json(
+              "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/ref/heads/main"
+          )
+          current_main = ((ref.get("object") or {}).get("sha")) if isinstance(ref, dict) else None
+          if current_main != payload["base_sha"]:
+              raise SystemExit("R03_MAIN_MOVED_BEFORE_LESTER")
+
+          dispatch = revalidate_r03_repository_dispatch(payload, port=api)
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("dispatch_ready=true\\n")
+              output.write(f"message_id={dispatch.message_id}\\n")
+              output.write(f"correlation_id={dispatch.correlation_id}\\n")
+              output.write(f"task_id={dispatch.task_id}\\n")
+              output.write(f"task_revision={dispatch.task_revision}\\n")
+              output.write(f"base_sha={dispatch.base_sha}\\n")
+              output.write(f"authority_ref={dispatch.authority_ref}\\n")
+              output.write(f"task_spec_b64={dispatch.task_spec_b64}\\n")
+          PY
+
+  lester:
+    needs: revalidate
+    if: needs.revalidate.outputs.dispatch_ready == 'true'
     permissions:
       actions: read
       contents: write
@@ -89,12 +170,12 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/zb-r03-lester-agent.lock.yml
     with:
-      message-id: ${{ needs.admit.outputs.message_id }}
-      correlation-id: ${{ needs.admit.outputs.correlation_id }}
-      task-id: ${{ needs.admit.outputs.task_id }}
-      task-revision: ${{ needs.admit.outputs.task_revision }}
-      base-sha: ${{ needs.admit.outputs.base_sha }}
-      authority-ref: ${{ needs.admit.outputs.authority_ref }}
-      task-spec-b64: ${{ needs.admit.outputs.task_spec_b64 }}
+      message-id: ${{ needs.revalidate.outputs.message_id }}
+      correlation-id: ${{ needs.revalidate.outputs.correlation_id }}
+      task-id: ${{ needs.revalidate.outputs.task_id }}
+      task-revision: ${{ needs.revalidate.outputs.task_revision }}
+      base-sha: ${{ needs.revalidate.outputs.base_sha }}
+      authority-ref: ${{ needs.revalidate.outputs.authority_ref }}
+      task-spec-b64: ${{ needs.revalidate.outputs.task_spec_b64 }}
     secrets:
       COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}

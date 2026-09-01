@@ -167,22 +167,22 @@ def _terminal_authority_status(context_packet, github_api):
     return _latest_trusted_dispatch_status(anchor_values, authority_comment_id, github_api)
 
 
-def _terminal_subject_matches(context_packet, github_api) -> bool:
+def _terminal_subject_status(context_packet, github_api):
     anchor_values = _anchor_values(context_packet)
     if anchor_values is None or github_api is None:
-        return False
+        return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
     if any(key not in anchor_values for key in _TERMINAL_SUBJECT_KEYS):
-        return False
+        return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
     state = context_packet.get("current_state")
     facts = state.get("facts") if isinstance(state, dict) else None
     if not isinstance(facts, list):
-        return False
+        return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
     results = [fact for fact in facts if isinstance(fact, dict) and fact.get("key") == "RESULT" and fact.get("value") == "PASS"]
     if len(results) != 1:
-        return False
+        return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
     refs = results[0].get("source_refs")
     if not isinstance(refs, list):
-        return False
+        return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
     ids = []
     for ref in refs:
         if not isinstance(ref, str):
@@ -191,21 +191,25 @@ def _terminal_subject_matches(context_packet, github_api) -> bool:
         if match is not None:
             ids.append(int(match.group(1)))
     if len(ids) != 1:
-        return False
+        return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
     try:
         comment = github_api.read_comment(ids[0])
     except Exception:
-        return False
-    body = comment.get("body") if isinstance(comment, dict) else None
-    parsed = _parse_comment_fields(body)
+        return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
+    if not isinstance(comment, dict):
+        return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
+    created_at = comment.get("created_at")
+    if not created_at or created_at != comment.get("updated_at"):
+        return "DURABLE_CONTEXT_EVIDENCE_IMMUTABILITY_NOT_PROVEN"
+    parsed = _parse_comment_fields(comment.get("body"))
     if parsed is None:
-        return False
+        return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
     _, fields = parsed
     for key in _TERMINAL_SUBJECT_KEYS:
         expected = str(anchor_values[key])
         if fields.get(key) != expected:
-            return False
-    return True
+            return "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"
+    return None
 
 
 def evaluate_pre_action_with_github_freshness(context, **kwargs):
@@ -220,11 +224,12 @@ def evaluate_pre_action_with_github_freshness(context, **kwargs):
                 kwargs.get("learning_policy"),
                 kwargs.get("context_packet"),
             )
-        if not _terminal_subject_matches(kwargs.get("context_packet"), kwargs.get("github_api")):
+        terminal_reason = _terminal_subject_status(kwargs.get("context_packet"), kwargs.get("github_api"))
+        if terminal_reason is not None:
             return _core._decision(
                 context,
                 "BLOCK",
-                "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH",
+                terminal_reason,
                 kwargs.get("learning_policy"),
                 kwargs.get("context_packet"),
             )

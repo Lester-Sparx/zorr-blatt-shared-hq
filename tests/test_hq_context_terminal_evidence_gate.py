@@ -12,6 +12,26 @@ class FakeGitHubApi:
     def read_comment(self, comment_id: int) -> dict[str, object]:
         return self.comments[comment_id]
 
+    def list_tracker_comments(self) -> list[dict[str, object]]:
+        return [
+            {
+                "id": 9001,
+                "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106",
+                "user": {"login": "github-actions[bot]"},
+                "body": "\n".join(
+                    [
+                        "ZB_R03_DISPATCH_V1",
+                        "ROOT_COMMENT_ID = 202",
+                        "MESSAGE_ID = msg-17",
+                        "CORRELATION_ID = corr-42",
+                        "TASK_ID = ZB_EXECUTION_PROOF_R01",
+                        "TASK_REVISION = 2",
+                        f"BASE_SHA = {'a' * 40}",
+                    ]
+                ),
+            }
+        ]
+
 
 class ContextTerminalEvidenceGateTests(unittest.TestCase):
     @staticmethod

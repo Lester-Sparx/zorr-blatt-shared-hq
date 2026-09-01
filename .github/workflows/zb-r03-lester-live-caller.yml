@@ -1,0 +1,100 @@
+name: zb-r03-lester-live-caller
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zb-r03-lester-${{ github.event.comment.id }}
+  cancel-in-progress: false
+
+jobs:
+  admit:
+    if: >-
+      github.event.issue.number == 111 &&
+      github.event.issue.pull_request &&
+      github.event.comment.user.login == 'Lester-Sparx' &&
+      startsWith(github.event.comment.body, 'ZB_AGENT_TASK_R03_V1')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    outputs:
+      dispatch_ready: ${{ steps.gate.outputs.dispatch_ready }}
+      message_id: ${{ steps.gate.outputs.message_id }}
+      correlation_id: ${{ steps.gate.outputs.correlation_id }}
+      task_id: ${{ steps.gate.outputs.task_id }}
+      task_revision: ${{ steps.gate.outputs.task_revision }}
+      base_sha: ${{ steps.gate.outputs.base_sha }}
+      authority_ref: ${{ steps.gate.outputs.authority_ref }}
+      task_spec_b64: ${{ steps.gate.outputs.task_spec_b64 }}
+    steps:
+      - name: Checkout trusted admission code from current main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Fresh-read, admit and persist exact R03 dispatch
+        id: gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ZB_EVENT_FILE: ${{ github.event_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from scripts import zb_communication_base as r01
+          from scripts.zb_r03_router import admit_r03_event, render_dispatch_record
+
+          event = json.loads(Path(os.environ["ZB_EVENT_FILE"]).read_text(encoding="utf-8"))
+          api = r01.GitHubApi(os.environ["GITHUB_TOKEN"])
+          ref = api._request_json(
+              "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/git/ref/heads/main"
+          )
+          current_main = ((ref.get("object") or {}).get("sha")) if isinstance(ref, dict) else None
+          if not isinstance(current_main, str):
+              raise SystemExit("R03_MAIN_READ_FAILED")
+
+          dispatch = admit_r03_event(event, expected_base_sha=current_main, port=api)
+          record = render_dispatch_record(dispatch, root_comment_id=event["comment"]["id"])
+          r01.write_and_verify(api, record)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("dispatch_ready=true\n")
+              output.write(f"message_id={dispatch.message_id}\n")
+              output.write(f"correlation_id={dispatch.correlation_id}\n")
+              output.write(f"task_id={dispatch.task_id}\n")
+              output.write(f"task_revision={dispatch.task_revision}\n")
+              output.write(f"base_sha={dispatch.base_sha}\n")
+              output.write(f"authority_ref={dispatch.authority_ref}\n")
+              output.write(f"task_spec_b64={dispatch.task_spec_b64}\n")
+          PY
+
+  lester:
+    needs: admit
+    if: needs.admit.outputs.dispatch_ready == 'true'
+    permissions:
+      actions: read
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/zb-r03-lester-agent.lock.yml
+    with:
+      message-id: ${{ needs.admit.outputs.message_id }}
+      correlation-id: ${{ needs.admit.outputs.correlation_id }}
+      task-id: ${{ needs.admit.outputs.task_id }}
+      task-revision: ${{ needs.admit.outputs.task_revision }}
+      base-sha: ${{ needs.admit.outputs.base_sha }}
+      authority-ref: ${{ needs.admit.outputs.authority_ref }}
+      task-spec-b64: ${{ needs.admit.outputs.task_spec_b64 }}
+    secrets:
+      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}

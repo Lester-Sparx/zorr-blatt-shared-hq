@@ -31,6 +31,18 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
         }
 
     @staticmethod
+    def subject_anchors() -> list[dict[str, object]]:
+        return [
+            {"key": "MESSAGE_ID", "value": "msg-17"},
+            {"key": "CORRELATION_ID", "value": "corr-42"},
+            {"key": "TASK_ID", "value": "ZB_EXECUTION_PROOF_R01"},
+            {"key": "TASK_REVISION", "value": 2},
+            {"key": "BASE_SHA", "value": "a" * 40},
+            {"key": "LESTER_EXECUTION_ID", "value": "exec-lester-9"},
+            {"key": "DUNCAN_EXECUTION_ID", "value": "exec-duncan-10"},
+        ]
+
+    @staticmethod
     def result_fact(value: str) -> dict[str, object]:
         source_ref = "github:issue-comment:201" if value == "PASS" else f"github:verified-result:{value.lower()}"
         return {
@@ -51,10 +63,13 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
     @classmethod
     def packet(cls, result: str | None) -> dict[str, object]:
         facts = [] if result is None else [cls.result_fact(result)]
+        anchors: list[dict[str, object]] = [{"key": "CURRENT_TASK", "value": "#235"}]
+        if result == "PASS":
+            anchors.extend(cls.subject_anchors())
         return {
             "schema": "ZB_CONTEXT_PACKET_V1",
             "status": "PROVEN",
-            "mandatory_anchors": [{"key": "CURRENT_TASK", "value": "#235"}],
+            "mandatory_anchors": anchors,
             "current_state": {
                 "schema": "ZB_CONTEXT_CURRENT_STATE_V1",
                 "facts": facts,
@@ -76,6 +91,13 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
                     "KEY = RESULT",
                     'VALUE_JSON = "PASS"',
                     "AUTHORITY = GITHUB",
+                    "MESSAGE_ID = msg-17",
+                    "CORRELATION_ID = corr-42",
+                    "TASK_ID = ZB_EXECUTION_PROOF_R01",
+                    "TASK_REVISION = 2",
+                    f"BASE_SHA = {'a' * 40}",
+                    "LESTER_EXECUTION_ID = exec-lester-9",
+                    "DUNCAN_EXECUTION_ID = exec-duncan-10",
                 ]
             ),
         }

@@ -57,19 +57,31 @@ class R03LesterLiveCallerTests(unittest.TestCase):
         self.assertIn("dispatch_ready=true", text)
         self.assertLess(text.index("write_and_verify(api, record)"), text.index("dispatch_ready=true"))
 
-    def test_lester_reuses_compiled_agent_with_exact_admitted_bindings(self):
+    def test_separate_read_only_revalidation_is_mandatory_before_lester(self):
         text = self.workflow()
-        self.assertIn("uses: ./.github/workflows/zb-r03-lester-agent.lock.yml", text)
+        self.assertIn("  revalidate:", text)
+        self.assertIn("revalidate_r03_repository_dispatch", text)
+        self.assertIn("dispatch = revalidate_r03_repository_dispatch(payload, port=api)", text)
+        self.assertIn("if current_main != payload[\"base_sha\"]:", text)
+        self.assertIn("raise SystemExit(\"R03_MAIN_MOVED_BEFORE_LESTER\")", text)
+        self.assertIn("permissions:\\n      contents: read\\n      issues: read\\n      pull-requests: read", text)
+
+    def test_lester_consumes_only_fresh_revalidated_bindings(self):
+        text = self.workflow()
+        lester = text[text.index("  lester:"):]
+        self.assertIn("needs: revalidate", lester)
+        self.assertIn("if: needs.revalidate.outputs.dispatch_ready == 'true'", lester)
         for binding in (
-            "message-id: ${{ needs.admit.outputs.message_id }}",
-            "correlation-id: ${{ needs.admit.outputs.correlation_id }}",
-            "task-id: ${{ needs.admit.outputs.task_id }}",
-            "task-revision: ${{ needs.admit.outputs.task_revision }}",
-            "base-sha: ${{ needs.admit.outputs.base_sha }}",
-            "authority-ref: ${{ needs.admit.outputs.authority_ref }}",
-            "task-spec-b64: ${{ needs.admit.outputs.task_spec_b64 }}",
+            "message-id: ${{ needs.revalidate.outputs.message_id }}",
+            "correlation-id: ${{ needs.revalidate.outputs.correlation_id }}",
+            "task-id: ${{ needs.revalidate.outputs.task_id }}",
+            "task-revision: ${{ needs.revalidate.outputs.task_revision }}",
+            "base-sha: ${{ needs.revalidate.outputs.base_sha }}",
+            "authority-ref: ${{ needs.revalidate.outputs.authority_ref }}",
+            "task-spec-b64: ${{ needs.revalidate.outputs.task_spec_b64 }}",
         ):
-            self.assertIn(binding, text)
+            self.assertIn(binding, lester)
+        self.assertNotIn("needs.admit.outputs", lester)
 
     def test_caller_cannot_merge_finalize_or_mutate_production(self):
         text = self.workflow()

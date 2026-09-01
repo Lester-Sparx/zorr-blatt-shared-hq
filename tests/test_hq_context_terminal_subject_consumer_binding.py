@@ -6,12 +6,16 @@ from scripts import hq_pre_action
 
 
 class FakeGitHubApi:
-    def __init__(self, comment: dict[str, object]) -> None:
-        self.comment = comment
+    def __init__(self, *, result_comment: dict[str, object], authority_comment: dict[str, object] | None = None) -> None:
+        self.result_comment = result_comment
+        self.authority_comment = authority_comment
 
     def read_comment(self, comment_id: int) -> dict[str, object]:
-        assert comment_id == 9901
-        return dict(self.comment)
+        if comment_id == 9901:
+            return dict(self.result_comment)
+        if comment_id == 8801 and self.authority_comment is not None:
+            return dict(self.authority_comment)
+        raise AssertionError(comment_id)
 
 
 class TerminalSubjectConsumerBindingTests(unittest.TestCase):
@@ -32,7 +36,7 @@ class TerminalSubjectConsumerBindingTests(unittest.TestCase):
         }
 
     @staticmethod
-    def packet() -> dict[str, object]:
+    def packet(*, authority_ref: str = "github:issue-comment:8801") -> dict[str, object]:
         fact = {
             "schema": "ZB_CONTEXT_FACT_V1",
             "fact_id": "terminal-pass-bound-subject",
@@ -56,6 +60,7 @@ class TerminalSubjectConsumerBindingTests(unittest.TestCase):
             {"key": "BASE_SHA", "value": "a" * 40},
             {"key": "LESTER_EXECUTION_ID", "value": "exec-lester-9"},
             {"key": "DUNCAN_EXECUTION_ID", "value": "exec-duncan-10"},
+            {"key": "AUTHORITY_REF", "value": authority_ref},
         ]
         return {
             "schema": "ZB_CONTEXT_PACKET_V1",
@@ -64,11 +69,11 @@ class TerminalSubjectConsumerBindingTests(unittest.TestCase):
             "current_state": hq_pre_action.project_current_state([fact]),
             "jit_facets": {},
             "missing_facets": [],
-            "source_refs": ["github:issue:235"],
+            "source_refs": ["github:issue:235", authority_ref],
         }
 
     @staticmethod
-    def comment(*, message_id: str = "msg-17", duncan_execution_id: str = "exec-duncan-10") -> dict[str, object]:
+    def result_comment(*, message_id: str = "msg-17", duncan_execution_id: str = "exec-duncan-10") -> dict[str, object]:
         return {
             "id": 9901,
             "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/235",
@@ -90,23 +95,71 @@ class TerminalSubjectConsumerBindingTests(unittest.TestCase):
             ),
         }
 
+    @staticmethod
+    def authority_comment(*, message_id: str = "msg-17") -> dict[str, object]:
+        return {
+            "id": 8801,
+            "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/111",
+            "created_at": "2026-09-01T00:00:00Z",
+            "updated_at": "2026-09-01T00:00:00Z",
+            "author_association": "OWNER",
+            "user": {"login": "Lester-Sparx"},
+            "body": "\n".join(
+                [
+                    "ZB_AGENT_TASK_R03_V1",
+                    f"MESSAGE_ID = {message_id}",
+                    "EVENT_ID = evt-17",
+                    "CORRELATION_ID = corr-42",
+                    "TASK_ID = ZB_EXECUTION_PROOF_R01",
+                    "TASK_REVISION = 2",
+                    f"BASE_SHA = {'a' * 40}",
+                    "TASK_SPEC_COMMENT_ID = 7701",
+                ]
+            ),
+        }
+
+    def api(self, **result_overrides: str) -> FakeGitHubApi:
+        return FakeGitHubApi(
+            result_comment=self.result_comment(**result_overrides),
+            authority_comment=self.authority_comment(),
+        )
+
     def test_exact_subject_terminal_pass_is_accepted(self) -> None:
         result = hq_pre_action.evaluate_pre_action_with_github_freshness(
-            self.context(), context_packet=self.packet(), github_api=FakeGitHubApi(self.comment())
+            self.context(), context_packet=self.packet(), github_api=self.api()
         )
         self.assertEqual((result["decision"], result["reason"]), ("ALLOW", "PRE_ACTION_GATE_PASS"))
 
     def test_other_message_terminal_pass_is_rejected(self) -> None:
         result = hq_pre_action.evaluate_pre_action_with_github_freshness(
-            self.context(), context_packet=self.packet(), github_api=FakeGitHubApi(self.comment(message_id="msg-OTHER"))
+            self.context(), context_packet=self.packet(), github_api=self.api(message_id="msg-OTHER")
         )
         self.assertEqual((result["decision"], result["reason"]), ("BLOCK", "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"))
 
     def test_other_execution_terminal_pass_is_rejected(self) -> None:
         result = hq_pre_action.evaluate_pre_action_with_github_freshness(
-            self.context(), context_packet=self.packet(), github_api=FakeGitHubApi(self.comment(duncan_execution_id="exec-duncan-OTHER"))
+            self.context(), context_packet=self.packet(), github_api=self.api(duncan_execution_id="exec-duncan-OTHER")
         )
         self.assertEqual((result["decision"], result["reason"]), ("BLOCK", "DURABLE_CONTEXT_EVIDENCE_SUBJECT_MISMATCH"))
+
+    def test_caller_supplied_subject_without_fresh_authority_readback_is_rejected(self) -> None:
+        result = hq_pre_action.evaluate_pre_action_with_github_freshness(
+            self.context(),
+            context_packet=self.packet(),
+            github_api=FakeGitHubApi(result_comment=self.result_comment(), authority_comment=None),
+        )
+        self.assertEqual((result["decision"], result["reason"]), ("BLOCK", "DURABLE_CONTEXT_AUTHORITY_SUBJECT_NOT_PROVEN"))
+
+    def test_changed_unseen_authority_message_rejects_matching_caller_and_result_self_report(self) -> None:
+        result = hq_pre_action.evaluate_pre_action_with_github_freshness(
+            self.context(),
+            context_packet=self.packet(),
+            github_api=FakeGitHubApi(
+                result_comment=self.result_comment(),
+                authority_comment=self.authority_comment(message_id="msg-AUTHORITY-OTHER"),
+            ),
+        )
+        self.assertEqual((result["decision"], result["reason"]), ("BLOCK", "DURABLE_CONTEXT_AUTHORITY_SUBJECT_MISMATCH"))
 
 
 if __name__ == "__main__":

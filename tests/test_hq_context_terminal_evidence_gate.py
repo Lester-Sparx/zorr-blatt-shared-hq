@@ -17,6 +17,8 @@ class FakeGitHubApi:
             {
                 "id": 9001,
                 "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/106",
+                "created_at": "2026-08-31T19:00:30Z",
+                "updated_at": "2026-08-31T19:00:30Z",
                 "user": {"login": "github-actions[bot]"},
                 "body": "\n".join(
                     [

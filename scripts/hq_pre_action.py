@@ -105,6 +105,9 @@ def _latest_trusted_dispatch_status(anchor_values, authority_comment_id, github_
             continue
         if fields.get("TASK_ID") != str(anchor_values["TASK_ID"]) or fields.get("TASK_REVISION") != str(anchor_values["TASK_REVISION"]):
             continue
+        created_at = comment.get("created_at")
+        if not created_at or created_at != comment.get("updated_at"):
+            return "DURABLE_CONTEXT_AUTHORITY_FRESHNESS_NOT_PROVEN"
         comment_id = comment.get("id")
         root_comment_id = fields.get("ROOT_COMMENT_ID")
         if not isinstance(comment_id, int) or isinstance(comment_id, bool):

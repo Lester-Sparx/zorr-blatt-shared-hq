@@ -10,8 +10,9 @@ TRACKER_URL = "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/is
 
 
 class FakeGitHubApi:
-    def __init__(self, *, newer_dispatch: bool) -> None:
+    def __init__(self, *, newer_dispatch: bool, edited_dispatch: bool = False) -> None:
         self.newer_dispatch = newer_dispatch
+        self.edited_dispatch = edited_dispatch
 
     def read_comment(self, comment_id: int) -> dict[str, object]:
         if comment_id == 8801:
@@ -62,6 +63,8 @@ class FakeGitHubApi:
         current = {
             "id": 9001,
             "issue_url": TRACKER_URL,
+            "created_at": "2026-09-01T00:00:30Z",
+            "updated_at": "2026-09-01T00:02:30Z" if self.edited_dispatch else "2026-09-01T00:00:30Z",
             "user": {"login": "github-actions[bot]"},
             "body": "\n".join(
                 [
@@ -80,6 +83,8 @@ class FakeGitHubApi:
         newer = {
             "id": 9002,
             "issue_url": TRACKER_URL,
+            "created_at": "2026-09-01T00:01:30Z",
+            "updated_at": "2026-09-01T00:01:30Z",
             "user": {"login": "github-actions[bot]"},
             "body": "\n".join(
                 [
@@ -160,6 +165,17 @@ class TerminalAuthorityStalenessTests(unittest.TestCase):
             self.context(), context_packet=self.packet(), github_api=FakeGitHubApi(newer_dispatch=True)
         )
         self.assertEqual((result["decision"], result["reason"]), ("BLOCK", "DURABLE_CONTEXT_AUTHORITY_STALE"))
+
+    def test_edited_trusted_dispatch_cannot_define_current_authority(self) -> None:
+        result = hq_pre_action.evaluate_pre_action_with_github_freshness(
+            self.context(),
+            context_packet=self.packet(),
+            github_api=FakeGitHubApi(newer_dispatch=False, edited_dispatch=True),
+        )
+        self.assertEqual(
+            (result["decision"], result["reason"]),
+            ("BLOCK", "DURABLE_CONTEXT_AUTHORITY_FRESHNESS_NOT_PROVEN"),
+        )
 
 
 if __name__ == "__main__":

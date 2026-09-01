@@ -107,6 +107,8 @@ class ContextTerminalEvidenceGateTests(unittest.TestCase):
         return {
             "id": 201,
             "issue_url": "https://api.github.com/repos/Lester-Sparx/zorr-blatt-shared-hq/issues/235",
+            "created_at": "2026-08-31T19:01:00Z",
+            "updated_at": "2026-08-31T19:01:00Z",
             "user": {"login": hq_pre_action.STATE_WRITER},
             "body": "\n".join(
                 [

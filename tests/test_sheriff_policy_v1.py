@@ -23,6 +23,12 @@ class SheriffPolicyV1Test(unittest.TestCase):
         ):
             self.assertIn(marker, text)
 
+    def test_policy_status_matches_current_main_authority(self):
+        text = POLICY.read_text(encoding="utf-8")
+        self.assertIn("AUTHORITATIVE POLICY / CURRENT MAIN", text)
+        self.assertNotIn("PROPOSED / QC REQUIRED", text)
+        self.assertNotIn("until this PR is merged to `main`", text)
+
     def test_verdict_schema_has_evidence_and_severity_contract(self):
         schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
         required = set(schema["required"])

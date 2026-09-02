@@ -1,0 +1,131 @@
+{
+  "schema_version": "R01",
+  "status": "CANDIDATE",
+  "purpose": "Single addressable index for exact ZORR visual production assets without storing large binaries in main.",
+  "base_main": "9e2f6309e3aa452c42b859eaa515641fea7e3f09",
+  "production_ready_definition": [
+    "stable_asset_id",
+    "sha256",
+    "immutable_locator",
+    "media_type",
+    "authority_ref",
+    "retrieval_state=READY"
+  ],
+  "locator_policy": {
+    "preferred": "GITHUB_RELEASE_ASSET",
+    "legacy_chatgpt_library_ids": "DISCOVERY_METADATA_ONLY_UNTIL_MIGRATED",
+    "repo_large_binary_storage": "FORBIDDEN",
+    "missing_locator": "BLOCKED_NO_DURABLE_LOCATOR"
+  },
+  "assets": [
+    {
+      "asset_id": "C00_A_DETAIL_COSTUME_ACCESSORY",
+      "role": "DETAIL_COSTUME_ACCESSORY",
+      "sha256": "94c185aea5755e569f8359fd29c6e0b8a1748e1613f2b59e7a3e280205dcbc8e",
+      "media_type": "image/png",
+      "authority_ref": "issue:#231/C00_SOURCE_PACK_R01",
+      "immutable_locator": null,
+      "legacy_locator": null,
+      "retrieval_state": "BLOCKED_NO_DURABLE_LOCATOR"
+    },
+    {
+      "asset_id": "C00_B_HEAD_YAW",
+      "role": "HEAD_YAW",
+      "sha256": "7646fa2724fd4372eb9811635dbf71bb052151eaf2d4cdb999159124660a16d1",
+      "media_type": "image/png",
+      "authority_ref": "issue:#231/C00_SOURCE_PACK_R01",
+      "immutable_locator": null,
+      "legacy_locator": null,
+      "retrieval_state": "BLOCKED_NO_DURABLE_LOCATOR"
+    },
+    {
+      "asset_id": "C00_C_MASTER_FRONT",
+      "role": "MASTER_FRONT",
+      "sha256": "57fbec5d9c136a90c6ac262f8011665fa061dca427bf3fb2c3f110d1cb0a69ed",
+      "media_type": "image/png",
+      "authority_ref": "issue:#231/C00_SOURCE_PACK_R01",
+      "immutable_locator": null,
+      "legacy_locator": {
+        "type": "CHATGPT_LIBRARY_FILENAME",
+        "value": "8b45ccb3-e979-4422-9145-b873985424f7.png"
+      },
+      "retrieval_state": "BLOCKED_NO_DURABLE_LOCATOR"
+    },
+    {
+      "asset_id": "C00_D_BODY_TURNAROUND",
+      "role": "BODY_TURNAROUND_SIDE_VIEW_SOURCE",
+      "sha256": "49f1c5fa9973f185c4ed7441325e2705d392449f6d59b4592ec6d81bc4b4da82",
+      "media_type": "image/png",
+      "authority_ref": "issue:#231/C00_SOURCE_PACK_R01",
+      "immutable_locator": null,
+      "legacy_locator": null,
+      "retrieval_state": "BLOCKED_NO_DURABLE_LOCATOR"
+    },
+    {
+      "asset_id": "DUNCAN_SUIT_FIVE_VIEW_TURNAROUND",
+      "role": "SUIT_TURNAROUND",
+      "sha256": null,
+      "media_type": "image/png",
+      "authority_ref": "issue:#245 + issue:#248 source-freeze evidence",
+      "immutable_locator": null,
+      "legacy_locator": {
+        "type": "CHATGPT_LIBRARY_FILE_ID",
+        "value": "file_0000000004f882469dfa7a8b272ac5c4"
+      },
+      "retrieval_state": "BLOCKED_LEGACY_LIBRARY_ID_NOT_VISIBLE"
+    },
+    {
+      "asset_id": "DUNCAN_COSTUME_ACCESSORY_SHEET",
+      "role": "COSTUME_ACCESSORY",
+      "sha256": null,
+      "media_type": "image/png",
+      "authority_ref": "issue:#245 + issue:#248 source-freeze evidence",
+      "immutable_locator": null,
+      "legacy_locator": {
+        "type": "CHATGPT_LIBRARY_FILE_ID",
+        "value": "file_0000000037b4821082deb5afcb57227e"
+      },
+      "retrieval_state": "BLOCKED_LEGACY_LIBRARY_ID_NOT_VISIBLE"
+    },
+    {
+      "asset_id": "ZORR_CHARACTER_PRO_PACK_R01",
+      "role": "CHARACTER_SOURCE_PACK",
+      "sha256": "a83b7de56d260908837f31153edfd85322cec566e3a0c37ad205db391ddf05e5",
+      "media_type": "application/zip",
+      "authority_ref": "issue:#245 + issue:#248 source-freeze evidence",
+      "immutable_locator": null,
+      "legacy_locator": null,
+      "retrieval_state": "BLOCKED_NO_DURABLE_LOCATOR"
+    },
+    {
+      "asset_id": "BODY_CONSTRUCTION_R01",
+      "role": "BODY_CONSTRUCTION",
+      "sha256": "08b86bc13a1fb001a9251717ccee3867c9b6573b44cfe7a96bba8fbaf26bb018",
+      "media_type": "image/png",
+      "authority_ref": "issue:#245 + issue:#248 source-freeze evidence",
+      "immutable_locator": null,
+      "legacy_locator": null,
+      "retrieval_state": "BLOCKED_NO_DURABLE_LOCATOR"
+    },
+    {
+      "asset_id": "HANDS_CANON_R03",
+      "role": "HANDS_CANON",
+      "sha256": "608ecfb9ec482a3a5605044c6b7b64681e90df735281c6741aecbf20e4f3c1ff",
+      "media_type": "image/png",
+      "authority_ref": "issue:#245 + issue:#248 source-freeze evidence",
+      "immutable_locator": null,
+      "legacy_locator": null,
+      "retrieval_state": "BLOCKED_NO_DURABLE_LOCATOR"
+    },
+    {
+      "asset_id": "HAND_EXPRESSION_R01",
+      "role": "HAND_EXPRESSION",
+      "sha256": "6ea891870a2c5db8597b411af5885ff4be89a85c851a2154fca95b87323b11c5",
+      "media_type": "image/png",
+      "authority_ref": "issue:#245 + issue:#248 source-freeze evidence",
+      "immutable_locator": null,
+      "legacy_locator": null,
+      "retrieval_state": "BLOCKED_NO_DURABLE_LOCATOR"
+    }
+  ]
+}

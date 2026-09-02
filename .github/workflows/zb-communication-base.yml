@@ -1,8 +1,9 @@
 name: zb-communication-base-retired
 
-# Compatibility trigger retained only so old repository/library tests can keep
-# parsing this file while the legacy command surface is being retired.
-# Issue #111 is closed and locked; this job is also hard-disabled below.
+# Compatibility event declaration is retained only because legacy parser/library
+# tests still inspect this file. The retired job is provably unreachable for any
+# real GitHub issue because issue numbers are positive integers.
+# Historical command bus PR #111 is also closed and locked.
 on:
   issue_comment:
     types: [created]
@@ -12,7 +13,7 @@ permissions:
 
 jobs:
   retired:
-    if: ${{ false }}
+    if: ${{ github.event.issue.number == 0 }}
     runs-on: ubuntu-24.04
     steps:
       - name: Legacy execution route is retired

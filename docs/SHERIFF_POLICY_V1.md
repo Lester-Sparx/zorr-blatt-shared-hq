@@ -1,6 +1,6 @@
 # ZORR BLATT — SHERIFF POLICY V1
 
-Status: **PROPOSED / QC REQUIRED** until this PR is merged to `main`.
+Status: **AUTHORITATIVE POLICY / CURRENT MAIN**. Policy authority comes from the current `main` version of this file and the current `AGENTS.md` binding. Runtime/production status is separate and must be proven with fresh evidence for the exact runtime.
 
 This policy defines the durable safety, discipline, learning, and competitive-rating system for ZORR BLATT agents. GitHub evidence remains authoritative; chat memory never is.
 
@@ -171,7 +171,7 @@ These are design influences, not external authorities over repository-specific O
 
 ## 11. Activation gate
 
-`SHERIFF_POLICY_V1 = ACTIVE` only when all of the following are true on the exact candidate:
+A pre-integration `SHERIFF_POLICY_V1` candidate may be promoted into current `main` only when all of the following are true on the exact candidate:
 
 - this policy exists and contains the non-negotiable laws;
 - verdict schema parses and exposes all required incident classes;
@@ -180,4 +180,4 @@ These are design influences, not external authorities over repository-specific O
 - repository validation + full unittest suite PASS on the PR;
 - fresh GitHub read-back matches the PR HEAD.
 
-Until then, status is PROPOSED and no PASS may be claimed.
+Once the policy is present on current `main` and referenced by current `AGENTS.md`, this policy document is authoritative. That fact does **not** prove any current runtime or production state; runtime/production claims remain separately evidence-bound to their exact runtime and fresh verification.

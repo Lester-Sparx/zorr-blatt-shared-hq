@@ -1,54 +1,41 @@
-# ZB Local Agent Controller v0
+# ZB Local Agent Controller v0 — RETIRED EXECUTION ROUTE
 
-Zero-budget Windows-local controller for fixed-contract ZORR BLATT agent tasks.
+`STATUS = EXECUTION RETIRED / READ-ONLY CONSOLE RETAINED`
 
-## Mocked-green boundary
+The old Windows-local SALVADOR execution route is no longer an active ZORR production path.
 
-Tasks 1–6 implement and test the controller machinery only. They do **not** download or require a production model and do **not** run live SALVADOR generation.
+Fresh product authority is issue #251. Tooling is selected only when the current studio phase requires it. The former fixed route:
 
-Implemented v0 mocked components:
+`SALVADOR -> PRODUCTION_IMAGE_EDIT -> COMFYUI_LOCAL`
 
-- strict `ZB_AGENT_TASK_V0` parser;
-- exact state transition table;
-- fixed-root local inbox/result safety;
-- durable metadata-only GitHub events through fixed `gh` argv;
-- mocked ComfyUI evidence adapter where RUNNING requires a non-empty `prompt_id`;
-- orchestration, duplicate suppression, atomic result persistence, restart-safe one-active-SALVADOR GPU locking, and durable event reconciliation;
-- local accepted-execution journal for prompt/event crash recovery and a deployment-owned execution deadline (`maxExecutionSeconds`);
-- Windows launcher and one-cycle CLI.
+must not be used as a global prerequisite, fallback production path, or substitute for the current product phase.
 
-## Local target
+## Fail-closed execution boundary
 
-```text
-CONTROLLER_DIR = D:\BLATT2\zb-local-agent-controller
-INBOX_ROOT = D:\BLATT2\ZB_AGENT_INBOX
-RESULT_ROOT = D:\BLATT2\ZB_AGENT_RESULTS
-COMFYUI_URL = http://127.0.0.1:8188
-```
-
-Python 3.12+ and authenticated GitHub CLI (`gh auth status`) are required for real polling.
-
-## Verification
+The former daemon entrypoint is deliberately retired:
 
 ```powershell
-python -m pytest -q
 python -m zb_local_controller --once
 ```
 
-`--once` returns `0` after a normal cycle, including no eligible tasks. Configuration failures such as missing/unauthed GitHub CLI return non-zero and never fabricate RUNNING.
+returns non-zero with `RETIRED_PRODUCTION_ROUTE` and does not initialize GitHub polling, task dispatch, or a ComfyUI backend.
 
-Task Scheduler installation and live ComfyUI/model setup are deliberately deferred until after mocked Tasks 1–6 are accepted.
+`agent-controller/scripts/run-controller.cmd` is also fail-closed with the same retirement marker.
 
-## Read-only owner console
+Historical controller/backend/task-contract modules remain in the repository for evidence compatibility and bounded later cleanup. Their presence does not establish production authority or activation.
 
-Install the local `zb` PowerShell command once:
+## Read-only owner console retained
+
+The useful read-only `zb` console remains available. It reads GitHub owner-view evidence and validated local result files; it does not submit production jobs.
+
+Install the local `zb` PowerShell command when needed:
 
 ```powershell
 cd D:\BLATT2\zb-local-agent-controller
 powershell -ExecutionPolicy Bypass -File .\scripts\install-zb-console.ps1
 ```
 
-Use it from any working directory:
+Commands:
 
 ```powershell
 zb
@@ -60,11 +47,6 @@ zb output
 zb watch
 ```
 
-Console v0 is read-only. It reads the latest valid `ZB_OWNER_VIEW_V0`
-snapshot from Shared HQ issue #39 and validated local results under the
-configured result root. It cannot post comments, submit jobs, merge or
-approve changes, activate production, mutate canon, or create OWNER LOCK.
+The console cannot post comments, submit jobs, merge or approve changes, activate production, mutate canon, or create OWNER LOCK.
 
-`zb output` opens only a `result.png` whose PNG signature and SHA-256 match
-its parseable `result.json`. A local result never establishes production or
-canon approval by itself.
+`zb output` opens only a `result.png` whose PNG signature and SHA-256 match its parseable `result.json`. A local result never establishes production or canon approval by itself.

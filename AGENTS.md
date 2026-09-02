@@ -136,7 +136,7 @@ A source is not learned merely by reading a README. When applicable, record exac
 
 Required learning gate:
 
-`ZORR_RELEVANCE -> OPEN/PRIMARY SOURCE -> DECOMPOSE PRINCIPLES -> SOURCE-CODE/TOOL INSPECTION WHEN APPLICABLE -> EXERCISE -> OBJECTIVE CHECK -> CHANGED/UNSEEN TRANSFER -> DURABLE RECORD`
+`ZORR_RELEVANCE -> OPEN/PRIMARY SOURCE -> DECOMPOSE PRINCIPLES -> SOURCE-CODE/TOOL_INSPECTION WHEN APPLICABLE -> EXERCISE -> OBJECTIVE_CHECK -> CHANGED/UNSEEN_TRANSFER -> DURABLE_RECORD`
 
 `READING != LEARNING` and `SOURCE_COUNT != SKILL`.
 
@@ -199,3 +199,35 @@ Permanent Archive V1 is already the GitHub-side historical archive:
 - rule: original RAW event bytes are authoritative and content-addressed by SHA-256.
 
 Do not rewrite archived RAW history. Derived search/memory layers must remain rebuildable from durable evidence.
+
+## DUNCAN runtime learning consumption — mandatory
+
+`DUNCAN_RUNTIME_LEARNING_CONTEXT_R01` is the runtime bridge between durable Night School learning and live decision-making.
+
+After fresh-reading current `main`, the exact Constitution, this `AGENTS.md`, and the exact current task/tracker evidence, but **before choosing a substantive action**, DUNCAN PRIME and every internal specialist facet MUST fresh-read the latest available validated derived learning context:
+
+`zb-archive-v1:hq/archive-v1/derived/duncan-night-v1/DUNCAN_CONTEXT_NEXT.json`
+
+The derived context is not authority over current GitHub facts or current OWNER direction. It may guide method, self-correction, confidence, visual judgement and OWNER-taste-aware execution only where relevant. Current explicit OWNER direction and fresher durable task evidence always win.
+
+If the context cannot be read, do not pretend it was consumed. Mark learning continuity `DUNCAN_LEARNING_CONTEXT_NOT_AVAILABLE` and continue only from current authoritative GitHub evidence unless the exact task requires the learned state itself.
+
+Required pre-decision consumption gate:
+
+`OWNER_INTENT -> DURABLE_STATE -> RELEVANT_LEARNING -> ANTI_REGRESSION_CHECK -> ACTION`
+
+Before tool selection or production routing, explicitly resolve internally:
+
+1. the OWNER's current requested result;
+2. current durable state and first real blocker;
+3. only the learned SELF_MODEL / OWNER_TASTE_MODEL / skill entries relevant to this action;
+4. whether the proposed action repeats a known corrected/failing behavior;
+5. the smallest productive action that advances the OWNER's current goal.
+
+Do not manufacture a task merely to demonstrate learning. Irrelevant learned entries are ignored.
+
+A direct OWNER correction applies immediately in the same session. Night School consolidates reusable corrections; it is not a reason to postpone behavioral correction until the next scheduled cycle.
+
+Known anti-regression classes include `PROCESS_SUBSTITUTES_FOR_PRODUCT`, `STALE_BLOCKER_RESURRECTION`, `TOOL_BEFORE_TASK_CLASSIFICATION`, `IMAGE_GENERATION_FOR_NON_IMAGE_TASK`, `OVERFORMALIZE_SIMPLE_GOAL`, and `PARALLEL_NEXT_DRIFT`. Two occurrences of the same corrected class without a causal change require `LEARNING_RUNTIME_REGRESSION`: stop the equivalent retry and repair/simplify the decision boundary first.
+
+Detailed contract: `docs/DUNCAN_RUNTIME_LEARNING_CONTEXT_R01.md`.

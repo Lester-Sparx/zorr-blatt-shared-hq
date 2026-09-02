@@ -1,31 +1,18 @@
-from zb_local_controller.github_cli import GitHubConfigurationError
-from zb_local_controller.__main__ import main
+from zb_local_controller.__main__ import RETIRED_CODE, main
 
 
-class NoIssuesGitHub:
-    def __init__(self, repository):
-        self.repository = repository
-        self.posts = []
-    def list_candidate_issues(self):
-        return []
-    def post_comment(self, n, body):
-        self.posts.append((n, body))
-
-
-class BrokenGitHub(NoIssuesGitHub):
-    def list_candidate_issues(self):
-        raise GitHubConfigurationError("GH_NOT_AUTHENTICATED")
-
-
-class NeverUsedBackend:
-    def ensure_ready(self): raise AssertionError("backend must not run with no tasks")
-
-
-def test_once_no_eligible_tasks_exits_zero_and_never_dispatches():
-    exit_code = main(["--once"], github_factory=NoIssuesGitHub, backend_factory=lambda cfg: NeverUsedBackend())
-    assert exit_code == 0
-
-
-def test_configuration_failure_exits_nonzero():
-    exit_code = main(["--once"], github_factory=BrokenGitHub, backend_factory=lambda cfg: NeverUsedBackend())
+def test_execution_entrypoint_is_retired_fail_closed(capsys):
+    exit_code = main(["--once"])
+    captured = capsys.readouterr()
     assert exit_code != 0
+    assert RETIRED_CODE in captured.err
+
+
+def test_injected_legacy_factories_do_not_reactivate_execution(capsys):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("retired execution dependency must not be initialized")
+
+    exit_code = main(["--once"], github_factory=forbidden, backend_factory=forbidden)
+    captured = capsys.readouterr()
+    assert exit_code != 0
+    assert RETIRED_CODE in captured.err

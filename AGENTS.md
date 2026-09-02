@@ -116,6 +116,8 @@ Before writing infrastructure, search existing project code, native/platform cap
 3. Freeze the proven base.
 4. Expand only after that gate passes.
 
+Only after the base is PASS/LOCKED may optional features, expansion, dashboards, optimization, competitions, or unrelated architecture resume.
+
 Do not preserve process complexity merely because it already exists.
 
 ## SHERIFF safety and discipline

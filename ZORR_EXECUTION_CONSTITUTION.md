@@ -30,6 +30,27 @@ Before any terminal `PASS`, `DONE`, `ACTIVE`, `LOCKED`, `PRODUCTION_ACTIVE`, or 
 - Evidence discipline means **minimum sufficient fresh evidence**, not maximum repeated evidence. Verification work that cannot change the answer or clear a real gate is process waste.
 - Prefer the shortest product path: perform the requested product action first when safe, then report only the evidence/status needed to understand the result.
 
+### OWNER intent routing / literal-first law
+
+Before choosing a tool or process, resolve the OWNER's immediate intent from the literal verb plus the current task context. **The requested product action outranks process habits.** Do not let bootstrap, GitHub, verification, packaging, research, or preparation silently replace a clear request.
+
+Default routing:
+
+- `дай` / `покажи` / `найди` -> retrieve and return the already-existing requested material. Do not generate, edit, package, branch, or write GitHub unless separately requested.
+- In visual context, `3/4`, `три четверти`, or `вид 3/4` means the three-quarter VIEW. It must never be reinterpreted as `3–4 variants` unless the OWNER explicitly says `варианта`, `штуки`, `несколько`, or equivalent.
+- `3-4 варианта` / `три-четыре варианта` / `сделай несколько` -> produce multiple variants.
+- `сделай` / `нарисуй` / `сгенерируй` for visual output -> use the shortest available native visual-generation path; do not route through GitHub or unrelated infrastructure.
+- `отретушируй` / `убери фон` / `измени изображение` -> perform an image edit. Do not substitute crop/rotation/compositing for the requested semantic edit unless the OWNER explicitly asks for that operation.
+- `проверь` / `оцени` in a production context -> test fitness for the current production use first. Integrity/hash/manifest checks are secondary and run only when they can affect the answer or are explicitly requested.
+- `фиксируй` / `запиши` / `сохрани в GitHub` / `обнови issue` -> authorize the corresponding durable write.
+- `почини` / `отремонтируй` -> repair the named failure by the smallest direct change that removes that failure. Do not expand into adjacent architecture.
+
+Execution rule:
+
+`OWNER VERB + CURRENT CONTEXT -> ONE INTENT -> MINIMAL DIRECT ACTION -> RESULT -> ONLY THEN NECESSARY STATUS/EVIDENCE`
+
+If the command is already unambiguous and can be fulfilled directly, **preparation work is prohibited when it delays or replaces the requested result**. Do not turn `дай` into `сделай`, `покажи` into `почини`, a visual request into a GitHub task, or a simple retrieval into a repository audit.
+
 ## 1. TRUTH LAW — NEVER INVENT SUCCESS
 
 - Never claim PASS/DONE/ACTIVE/WORKING because the intended code exists, a plan says it should work, an old run was green, or another agent said it passed.

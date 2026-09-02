@@ -2,7 +2,7 @@ name: zb-sheriff
 
 services:
   forgejo:
-    image: codeberg.org/forgejo/forgejo:15.0.7
+    image: codeberg.org/forgejo/forgejo:15.0.7@sha256:1f9c1a9880425614267832ce437f8ae5f5b69e1f3219f38fc468fc37e48c1919
     restart: unless-stopped
     environment:
       FORGEJO__database__DB_TYPE: sqlite3
@@ -14,11 +14,11 @@ services:
       - forgejo-data:/data
 
   nats:
-    image: nats:2.10-alpine
+    image: nats:2.10-alpine@sha256:b83efabe3e7def1e0a4a31ec6e078999bb17c80363f881df35edc70fcb6bb927
     restart: unless-stopped
     command: ["-c", "/etc/nats/nats.conf"]
     environment:
-      NATS_PASSWORD: ${NATS_PASSWORD:-sheriff-dev-only}
+      NATS_PASSWORD: ${NATS_PASSWORD:?required}
     expose:
       - "4222"
       - "8222"
@@ -28,7 +28,7 @@ services:
       - nats-data:/data/jetstream
 
   opa:
-    image: openpolicyagent/opa:1.0.1-static
+    image: openpolicyagent/opa:1.0.1-static@sha256:46e10721113652fee1f553960cc5a0d96a01164760efc5e9423bbc1cc453b31d
     restart: unless-stopped
     command: ["run", "--server", "--addr=0.0.0.0:8181", "/policy"]
     expose:
@@ -38,12 +38,12 @@ services:
       - ./opa:/policy:ro
 
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
     restart: unless-stopped
     environment:
       POSTGRES_DB: sheriff
       POSTGRES_USER: sheriff
-      POSTGRES_PASSWORD: ${SHERIFF_DB_PASSWORD:-sheriff-dev-only}
+      POSTGRES_PASSWORD: ${SHERIFF_DB_PASSWORD:?required}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sheriff -d sheriff"]
       interval: 5s
@@ -57,7 +57,7 @@ services:
       - ./postgres:/docker-entrypoint-initdb.d:ro
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.117.0
+    image: otel/opentelemetry-collector-contrib:0.117.0@sha256:631637f7b33668eda594011d5f173100a3fe245da7fa8dae0885b368da4d0a6e
     restart: unless-stopped
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
@@ -67,7 +67,7 @@ services:
       - "4318"
 
   prometheus:
-    image: prom/prometheus:v3.1.0
+    image: prom/prometheus:v3.1.0@sha256:6559acbd5d770b15bb3c954629ce190ac3cbbdb2b7f1c30f0385c4e05104e218
     restart: unless-stopped
     command: ["--config.file=/etc/prometheus/prometheus.yml"]
     volumes:
@@ -77,7 +77,7 @@ services:
       - "9090"
 
   loki:
-    image: grafana/loki:3.3.2
+    image: grafana/loki:3.3.2@sha256:8af2de1abbdd7aa92b27c9bcc96f0f4140c9096b507c77921ffddf1c6ad6c48f
     restart: unless-stopped
     command: ["-config.file=/etc/loki/local-config.yaml"]
     volumes:
@@ -87,11 +87,11 @@ services:
       - "3100"
 
   grafana:
-    image: grafana/grafana-oss:11.4.0
+    image: grafana/grafana-oss:11.4.0@sha256:d8ea37798ccc41061a62ab080f2676dda6bf7815558499f901bdb0f533a456fb
     restart: unless-stopped
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin-dev-only}
-      SHERIFF_DB_PASSWORD: ${SHERIFF_DB_PASSWORD:-sheriff-dev-only}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?required}
+      SHERIFF_DB_PASSWORD: ${SHERIFF_DB_PASSWORD:?required}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -107,8 +107,8 @@ services:
       dockerfile: config/sheriff/Dockerfile.worker
     restart: unless-stopped
     environment:
-      SHERIFF_NATS_URL: nats://sheriff:${NATS_PASSWORD:-sheriff-dev-only}@nats:4222
-      SHERIFF_POSTGRES_DSN: postgresql://sheriff:${SHERIFF_DB_PASSWORD:-sheriff-dev-only}@postgres:5432/sheriff
+      SHERIFF_NATS_URL: nats://sheriff:${NATS_PASSWORD:?required}@nats:4222
+      SHERIFF_POSTGRES_DSN: postgresql://sheriff:${SHERIFF_DB_PASSWORD:?required}@postgres:5432/sheriff
       SHERIFF_OPA_URL: http://opa:8181/v1/data/zorr/sheriff/decision
       SHERIFF_METRICS_PORT: "9464"
       SHERIFF_EVENT_SCHEMA_PATH: /app/schemas/SHERIFF_AGENT_EVENT_V1.schema.json

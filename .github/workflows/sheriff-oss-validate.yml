@@ -14,6 +14,8 @@ on:
       - 'tests/test_sheriff_core.py'
       - 'tests/test_sheriff_oss_control_plane.py'
       - 'tests/test_sheriff_policy_v1.py'
+      - 'tests/test_sheriff_secret_fail_closed_r02.py'
+      - 'tests/test_sheriff_image_provenance_r02.py'
       - 'tests/test_sheriff_worker_contract.py'
       - 'tests/test_sheriff_stabilization_v1.py'
       - '.github/workflows/sheriff-oss-validate.yml'
@@ -43,7 +45,11 @@ jobs:
       - name: Compile Python glue
         run: python3 -m py_compile scripts/sheriff_core.py scripts/sheriff_worker.py
 
-      - name: Parse Docker Compose
+      - name: Parse Docker Compose with explicit ephemeral validation secrets
+        env:
+          NATS_PASSWORD: ci-nats-${{ github.run_id }}
+          SHERIFF_DB_PASSWORD: ci-db-${{ github.run_id }}
+          GRAFANA_ADMIN_PASSWORD: ci-grafana-${{ github.run_id }}
         run: docker compose -f config/sheriff/docker-compose.yml config
 
       - name: Run opa test

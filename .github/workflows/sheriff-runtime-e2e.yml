@@ -9,6 +9,8 @@ on:
       - "requirements-sheriff.txt"
       - ".github/workflows/sheriff-runtime-e2e.yml"
       - "tests/test_sheriff_runtime_e2e_contract.py"
+      - "tests/test_sheriff_secret_fail_closed_r02.py"
+      - "tests/test_sheriff_image_provenance_r02.py"
   workflow_dispatch:
 
 permissions:
@@ -18,6 +20,10 @@ jobs:
   runtime-e2e:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      NATS_PASSWORD: ci-nats-${{ github.run_id }}
+      SHERIFF_DB_PASSWORD: ci-db-${{ github.run_id }}
+      GRAFANA_ADMIN_PASSWORD: ci-grafana-${{ github.run_id }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

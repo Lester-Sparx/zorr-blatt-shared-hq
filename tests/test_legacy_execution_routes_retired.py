@@ -9,10 +9,10 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 
 
 class LegacyExecutionIngressRetirementTests(unittest.TestCase):
-    def test_base_compatibility_ingress_is_hard_disabled(self) -> None:
+    def test_base_compatibility_ingress_is_unreachable_and_has_no_executor(self) -> None:
         text = (WORKFLOWS / "zb-communication-base.yml").read_text(encoding="utf-8")
         self.assertIn("LEGACY_EXECUTION_ROUTE_RETIRED", text)
-        self.assertIn("if: ${{ false }}", text)
+        self.assertIn("github.event.issue.number == 0", text)
         self.assertNotIn("runs-on: [self-hosted", text)
         self.assertNotIn("runs-on: windows-2025", text)
         self.assertNotIn("task zb:exec:", text)

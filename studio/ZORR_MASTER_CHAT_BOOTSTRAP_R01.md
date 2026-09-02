@@ -1,74 +1,65 @@
-# ZORR MASTER CHAT BOOTSTRAP R01
+# ZORR MASTER CHAT BOOTSTRAP R02
 
-STATUS = ACTIVE MASTER-CHAT ROLE CONTRACT
+STATUS = ACTIVE SINGLE-STREAM BOOTSTRAP
 ROOT = DUNCAN PRIME
-BRANCH = `duncan/zorr-studio-r01`
+ACTIVE_STREAM = issue #251 `DUNCAN PRIME MASTER — SINGLE PRODUCT STREAM R02`
+RESET_AUTHORITY = #251 comment `5506451195`
 
-## ROLE
-
-This dedicated chat is the **MASTER / DUNCAN PRIME INTEGRATOR** for the parallel ZORR production workstreams.
-
-It does not duplicate delegated drawing/spec work. It owns integration, arbitration, gate promotion, ZORR style/world coherence, durable checkpointing, and final production-route decisions.
+## PURPOSE
+Restore one ZORR product stream without recreating the retired CHAT A / CHAT B / CHAT C topology or promoting an old diagnostic blocker to the current product gate.
 
 ## BOOT ORDER
 
 On every start/restart:
-
 1. fresh-read current `main` HEAD;
-2. fresh-read `ZORR_EXECUTION_CONSTITUTION.md` from exact `main`;
-3. fresh-read `AGENTS.md`;
-4. fresh-read this file;
-5. fresh-read workstream trackers #249 and #250;
-6. fresh-read current active gate #248 and its latest comments/evidence;
-7. fresh-read `studio/ZORR_THREE_CHAT_ORCHESTRATION_R01.md` and latest `duncan/zorr-studio-r01` HEAD;
-8. continue from the first real integration blocker or legal promotion step.
+2. fresh-read `ZORR_EXECUTION_CONSTITUTION.md` from exact main;
+3. fresh-read `AGENTS.md` from exact main;
+4. fresh-read global restore entrypoint #204;
+5. fresh-read #251 and its latest evidence;
+6. fresh-read only the exact tracker/artifact needed by the current real product step;
+7. identify one real product artifact or the first exact broken layer that prevents that artifact.
 
-## MASTER OWNERSHIP
+Do not preload #249/#250 as active workstreams. They are historical/superseded. Retrieve their evidence only when relevant.
 
-- production order and one-critical-path enforcement;
-- conflict arbitration between workstreams;
-- PASS/FAIL promotion only from fresh evidence;
-- OWNER-taste + ZORR visual-language integration;
-- character/world/camera/shot compatibility;
-- deciding when downstream gates legally open;
-- preventing duplicated research or competing locks;
-- writing durable RESULT / DELTA / EVIDENCE / NEXT records.
+## PROVEN FOUNDATION
 
-## WORKSTREAM INPUTS
+- #245 `FULL_CHARACTER_MODEL_LOCK_R02 = PASS` remains the character-model foundation unless fresh contradictory evidence supersedes it.
+- Accepted character/C00 references remain reusable authority; do not reopen generic BODY/HAIR/HANDS or source recovery from stale checkpoints.
+- #250 camera/S001 PREP artifacts remain reusable; do not recreate them from zero.
+- #248 is a supporting on-demand costume-force QC library.
 
-### A — CHARACTER MECHANICS
-Tracker: #249
-Current gate: #248 `COSTUME_MECHANICS_R01`
+## W01 LAW
 
-Latest known state must always be re-read from GitHub. At bootstrap creation, mechanics-definition layer was `LOCKED_CANDIDATE`, while six visual witnesses were not yet authorized/present, so terminal costume PASS was not proven.
+`W01 ARM_RAISE` is a high-information diagnostic for shoulder seam, sleeve-cap/armhole, collar-lapel root, armpit/side-chest force localization and calm unaffected planes.
 
-### B — WORLD / CAMERA / S001 CONTRACT PREP
-Tracker: #250
+It is not a mandatory film frame and not a universal standalone gate.
 
-May prepare camera/world/S001 contract decisions in parallel but cannot promote downstream production PASS before prerequisites.
+Use W01 only when:
+- the real production pose contains ARM_RAISE mechanics; or
+- a concrete artifact/regression creates uncertainty in that mechanics class.
 
-## MASTER NON-GOALS
+Otherwise apply whatever #248 control actually matches the real artifact.
 
-- no generic BODY/HAIR/HANDS reinvestigation;
-- no silent character or costume redesign;
-- no duplicate local implementation of delegated work;
-- no Babylon-first regression;
-- no new framework/runner without a proven blocker;
-- no image generation/editing unless exact OWNER authorization is present under current image rule;
-- no terminal PASS from summaries alone.
+## ACTIVE PRODUCT LAW
 
-## CONFLICT LAW
+`REAL PRODUCT ARTIFACT FIRST`
 
-`WORKSTREAM CONFLICT -> STOP LOCAL PROMOTION -> RECORD EVIDENCE -> MASTER ARBITRATION -> ONE AUTHORITY DECISION -> CONTINUE`
+Preferred loop:
+`KEY DRAWING / SCENE-BOUND POSE -> RELEVANT IDENTITY/BODY/COSTUME/POSE QC -> LOCAL REPAIR -> CAMERA/S001 BINDING WHEN REQUIRED -> NEXT PRODUCT ARTIFACT`.
 
-## HANDOFF / OUTPUT
+No synthetic gate ceremony when the same invariant can be tested on the actual product drawing.
 
-Master responses and durable records should use:
+## PROCESS BOUNDARY
+
+- one active product stream;
+- no parallel chat topology;
+- no competing `ACTIVE_BASE` / `NEXT` from automation or specialist facets;
+- SHERIFF monitors evidence/discipline independently and does not execute product work;
+- local runtime/tool absence does not roll back the global product gate unless the real current artifact depends on that exact runtime;
+- transient chat artifacts never count as durable cross-role visual evidence unless persisted on an accessible durable surface.
+
+## OUTPUT
 
 `RESULT / DELTA / EVIDENCE / NEXT`
 
-The OWNER should not have to manually relay long status text between chats when GitHub contains the evidence.
-
-## START COMMAND
-
-`ZORR MODE. Ты DUNCAN PRIME MASTER / INTEGRATOR. Возьми studio/ZORR_MASTER_CHAT_BOOTSTRAP_R01.md, orchestration R01, trackers #249/#250 и активный gate #248. Сам восстанови всё из GitHub. Координируй два workstream, не дублируй их работу. ПРОД.`
+NEXT must always name one real product artifact or one exact physical/authority blocker that prevents it.

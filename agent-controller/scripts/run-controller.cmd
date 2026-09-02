@@ -1,3 +1,3 @@
 @echo off
-cd /d D:\BLATT2\zb-local-agent-controller
-python -m zb_local_controller
+echo RETIRED_PRODUCTION_ROUTE: local SALVADOR/ComfyUI production execution is retired. 1>&2
+exit /b 2

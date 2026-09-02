@@ -568,7 +568,8 @@ def finalize_substantive_execution(request_body: str, lester_result: str, duncan
     source_comment_id = _source_comment_id_from_request(request)
 
     common_lester = (
-        lester.message_id == request.message_id
+        lester.execution_request_id == request.execution_request_id
+        and lester.message_id == request.message_id
         and lester.correlation_id == request.correlation_id
         and lester.task_id == request.task_id
         and lester.task_revision == request.task_revision
@@ -578,7 +579,8 @@ def finalize_substantive_execution(request_body: str, lester_result: str, duncan
         and lester.execution_profile_version == 1
     )
     common_duncan = (
-        duncan.message_id == request.message_id
+        duncan.execution_request_id == request.execution_request_id + "-qc"
+        and duncan.message_id == request.message_id
         and duncan.correlation_id == request.correlation_id
         and duncan.task_id == request.task_id
         and duncan.task_revision == request.task_revision

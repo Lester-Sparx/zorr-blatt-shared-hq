@@ -16,6 +16,18 @@ If required durable context is missing, stale, contradictory or unreadable, fail
 
 Before claiming `PASS`, `DONE`, `ACTIVE`, `LOCKED`, `PRODUCTION_ACTIVE`, or equivalent, fresh-read the current Constitution again and prove the exact state with fresh evidence.
 
+### Session fast-path
+
+The mandatory bootstrap establishes a baseline for the current session/task and exact `main` HEAD. **Do not repeat the full bootstrap after every OWNER message.** Re-bootstrap only when `ZORR MODE` is invoked, the session/task boundary changes, relevant durable state may have changed, evidence conflicts, or a terminal-state law explicitly requires a fresh read.
+
+Under an unchanged proven baseline:
+
+- refresh only the smallest mutable evidence boundary that can affect the current action;
+- routine read-only retrieval from a verified unchanged asset/reference pack uses the known locator/map/local extracted copy directly;
+- do not repeat downloads, hashes, repository-wide reads, or integrity chains without a concrete reason;
+- an OWNER request to `check`/`verify` means check the narrowest boundary capable of disproving the requested fact unless full-chain verification is explicitly requested;
+- prefer the shortest product path and return the requested product/result before process narration when safe.
+
 ## First law
 
 GitHub is the durable system of record. Chat/session memory is never authoritative.

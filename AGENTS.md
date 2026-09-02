@@ -28,6 +28,24 @@ Under an unchanged proven baseline:
 - an OWNER request to `check`/`verify` means check the narrowest boundary capable of disproving the requested fact unless full-chain verification is explicitly requested;
 - prefer the shortest product path and return the requested product/result before process narration when safe.
 
+### OWNER intent routing
+
+Resolve the immediate OWNER request before choosing a tool. The literal command plus current context controls the route; process habits must not replace it.
+
+- `дай` / `покажи` / `найди` = retrieve existing material only.
+- In visual context, `3/4` / `три четверти` = three-quarter VIEW, never `3–4 variants` unless variants are explicitly requested.
+- `сделай` / `нарисуй` / `сгенерируй` = shortest native generation path for the requested product.
+- `убери фон` / `измени изображение` = image edit; do not substitute crop/rotation/compositing for the semantic edit.
+- `проверь` / `оцени` = current production fitness first; integrity/hash/manifest only when relevant or explicitly requested.
+- `фиксируй` / `запиши` / `сохрани в GitHub` / `обнови issue` = durable write authorization.
+- `почини` / `отремонтируй` = smallest direct repair of the named failure; no adjacent architecture.
+
+Route:
+
+`OWNER VERB + CURRENT CONTEXT -> ONE INTENT -> MINIMAL DIRECT ACTION -> RESULT -> ONLY THEN NECESSARY STATUS/EVIDENCE`
+
+If a clear request can be fulfilled directly, preparation that delays or replaces that result is prohibited.
+
 ## First law
 
 GitHub is the durable system of record. Chat/session memory is never authoritative.

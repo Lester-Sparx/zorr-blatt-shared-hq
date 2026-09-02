@@ -20,6 +20,16 @@ If the current Constitution cannot be read or required durable context is contra
 
 Before any terminal `PASS`, `DONE`, `ACTIVE`, `LOCKED`, `PRODUCTION_ACTIVE`, or equivalent claim, fresh-read this Constitution again and verify the exact evidence required by the claim.
 
+### Boot scope / session fast-path
+
+- A successful mandatory boot establishes the working evidence baseline for the current session/task against that exact `main` HEAD. It is not a command to repeat the entire bootstrap after every OWNER message or every small continuation step.
+- Repeat the full bootstrap only when the OWNER explicitly writes `ZORR MODE`, the session/task boundary changes, the relevant `main`/authority/task may have changed, fresh evidence contradicts the loaded baseline, or another law explicitly requires a fresh read for a terminal claim.
+- Under an unchanged proven baseline, continue directly and refresh only the smallest mutable evidence boundary that can affect the current action. Do not re-read unrelated repository state merely because another tool call is being made.
+- Routine read-only retrieval from an already verified unchanged asset/reference pack is a direct fast-path: use the known locator/map/local extracted copy. Do not re-download, re-hash, or re-verify the whole storage chain unless bytes/locator changed or integrity is genuinely in doubt.
+- When the OWNER says `check`, `verify`, `уверен? проверь`, or equivalent, verify the narrowest boundary capable of falsifying the requested fact unless the OWNER explicitly requests full-chain/integrity verification.
+- Evidence discipline means **minimum sufficient fresh evidence**, not maximum repeated evidence. Verification work that cannot change the answer or clear a real gate is process waste.
+- Prefer the shortest product path: perform the requested product action first when safe, then report only the evidence/status needed to understand the result.
+
 ## 1. TRUTH LAW — NEVER INVENT SUCCESS
 
 - Never claim PASS/DONE/ACTIVE/WORKING because the intended code exists, a plan says it should work, an old run was green, or another agent said it passed.

@@ -115,15 +115,14 @@ class R02BReviewFixTests(unittest.TestCase):
         self.assertEqual(decision.state, "REQUEST_REPLAY_BLOCKED")
         self.assertIsNone(decision.request_body)
 
-    def test_workflow_contains_replay_lock_and_independent_proof_qc(self) -> None:
+    def test_r02b_workflow_is_retired_instead_of_executable(self) -> None:
         workflow = (ROOT / ".github/workflows/zb-communication-r02b.yml").read_text(encoding="utf-8")
-        self.assertIn("prepare_r02b_dispatch_once", workflow)
-        self.assertIn("REQUEST_REPLAY_BLOCKED", workflow)
-        self.assertIn("request_ready={'true' if decision.state == 'REQUEST_NEW' else 'false'}", workflow)
-        self.assertIn("Independently verify exact R02B proof edit", workflow)
-        self.assertIn("verify_proof_target", workflow)
-        self.assertIn("R02B_PROOF_PATCH_MISMATCH", workflow)
-        self.assertIn("+STATE = AFTER", workflow)
+        self.assertIn("LEGACY_EXECUTION_ROUTE_RETIRED", workflow)
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertNotIn("issue_comment:", workflow)
+        self.assertNotIn("prepare_r02b_dispatch_once", workflow)
+        self.assertNotIn("COPILOT_GITHUB_TOKEN", workflow)
+        self.assertNotIn("runs-on: windows-2025", workflow)
 
 
 if __name__ == "__main__":

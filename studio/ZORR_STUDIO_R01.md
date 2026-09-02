@@ -1,204 +1,129 @@
-# ZORR STUDIO R01
+# ZORR STUDIO R02
 
 Branch: `duncan/zorr-studio-r01`
+Active master stream: issue #251 `DUNCAN PRIME MASTER — SINGLE PRODUCT STREAM R02`
+Reset authority: #251 comment `5506451195`
 
 ## Purpose
 
-This branch is the durable production branch for developing ZORR as a 2D anime studio system.
+This branch is the durable production branch for developing ZORR as a drawn 2D anime production system.
 
-The final product is drawn 2D anime. Tools exist to serve that result, not to become the product.
+`PRODUCT > PROCESS`
+
+Tools, QC controls, diagnostics, editors, rigs and automation exist to serve real ZORR frames/shots. They are not the product and must not become synthetic hard gates without a proven need.
 
 ## Production hierarchy
 
 DUNCAN PRIME
 -> MATH / QC ENGINE
--> DESIGN ENGINE + DRAW ENGINE + SCENE ENGINE
--> KEY DRAWING
--> OPENTOONZ PRIMARY
--> Plastic / Skeleton / Xsheet
--> primary acting
--> secondary motion
--> 2.5D camera / parallax / FX
+-> DESIGN + DRAW + SCENE DECISIONS
+-> REAL KEY DRAWING / SCENE-BOUND POSE
+-> RELEVANT QC / LOCAL REPAIR
+-> approved LINE / COLOR / SHADOW / MATERIAL
+-> GOLDEN KEYFRAME
+-> separated animation source when required
+-> shot base / camera / depth
+-> animation / secondary / FX
 -> render
 -> measured QC
 
-Babylon is optional 3D spatial previz only when a shot proves a real need for geometry, perspective, contact, weapon trajectory, occlusion, architecture, or a difficult camera move.
+OpenToonz remains a preferred mature OSS animation mechanism when the real shot reaches animation/source readiness. Babylon remains optional spatial evidence only when a real shot proves a geometry/perspective/contact/camera blocker.
 
-## Three iron laws
+## Core laws
 
-1. GEOMETRY FIRST.
-2. MOTION SECOND.
-3. STYLE THIRD.
+1. `REAL PRODUCT ARTIFACT FIRST`.
+2. `GEOMETRY / IDENTITY MUST SURVIVE`.
+3. `MOTION SERVES THE SHOT`.
+4. `STYLE / CONTROLLED VIOLATION COMES AFTER READABILITY`.
+5. `KEY DRAWING FIRST` for major pose/identity change; do not stretch one raster beyond its valid range.
+6. `ONE ACTIVE PRODUCT STREAM` — no parallel A/B/C execution topology.
+7. Apply diagnostics/QC to the real product artifact whenever possible instead of producing synthetic gate artifacts.
+8. No new framework, bridge, daemon, runner, editor or custom deformation system without a concrete product blocker.
+9. Fresh GitHub evidence wins over historical tracker bodies and local runtime snapshots.
 
-The final authority is the measured rendered output.
-
-## Production laws
-
-- KEY DRAWING FIRST for major pose or identity change.
-- Character identity must survive repeated reuse across shots.
-- A character design is defective if it cannot be decomposed into logical animatable masses.
-- Math/QC controls motion; it does not replace drawing or acting.
-- No new framework, bridge, daemon, custom rigging engine, scene editor, or deformation engine before a real blocker is proven.
-- Do not force one drawing through deformation beyond its valid range. Add a new key drawing.
-- Do not continue broad tool research after a sufficient OSS solution is proven.
-- Do not delete Babylon work; preserve it as spatial mathematics and previz evidence.
-
-## Controlled Violation / Reference Axes
-
-`STYLE THIRD` is governed by constrained expressive violation, not by style imitation.
-
-Core optimization:
+## Reference / controlled violation law
 
 `MAXIMIZE EXPRESSIVE VIOLATION`
-
 subject to:
+- identity survives;
+- fashion/silhouette reads;
+- attention/readability survives;
+- structural/render integrity survives.
 
-- `IDENTITY = PASS`
-- `FASHION / SILHOUETTE READ = PASS`
-- `ATTENTION / READABILITY = PASS`
-- `RENDER / STRUCTURAL INTEGRITY = PASS`
-
-Reference-axis law:
-
-- JOJO REFERENCE AXIS = pose as icon + fashion as character geometry + authored color contradiction + controlled graphic/psychedelic violation.
-- BLEACH REFERENCE AXIS = silhouette discipline + value hierarchy + selective light + impact clarity + readable high-energy FX.
-- ZORR AUTHORITY = ZORR character truth + ZORR shot intent + ZORR identity. Reference principles may inform decisions; reference appearance never becomes authority.
-
-Hard equation:
+JoJo / Bleach and other atlas anchors provide transferable principles, never appearance authority or cloning targets.
 
 `REFERENCE PRINCIPLE != REFERENCE APPEARANCE`
 
-Production sequence:
+## Proven character foundation
 
-`ZORR TRUTH -> STABLE ANCHOR -> CONTROLLED VIOLATION -> READABILITY QC -> ACCEPT / REJECT`
+#245 `FULL_CHARACTER_MODEL_LOCK_R02 = PASS` is the current proven character-model foundation unless fresher contradictory evidence appears.
 
-Hard FAIL conditions:
+Therefore generic BODY / HAIR / HANDS / FACE / character-pack reconstruction is frozen. Repair only a conflict that a real new artifact actually exposes.
 
-- color / psychedelic violation destroys face or character identity = FAIL;
-- fashion mass or primary silhouette stops reading = FAIL;
-- extreme pose becomes accidental anatomy breakage = FAIL;
-- FX accidentally erases the primary silhouette or authored attention anchor = FAIL;
-- decorative violation has no narrative / emotional / compositional function = REMOVE OR REJECT;
-- deformation exceeds the safe range of the current drawing = NEW KEY DRAWING, not stronger deformation;
-- resemblance to JoJo, BLEACH, or any reference is never evidence of PASS.
+## Costume mechanics role
 
-Primary synthesis rule:
+#248 is now `SUPPORTING / ON-DEMAND QC`.
 
-`JOJO TEACHES PERMISSION TO VIOLATE.`
-`BLEACH TEACHES DISCIPLINE UNDER VIOLATION.`
-`ZORR DECIDES WHAT THE VIOLATION MEANS.`
+Its six controls remain reusable force tests:
+- ARM_RAISE;
+- ELBOW_90;
+- TORSO_TWIST;
+- SEATED_COMPRESSION;
+- KNEE_BEND;
+- STRIDE_ANKLE.
 
-The objective is not to average JoJo and BLEACH into a generic anime style. The objective is for borrowed principles to make the final result more recognizably ZORR, not more recognizably the reference.
+`W01 ARM_RAISE` is high-information because it simultaneously attacks shoulder seam, sleeve-cap/armhole, lapel root, side-chest/armpit force localization and calm opposite planes. It is not a mandatory film frame.
 
-## Anti-Doll Training / QC
+Use only the controls relevant to the actual production pose, or run a standalone diagnostic when a concrete regression requires it.
 
-Durable measurement and correction router:
+## Camera / S001 prep
 
-`studio/ZORR_ANTI_DOLL_MEASUREMENT_MATRIX_R01.md`
+The former Workstream B produced reusable PREP-only contracts:
+- `studio/CAMERA_LAYOUT_VISUAL_R01.md`;
+- `studio/S001_SHOT_CONTRACT_R01.md`;
+- `studio/S001_PHYSICAL_SOURCE_CONTRACT_R01.md`.
 
-Core training law:
+#250 is closed because its PREP scope is complete enough for integration. This is not CAMERA/S001 production PASS.
 
-`LIFE != DEFORMATION`
+## Current active product state
 
-Use the matrix to bind anti-doll drills to measurable evidence, first-broken-layer diagnosis, existing C1-C8 correction operators, collateral checks, same-fail stop rules, and `NEW KEY / REDRAW` escalation. It does not authorize image generation/editing and does not change the active production gate.
+`ACTIVE_PRODUCT_STREAM = #251`
 
-## Current production gate
+`CURRENT_PRODUCT_OBJECTIVE = FIRST_REAL_PRODUCTION_KEY_DRAWING / SCENE-BOUND POSE CANDIDATE`
 
-`FULL_CHARACTER_MODEL_LOCK_R02`
+Current durable gap:
+`EXACT_FIRST_SHOT / KEY_DRAWING INTENT = NOT YET PROVEN`
 
-Tracker: `#245`
-Durable spec: `studio/FULL_CHARACTER_MODEL_LOCK_R02.md`
+The S001 prep contract has an identifier and requirement matrix, but its actual shot beat/pose/framing/timing/camera/output values are not locked. Do not replace that missing creative/product decision with W01, Krita, source recovery, OpenToonz installation, or another diagnostic loop.
 
-Current foundation state:
+## Legal next sequence
 
-`CHARACTER FOUNDATION = PASS_CANDIDATE`
+1. Recover any existing durable story/scene/shot intent for the first real ZORR production shot.
+2. If one exact first-shot intent already exists, bind it to the current character foundation and prepared S001/camera contracts.
+3. If no exact first-shot intent exists, record that as `FIRST_SHOT_INTENT_NOT_PROVEN`; selection must come from OWNER/current durable creative authority, not an invented technical default.
+4. Produce/select the real key drawing / scene-bound pose candidate.
+5. Apply only relevant identity/body/costume/pose QC controls to that real artifact.
+6. Repair only failed layers.
+7. Resolve camera/output/S001 fields required by that actual shot.
+8. Continue toward golden keyframe and animation source only from proven product evidence.
 
-The active question is no longer whether BODY / HAIR / HANDS can be built. The active question is whether the accepted sheets prove one coherent reusable character model.
+## Retired active routes
 
-Required proof:
+Do not reactivate without fresher explicit OWNER authority or concrete product-regression evidence:
+- CHAT A / CHAT B / CHAT C parallel execution;
+- #248 as universal serial hard gate;
+- six standalone costume witnesses before unrelated product work;
+- Krita/exact MASTER FRONT direct-edit binding as mandatory product gate;
+- source-pack rediscovery from zero;
+- local ChatGPT/Linux OpenToonz absence as global blocker;
+- historical #231 OpenToonz smoke as current active gate.
 
-`SHEET_1 ... SHEET_6 -> ONE CHARACTER MODEL`
+## Evidence boundary
 
-The gate checks cross-sheet consistency for:
+Transient chat visuals are not durable cross-role evidence unless persisted to an accessible durable surface. Activity/schedule is not execution evidence. No PASS without exact fresh evidence.
 
-- head / face identity;
-- hair topology and crown volume;
-- head/body scale;
-- shoulder / torso / pelvis / limb ratios;
-- hand model and cuff/watch relation;
-- persistent asymmetries and identity markers;
-- costume attachment points;
-- common scale reference;
-- absence of hidden redesign between neutral and extreme acting.
+## Output discipline
 
-Do not regenerate generic BODY / HAIR / HANDS sheets for completeness. Isolate and repair only proven conflicts.
+`RESULT / DELTA / EVIDENCE / NEXT`
 
-## Downstream production route
-
-After `FULL_CHARACTER_MODEL_LOCK_R02 = PASS`:
-
-`COSTUME_MECHANICS_R01`
--> `TOP/CROWN CONTROL` only if a real camera proves it necessary
--> `POSE_MECHANICS_VISUAL_R01`
--> `CAMERA_LAYOUT_VISUAL_R01`
--> approved `LINE / COLOR / SHADOW / MATERIAL` state
--> `GOLDEN KEYFRAME`
--> separated `OPENTOONZ SOURCE PACKAGE`
--> `S001 PHYSICAL SHOT BASE`
--> `OPENTOONZ CUT`
-
-The previous `OPENTOONZ CHARACTER LIFE SMOKE R01` is therefore downstream of character-model consistency and source separation. It is not discarded; it is deferred until the required character/source gates exist.
-
-## Character lock vs shot lock
-
-`CHARACTER MODEL LOCK` answers:
-
-`WHO IS THIS CHARACTER AND WHAT GEOMETRY/IDENTITY STAYS INVARIANT?`
-
-`S001 BASE / SHOT LOCK` answers:
-
-`HOW DOES THE ALREADY-LOCKED CHARACTER ENTER THIS SPECIFIC BG/MID/FG/CAMERA/DEPTH SYSTEM?`
-
-Do not merge these gates.
-
-`9:16` is currently only an `S001-SPECIFIC ASSUMPTION`, not global production canon. Resolve aspect ratio, output resolution, fps, camera field/framing, overscan and push envelope before building physical S001 assets.
-
-## OpenToonz smoke contract — deferred, not cancelled
-
-When character lock + separated source + physical shot base make the test legal, the smoke remains:
-
-- 48 frames
-- 1920x1080 unless superseded by an explicitly resolved shot/output contract
-- 24 fps unless superseded by an explicitly resolved production contract
-- 1 real ZORR character
-- 1 background
-- 1 camera
-- torso motion
-- head motion
-- 1 secondary element
-- 1 parallax move
-
-Required evidence:
-
-- Identity: face and silhouette remain the same character.
-- Rig: deformation does not visibly break the model.
-- Acting: breathing/head motion does not read as simple PNG scaling.
-- Secondary: hair/cloth/accessory lag adds life.
-- Camera: depth and parallax read clearly.
-- Render: clean output exists for the declared contract.
-
-If OpenToonz Plastic reaches a proven physical limitation, only then evaluate the next mature OSS mechanism.
-
-## Scope discipline
-
-This branch develops the studio, not Babylon infrastructure for its own sake.
-
-Every new task must answer at least one of these questions:
-
-- Does this improve character repeatability?
-- Does this improve drawing quality or key-pose production?
-- Does this improve acting or secondary motion?
-- Does this improve scene readability or camera/parallax?
-- Does this improve measurable QC of rendered 2D output?
-
-If none apply, it does not belong in this branch.
+Every NEXT must name one real product artifact or the first exact blocker that prevents that artifact.

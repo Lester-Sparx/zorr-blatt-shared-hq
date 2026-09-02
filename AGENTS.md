@@ -105,15 +105,22 @@ Evidence precedence:
 
 No significant terminal result may exist only in chat. Persist terminal result/blocker with enough exact evidence to recover without the chat.
 
-## Reuse-first / base-first execution
+## Reuse-first execution
 
 Before writing infrastructure, search existing project code, native/platform capabilities and maintained upstream solutions. Custom code is the last resort and should be minimal glue.
 
-Build one minimal reliable base, prove it with fresh evidence, freeze it, then expand. Do not preserve process complexity merely because it already exists.
+## Base-first law
+
+1. Build one minimal reliable base.
+2. Prove it with fresh exact evidence.
+3. Freeze the proven base.
+4. Expand only after that gate passes.
+
+Do not preserve process complexity merely because it already exists.
 
 ## SHERIFF safety and discipline
 
-When handling SHERIFF incidents, discipline, ratings or competitions, fresh-read `docs/SHERIFF_POLICY_V1.md` first. Honest FAIL is not a violation; false PASS/evidence substitution is critical. Safety gates outrank points.
+When handling SHERIFF incidents, discipline, ratings or competitions, fresh-read `docs/SHERIFF_POLICY_V1.md` first. The derived scoreboard is `hq/sheriff/SHERIFF_SCOREBOARD_V1.json`; it is not independent authority. Honest FAIL is not a violation; false PASS/evidence substitution is critical. Safety gates outrank points.
 
 ## Permanent archive
 

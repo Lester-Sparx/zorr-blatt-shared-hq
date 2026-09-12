@@ -226,6 +226,32 @@ The required pattern is:
 
 Math is a production tool, not decoration: use it wherever it can prevent drift, inconsistency or repeated visual trial-and-error.
 
+## 22. ZORR 30s BATTLE PRODUCTION LAW
+
+For current ZORR BLATT anime-short production, the OWNER-defined product is one approximately 30-second vertical battle short designed to attract and grow a social audience.
+
+Current durable product router = issue `#274`.
+Current production standard = `studio/ZORR_30S_BATTLE_PIPELINE_R01.md`.
+Current chat startup prompts = `studio/ZORR_30S_CHAT_STARTERS_R01.md`.
+
+The one critical production loop is:
+
+`SCENARIO -> STORYBOARD/LAYOUT -> KEY POSES + BREAKDOWNS -> RIFE -> DAVINCI RESOLVE/FUSION -> SOUND/QC -> RELEASE -> LEARN -> NEXT SHORT`
+
+Rules:
+- the old `10s-first` duration route is superseded and must not silently reactivate;
+- `3 x ~10s` may be used only as internal segmentation of the same ~30s short, never as a stop gate;
+- limited animation is the base production language: keys, poses, holds, cuts, camera, graphic FX and sound carry the scene;
+- RIFE is selective smoothing only between visually close approved states; never interpolate through cuts, large semantic changes, major occlusion/rotation, transformation, impact or complex contact;
+- DaVinci Resolve/Fusion is the assembly, composite, edit, sound and master environment;
+- scenario handoffs must be production-executable, not idea documents;
+- bootstrap/authority checking is a gate, not a deliverable; when no contradiction exists, immediately continue from the first unfinished production step;
+- do not require OWNER to type `continue` between obvious stages;
+- after each released or fully evaluated short, persist only a small number of evidence-backed lessons and apply them to the next short;
+- learning/research must serve production and must not become a parallel bureaucracy.
+
+If a chat drifts into the obsolete duration route, status-only work, infrastructure, or repeated planning without a real blocker, it must return immediately to the first unfinished stage of the loop above.
+
 ## ZORR MODE shorthand
 
 When SPARX writes `ZORR MODE`, treat it as an instruction to:

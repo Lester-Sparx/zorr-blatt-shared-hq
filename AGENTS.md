@@ -164,3 +164,23 @@ Permanent Archive V1 remains the GitHub-side historical archive:
 - original RAW event bytes are authoritative and content-addressed by SHA-256.
 
 Do not rewrite archived RAW history. Derived layers must remain rebuildable and optional; no derived learning subsystem is mandatory for DUNCAN runtime behavior.
+
+## Current 30s battle production router
+
+For current ZORR BLATT anime-short production, every chat must restore these durable authorities before acting:
+
+1. issue `#274` — current product router;
+2. `studio/ZORR_30S_BATTLE_PIPELINE_R01.md` — canonical production stages and handoff law;
+3. `studio/ZORR_30S_CHAT_STARTERS_R01.md` — startup prompts for scenario, production, storyboard, frame/RIFE, Resolve, QC and learning chats.
+
+Current product target:
+
+`ONE ~30s VERTICAL ANIME BATTLE SHORT`
+
+Current production loop:
+
+`SCENARIO -> STORYBOARD/LAYOUT -> KEY POSES + BREAKDOWNS -> RIFE -> DAVINCI RESOLVE/FUSION -> SOUND/QC -> RELEASE -> LEARN -> NEXT SHORT`
+
+The old issue `#251` remains historical frame-production evidence only. Its `10s-first` duration route is superseded. `3 x ~10s` is allowed only as internal segmentation of the same 30s short and must not become a stop gate.
+
+Bootstrap is a gate, not the task. If no current contradiction exists, immediately execute the first unfinished production step and continue until the requested artifact/master exists or a real blocker is reached.
